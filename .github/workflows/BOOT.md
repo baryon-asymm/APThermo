@@ -35,6 +35,14 @@ lane and CUDA/publishing dependency/event conditions remain unchanged.
 
 ## Acceptance criteria
 
+- [x] 2026-11-15 — R15 local wiring: `test_hosted_tests.py` passes 15 tests,
+  including deliberate lane/filter/package/binding/artifact/timeout/dependency
+  mutations; actionlint 1.7.12 accepts CI/release. Release bytes from cuda-windows
+  onward match the frozen pre-change source exactly. Evidence:
+  `SCRATCH/audit/hosted-test-lanes/hosted-green.txt`, `actionlint.txt` and
+  `frozen-controls.json` in the same directory. Actual hosted evidence stays open.
+
+
 - [ ] R15 workflow guards reject missing/duplicate lane wiring, dropped filters,
   misplaced package/binding steps or colliding artifacts; actual hosted CI and
   release dispatch cover all lanes on both OS with complete source-bound evidence.

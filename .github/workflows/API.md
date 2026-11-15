@@ -36,7 +36,7 @@ The published cp313 wheel installs/imports locally on 3.13.15 with NumPy 2.5.3 a
 empty PATH, and the unchanged sample compares 38 fixtures. Local evidence does
 not replace the required later hosted Windows CI run.
 
-## Hosted test lanes ⏳
+## Hosted test lanes ✅
 
 CI/release hosted jobs partition solution test projects into core/cli/docs per OS,
 through scripts/hosted_tests.py. Every lane persists project-selection/command/

@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   build:
-    name: ${{ matrix.os }} — build & test
+    name: ${{ matrix.os }} — ${{ matrix.lane }} build & test
     runs-on: ${{ matrix.os }}
     env:
       # Job-local, so a run never restores a package a previous run or another job left in a shared
@@ -25,6 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
+        lane: [core, cli, docs]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -49,6 +50,9 @@ jobs:
       - name: Trace runner guard tests
         run: python -X utf8 .github/scripts/test_trace_scan.py
 
+      - name: Hosted runner guard tests
+        run: python -X utf8 .github/scripts/test_hosted_tests.py
+
       # The fixtures' provenance hashes bind an output to the scripts that produced it, never to the reference
       # package's own answer (tests/Fixtures/ACCEPTANCE.md, "The outputs are bound to the generator"): a hand-edited
       # expected value passes every other guard. This step regenerates a sample with the pinned `cea` package in a
@@ -64,7 +68,7 @@ jobs:
       # step runs on the fixtures' own platform (a hosted CPU may differ from the reference machine's, which the
       # tolerance absorbs; plain `regenerate.py --check` compares exact text on the reference machine).
       - name: Fixtures are bound to the generator
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && matrix.lane == 'core'
         shell: bash
         run: |
           python -m venv .venv-fixtures
@@ -78,10 +82,18 @@ jobs:
 
       # The bit snapshots run here too (2026-10-05, root BOOT.md's platform constraint): the tree's own Exp, Log and
       # Pow read nothing of the runner's C runtime, so the one record per node holds on every CPU.
-      - name: Fast test suite
+      - name: Hosted test lane
         env:
           APTHERMO_NO_CUDA: '1'
-        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning"
+        run: python -X utf8 .github/scripts/hosted_tests.py --lane ${{ matrix.lane }} --results-dir artifacts/hosted-tests
+
+      - name: Upload hosted test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: hosted-tests-${{ matrix.os }}-${{ matrix.lane }}
+          path: artifacts/hosted-tests
+          if-no-files-found: error
 
       # Every *.actual.txt (a mismatched or missing bit-snapshot key) and its *.fields.txt per-case field dump
       # (tests/Harness/BOOT.md, "a field dump is a caller's opt-in"), whenever the fast suite above failed.
@@ -89,7 +101,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: bit-snapshot-diagnostics-${{ matrix.os }}
+          name: bit-snapshot-diagnostics-${{ matrix.os }}-${{ matrix.lane }}
           path: |
             **/*.actual.txt
             **/*.actual.json
@@ -97,6 +109,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Determine the package version
+        if: matrix.lane == 'core'
         id: version
         shell: bash
         run: |
@@ -104,12 +117,14 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Pack both packages
+        if: matrix.lane == 'core'
         shell: bash
         run: |
           dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release -p:ContinuousIntegrationBuild=true --output artifacts/packages
           dotnet pack src/Cli/APThermo.Cli.csproj --configuration Release -p:ContinuousIntegrationBuild=true --output artifacts/packages
 
       - name: Samples run against the packaged library
+        if: matrix.lane == 'core'
         shell: bash
         run: |
           set -euo pipefail
@@ -137,6 +152,7 @@ jobs:
           fi
 
       - name: Install the packed tool and run an approved example
+        if: matrix.lane == 'core'
         shell: bash
         run: |
           dotnet tool install APThermo.Cli --tool-path .tool --add-source artifacts/packages --version "${{ steps.version.outputs.version }}"
@@ -184,7 +200,7 @@ jobs:
           dotnet run --project .ci/run-cut --configuration Release -- "$PWD/actual-rocket.json" rocket "$PWD/tests/Docs.Tests/approved/cli/rocket.approved.json"
 
       - name: Upload packages
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.lane == 'core'
         uses: actions/upload-artifact@v7
         with:
           name: packages

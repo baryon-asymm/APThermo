@@ -12,7 +12,7 @@ the probe and the step → HISTORY.md#isaprobe-removed
 
 | File | Triggers | Jobs, in the order of `needs` |
 |---|---|---|
-| `workflows/ci.yml` (name `CI`) | every push, every pull request, manual dispatch | `build`, once per hosted runner `windows-latest` and `ubuntu-latest`: protocol lint, fixtures bound to the generator (Windows only), build, fast suite, packing of both packages, samples against the package, the packed tool's approved example |
+| `workflows/ci.yml` (name `CI`) | every push, every pull request, manual dispatch | `build`, OS × core/cli/docs hosted lanes: protocol lint, build, exact generated test-project partition; core alone runs packing and package consumption on each OS and fixture binding on Windows |
 | `workflows/trace-gas.yml` (name `Trace gas CPU scans`) | affected pushes/PRs, manual dispatch | `trace-scan`, hosted Windows/Linux CPU: documented scan discovery, both complete scans, nonempty discovery/matrix/TRX artifacts |
 | `workflows/release.yml` (name `Release`) | a tag `v*`, manual dispatch | `check`, `matrix` (the hosted matrix), `cuda-windows`, `cuda-linux` (self-hosted, one after the other), `pack`, `publish` (nuget.org, environment `release`, on a push only), `github-release` (on a push only) |
 
@@ -42,3 +42,8 @@ and the action manifest. These now have their own sufficient BOOT/API pairs (A22
 ⚠ 2026-11-14: the previous filters omitted both LongRunning CPU trace scans. The
 separate hosted lane selects them on affected changes; actual hosted-run proof is
 still open. No nightly or self-hosted PR lane was introduced.
+
+⚠ 2026-11-15: CI previously ran one solution-wide test command per OS. Hosted
+CI/release now use the disjoint exhaustive project lanes declared in
+[scripts/API.md](scripts/API.md); the release CUDA/Pack/publication chain is
+unchanged. Actual hosted acceptance is tracked in BOOT.md.

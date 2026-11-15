@@ -57,7 +57,7 @@ jobs:
           path: release-notes.md
 
   matrix:
-    name: ${{ matrix.os }} — build & test
+    name: ${{ matrix.os }} — ${{ matrix.lane }} build & test
     needs: check
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -65,6 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
+        lane: [core, cli, docs]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -88,13 +89,24 @@ jobs:
       - name: Trace runner guard tests
         run: python -X utf8 .github/scripts/test_trace_scan.py
 
+      - name: Hosted runner guard tests
+        run: python -X utf8 .github/scripts/test_hosted_tests.py
+
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
 
-      - name: Fast test suite
+      - name: Hosted test lane
         env:
           APTHERMO_NO_CUDA: '1'
-        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning"
+        run: python -X utf8 .github/scripts/hosted_tests.py --lane ${{ matrix.lane }} --results-dir artifacts/hosted-tests
+
+      - name: Upload hosted test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: hosted-tests-${{ matrix.os }}-${{ matrix.lane }}
+          path: artifacts/hosted-tests
+          if-no-files-found: error
 
       # Mirrors ci.yml's build job: every *.actual.txt/*.fields.txt of a fast-suite failure
       # (tests/Harness/BOOT.md, "a field dump is a caller's opt-in").
@@ -102,7 +114,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: bit-snapshot-diagnostics-${{ matrix.os }}
+          name: bit-snapshot-diagnostics-${{ matrix.os }}-${{ matrix.lane }}
           path: |
             **/*.actual.txt
             **/*.actual.json

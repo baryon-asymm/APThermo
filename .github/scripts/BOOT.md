@@ -55,6 +55,15 @@ must be red. No numerical/GPU/credential/publication operations in local guards.
 
 ## Acceptance criteria
 
+- [x] 2026-11-15 — R15 local controls: `test_hosted_tests.py` passes 15 tests;
+  frozen old workflows fail selection guards, and six frozen runner mutations
+  fail for lost filter/serialization/start persistence/exit/partition/TRX checks.
+  Metadata-only discovery contains 24 solution projects and 11 test projects in
+  a disjoint exhaustive generated partition; no real local test matrix ran.
+  Evidence: `SCRATCH/audit/hosted-test-lanes/hosted-green.txt`,
+  `mutation-results.json`, `actual-discovery-partition.json` in the same directory.
+
+
 - [ ] R15 runner/guard controls and deliberate wiring/discovery/result mutations
   prove exact project coverage and honest started/failed/complete states; actual
   hosted artifacts confirm all generated assignments and real passed TRX.
