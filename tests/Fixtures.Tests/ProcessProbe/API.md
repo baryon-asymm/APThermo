@@ -11,3 +11,16 @@ Spawn: one bounded child inherits streams; child PID in ready-file, parent write
 ready-file.parent and exits after child readiness. Tree mode keeps the parent alive
 for a bounded delay instead, proving descendant termination when the parent is live.
 Each blocking delay is at most twenty seconds, readiness at most five. No public C# declarations.
+
+## Identity and controlled release ✅
+
+Before publishing each PID marker, write `<marker>.identity.json` with ProcessId,
+ParentProcessId (from PROBE_PARENT_ID), StartTimeUtcTicks and LinuxStartTicks (null
+outside Linux). The marker is published atomically after that sidecar. Spawn sets
+PROBE_PARENT_ID to the owning parent probe's PID for its child.
+Controlled mode writes the same bytes/readiness and waits for `<ready-file>.release`,
+then returns the supplied exit code. Its finite self-stop stays twenty seconds;
+readiness still stays within five. Existing modes and their byte/exit contracts remain.
+
+⚠ 2026-11-15: explicit identity and release replace PID-only timing assumptions in
+the owning test controls; they are not a production process-runner interface.

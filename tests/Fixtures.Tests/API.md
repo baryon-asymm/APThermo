@@ -42,3 +42,18 @@ No process/stream deadline, cleanup budget or byte-preservation requirement chan
 ⚠ 2026-11-15: the earlier fresh Process.HasExited observation could report a Linux
 zombie as live. Owned OS controls demonstrate that false positive and retain live
 and stopped positive controls; direct-parent-only kill mutations remain red.
+
+## Asynchronous owned-tree observation ✅
+
+Deadline guards use their original invocation clock through two seconds plus the
+existing five-second cleanup budget. Cancellation guards start the five-second
+clock before requesting cancellation. Both retain the outer ten-second ceiling,
+including state observation; returning from Run never starts another grace period.
+An owned child still live at that budget is a failure. S/T/D/PF_EXITING alone remain
+live; absent/Z/X/x remain terminal. Only a matching PID/start-time identity qualifies as the owned live process;
+a mismatch excludes that replacement from teardown. Failure output includes the captured owned
+identity, parent/start/state and original elapsed/budget before test teardown.
+
+⚠ 2026-11-15: immediate descendant assertions assumed tree-kill completion on parent
+exit/pipe EOF. Controlled readiness/release tests replace that timing assumption
+with bounded state observation. The historical hosted kernel instant stays unknown.

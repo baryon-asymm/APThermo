@@ -7,7 +7,7 @@ Controlled external .NET process for the parent's process-runner guards; no prod
 ## Invariants
 
 Each blocking delay is capped at twenty seconds; child readiness waits at most five seconds. Emit supplied fixture bytes
-unchanged and write only the caller's ready/PID files. No GPU or network.
+unchanged and write only the caller's ready/PID/identity files. No GPU or network.
 
 ## Dependencies
 
@@ -23,6 +23,16 @@ spawn starts one child inheriting both pipes, waits for its PID, writes parent-r
 and exits. Tree mode instead keeps that parent alive for a bounded delay so the
 test can verify whole-tree termination. Child waits twenty seconds at most. Each PID file identifies this probe
 only, allowing its parent test to stop it after bounded-runner assertions.
+
+Identity sidecars precede atomically published PID markers. Each records PID, parent
+from PROBE_PARENT_ID, UTC start ticks and Linux kernel start ticks. A spawned child
+receives its actual fixture parent's PID. Controlled mode stays live until the caller
+creates `<ready-file>.release`, with the unchanged twenty-second self-stop. The caller
+releases it only after a LIVE observation, so transition controls do not guess timing.
+
+⚠ 2026-11-15: PID-only readiness and fixed blocking were insufficient for the
+asynchronous observation controls. Identity metadata and explicit release extend
+only this test probe; existing exact bytes, exit code and finite caps remain.
 
 ## Acceptance criteria
 

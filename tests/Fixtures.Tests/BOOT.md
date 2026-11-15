@@ -90,7 +90,34 @@ Production Harness changes are outside this first remedy unless controlled evide
 shows that its documented attempt/bounded-drain contract is itself violated; escalate
 that finding to the root rather than silently changing the contract.
 
+The owned marker is published after its identity sidecar: PID, recorded parent,
+UTC start time, and Linux kernel start ticks. Each sample checks that identity;
+a reused PID belongs to a different process and is never targeted for teardown.
+Each guard logs its original clock/budget and final owned states before assertions.
+The bounded waiter accepts an already running clock, never starts or restarts it,
+and makes a final state read at the boundary. Controlled release occurs after the
+first LIVE sample; held and zero-budget controls prove live-state refusal.
+
+⚠ 2026-11-15: immediate post-Run descendant assertions assumed synchronous OS exit.
+The recurring 84e hosted failure did not sample the kernel state. Owned handshake
+controls show the immediate-observation defect on both platforms, while this remedy
+observes the same terminal states within the remaining original budget. No claim
+about PF_EXITING or the historical failed instant is inferred from a later pass.
+
 ## Acceptance criteria
+
+- [x] 2026-11-15 — Local asynchronous-observation controls: immediate frozen waiter
+  is red only for release-after-first-LIVE on each OS (three positives); final bounded
+  waiter passes release, held, spent and already-completed controls. Terminal-assertion
+  mutations reject held/spent on each OS before their twenty-second self-stop.
+  Isolated parent-only kill mutations fail the real deadline and cancellation tree
+  guards on each OS. Full Fixtures: 192/192 Windows and Linux, sixteen process guards.
+  Evidence: `SCRATCH/audit/process-tree-completion/` — frozen-diagnostic-controls.json,
+  windows-immediate-diagnostic-red-v2.trx, linux-immediate-diagnostic-red.trx,
+  windows-held-live-refused-red-v2.trx, linux-held-live-refused-red.trx,
+  windows-kill-direct-mutant-v2.trx, linux-kill-direct-mutant.trx,
+  windows-fixtures-final-v2.trx, linux-fixtures-final-v2.trx and verification-summary.json.
+  The actual hosted acceptance remains the separate unchecked criterion below.
 
 - [ ] Explain and guard the recurrent hosted tree-cleanup observation without
   pretending that the historical failed instant was sampled. Freeze a controlled

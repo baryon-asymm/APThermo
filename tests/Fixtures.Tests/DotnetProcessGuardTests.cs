@@ -3,13 +3,16 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using APThermo.Harness;
+using Xunit.Abstractions;
 
 namespace APThermo.Fixtures.Tests;
 
 /// <summary>Real finite probes for process deadlines, partial raw bytes and inherited pipe handles.</summary>
+/// <param name="output">Owned-process diagnostics captured before teardown.</param>
 [Trait("Category", "EndToEnd")]
-public sealed class DotnetProcessGuardTests : IDisposable
+public sealed class DotnetProcessGuardTests(ITestOutputHelper output) : IDisposable
 {
+    private readonly ITestOutputHelper _output = output;
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "apthermo process " + Guid.NewGuid().ToString("N"));
     private readonly string _assembly = DotnetProcess.BuiltAssemblyPath("APThermo.Fixtures.Tests.ProcessProbe", "tests", "Fixtures.Tests", "ProcessProbe");
     private readonly string _data = RepositoryPaths.Resolve("tests", "Fixtures.Tests", "ProcessProbe", "data");
@@ -45,24 +48,29 @@ public sealed class DotnetProcessGuardTests : IDisposable
     [InlineData("block")]
     [InlineData("spawn")]
     [InlineData("tree")]
-    public void DeadlineRefusesProcessOrInheritedPipeHang(string mode)
+    public async Task DeadlineRefusesProcessOrInheritedPipeHang(string mode)
     {
         var (arguments, environment) = Input(mode);
         var watch = Stopwatch.StartNew();
         var problem = Assert.Throws<TimeoutException>(() => DotnetProcess.Run(
             _assembly, arguments, _directory, TimeSpan.FromSeconds(2), environment: environment));
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"deadline/cleanup took {watch.Elapsed}");
+        var samples = mode == "tree"
+            ? await ObserveOwnedProbesAsync(watch, TimeSpan.FromSeconds(2) + TimeSpan.FromSeconds(5), "ready.pid", "ready.pid.parent").ConfigureAwait(true)
+            : mode == "block"
+                ? await ObserveOwnedProbesAsync(watch, TimeSpan.FromSeconds(2) + TimeSpan.FromSeconds(5), "ready.pid").ConfigureAwait(true)
+                : [];
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"deadline/cleanup/observation took {watch.Elapsed}");
         Assert.NotEmpty(Assert.IsType<byte[]>(problem.Data["StandardOutput"]));
         Assert.NotEmpty(Assert.IsType<byte[]>(problem.Data["StandardError"]));
         Assert.True(problem.Message.Length < 5000);
         if (mode == "tree")
         {
-            Assert.False(RecordedProbeIsRunning("ready.pid"), "the live parent's child survived tree cleanup");
-            Assert.False(RecordedProbeIsRunning("ready.pid.parent"), "the live parent survived tree cleanup");
+            Assert.False(samples[0].IsLive, "the live parent's child survived tree cleanup; " + samples[0].Diagnostics);
+            Assert.False(samples[1].IsLive, "the live parent survived tree cleanup; " + samples[1].Diagnostics);
         }
         if (mode == "block")
         {
-            Assert.False(RecordedProbeIsRunning("ready.pid"), "the timed-out parent survived cleanup");
+            Assert.False(samples[0].IsLive, "the timed-out parent survived cleanup; " + samples[0].Diagnostics);
         }
         if (mode is "spawn" or "tree")
         {
@@ -76,18 +84,21 @@ public sealed class DotnetProcessGuardTests : IDisposable
     {
         var (arguments, environment) = Input("block");
         using var cancellation = new CancellationTokenSource();
+        var watch = Stopwatch.StartNew();
         var pending = Task.Run(() => DotnetProcess.Run(_assembly, arguments, _directory,
             TimeSpan.FromSeconds(10), environment, cancellation.Token));
-        var watch = Stopwatch.StartNew();
         while (!File.Exists(Path.Combine(_directory, "ready.pid")) && watch.Elapsed < TimeSpan.FromSeconds(5))
         {
             await Task.Delay(10).ConfigureAwait(true);
         }
         Assert.True(File.Exists(Path.Combine(_directory, "ready.pid")), "probe did not reach its ready marker");
+        var cleanupClock = Stopwatch.StartNew();
         await cancellation.CancelAsync().ConfigureAwait(true);
         var problem = await Assert.ThrowsAsync<OperationCanceledException>(async () => await pending.ConfigureAwait(true)).ConfigureAwait(true);
+        var samples = await ObserveOwnedProbesAsync(cleanupClock, TimeSpan.FromSeconds(5), "ready.pid").ConfigureAwait(true);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"cancellation/observation took {watch.Elapsed}");
         Assert.Equal(cancellation.Token, problem.CancellationToken);
-        Assert.False(RecordedProbeIsRunning("ready.pid"), "the cancelled parent survived cleanup");
+        Assert.False(samples[0].IsLive, "the cancelled parent survived cleanup; " + samples[0].Diagnostics);
         Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(_data, "stdout.bin")).ConfigureAwait(true), Assert.IsType<byte[]>(problem.Data["StandardOutput"]));
         Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(_data, "stderr.bin")).ConfigureAwait(true), Assert.IsType<byte[]>(problem.Data["StandardError"]));
     }
@@ -98,9 +109,9 @@ public sealed class DotnetProcessGuardTests : IDisposable
     {
         var (arguments, environment) = Input("tree");
         using var cancellation = new CancellationTokenSource();
+        var watch = Stopwatch.StartNew();
         var pending = Task.Run(() => DotnetProcess.Run(_assembly, arguments, _directory,
             TimeSpan.FromSeconds(10), environment, cancellation.Token));
-        var watch = Stopwatch.StartNew();
         while (!RecordedProbeIsRunning("ready.pid.parent") && watch.Elapsed < TimeSpan.FromSeconds(5))
         {
             await Task.Delay(10).ConfigureAwait(true);
@@ -108,14 +119,17 @@ public sealed class DotnetProcessGuardTests : IDisposable
         var ready = File.Exists(Path.Combine(_directory, "ready.pid.parent"));
         var childWasLive = RecordedProbeIsRunning("ready.pid");
         var parentWasLive = RecordedProbeIsRunning("ready.pid.parent");
+        var cleanupClock = Stopwatch.StartNew();
         await cancellation.CancelAsync().ConfigureAwait(true);
         var problem = await Assert.ThrowsAsync<OperationCanceledException>(async () => await pending.ConfigureAwait(true)).ConfigureAwait(true);
+        var samples = await ObserveOwnedProbesAsync(cleanupClock, TimeSpan.FromSeconds(5), "ready.pid", "ready.pid.parent").ConfigureAwait(true);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"cancellation/observation took {watch.Elapsed}");
         Assert.True(ready, "the tree probe did not reach its ready marker");
         Assert.True(childWasLive, "the observation failed to detect the owned live child");
         Assert.True(parentWasLive, "the observation failed to detect the owned live parent");
         Assert.Equal(cancellation.Token, problem.CancellationToken);
-        Assert.False(RecordedProbeIsRunning("ready.pid"), "the cancelled child survived cleanup");
-        Assert.False(RecordedProbeIsRunning("ready.pid.parent"), "the cancelled parent survived cleanup");
+        Assert.False(samples[0].IsLive, "the cancelled child survived cleanup; " + samples[0].Diagnostics);
+        Assert.False(samples[1].IsLive, "the cancelled parent survived cleanup; " + samples[1].Diagnostics);
         Assert.NotEmpty(Assert.IsType<byte[]>(problem.Data["StandardOutput"]));
         Assert.NotEmpty(Assert.IsType<byte[]>(problem.Data["StandardError"]));
     }
@@ -166,6 +180,68 @@ public sealed class DotnetProcessGuardTests : IDisposable
         Assert.False(File.Exists(Path.Combine(_directory, "ready.pid")));
     }
 
+    /// <summary>An explicit release follows the first live sample; held and spent-budget controls remain live.</summary>
+    [Theory]
+    [InlineData("release")]
+    [InlineData("held")]
+    [InlineData("spent")]
+    public async Task ControlledObservationRequiresTerminalStateInsideItsOriginalBudget(string mode)
+    {
+        var (arguments, environment) = Input("controlled");
+        using var cancellation = new CancellationTokenSource();
+        var pending = Task.Run(() => DotnetProcess.Run(_assembly, arguments, _directory,
+            TimeSpan.FromSeconds(10), environment, cancellation.Token));
+        var marker = Path.Combine(_directory, "ready.pid");
+        await WaitForOwnedReadyAsync(marker).ConfigureAwait(true);
+        var clock = Stopwatch.StartNew();
+        var budget = mode == "spent" ? TimeSpan.Zero : mode == "held" ? TimeSpan.FromMilliseconds(100) : TimeSpan.FromSeconds(5);
+        var firstWasLive = false;
+        var sample = await DotnetProcessObservation.WaitForTerminalAsync(marker, clock, budget, first =>
+        {
+            firstWasLive = first.IsLive;
+            if (mode == "release")
+            {
+                File.WriteAllText(marker + ".release", "release after first live observation");
+            }
+        }).ConfigureAwait(true);
+        var observedElapsed = clock.Elapsed;
+        _output.WriteLine("Observation clock=" + observedElapsed.ToString("c", CultureInfo.InvariantCulture) + "; budget=" + budget.ToString("c", CultureInfo.InvariantCulture));
+        _output.WriteLine(sample.Diagnostics);
+        if (mode == "release")
+        {
+            _ = await pending.ConfigureAwait(true);
+        }
+        else
+        {
+            await cancellation.CancelAsync().ConfigureAwait(true);
+            _ = await Assert.ThrowsAsync<OperationCanceledException>(async () => await pending.ConfigureAwait(true)).ConfigureAwait(true);
+        }
+        Assert.True(firstWasLive, "the controlled child was not live at its handshake");
+        Assert.True(mode == "release" || observedElapsed >= budget, "the live control returned before its original observation budget expired");
+        Assert.True(sample.IsLive == (mode != "release"), sample.Diagnostics);
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(10), sample.Diagnostics);
+    }
+
+    /// <summary>A completed owned process is terminal even at the first observation.</summary>
+    [Fact]
+    public void CompletedOwnedProbeIsTerminalAtFirstObservation()
+    {
+        var (arguments, environment) = Input("echo");
+        _ = DotnetProcess.Run(_assembly, arguments, _directory, environment);
+        var sample = DotnetProcessObservation.Read(Path.Combine(_directory, "ready.pid"));
+        Assert.False(sample.IsLive, sample.Diagnostics);
+    }
+
+    private static async Task WaitForOwnedReadyAsync(string marker)
+    {
+        var watch = Stopwatch.StartNew();
+        while (!DotnetProcessObservation.Read(marker).IsLive && watch.Elapsed < TimeSpan.FromSeconds(5))
+        {
+            await Task.Delay(10).ConfigureAwait(true);
+        }
+        Assert.True(DotnetProcessObservation.Read(marker).IsLive, "the owned probe did not become ready");
+    }
+
     private (IReadOnlyList<string> Arguments, IReadOnlyDictionary<string, string> Environment) Input(string mode)
     {
         _ = Directory.CreateDirectory(_directory);
@@ -173,49 +249,22 @@ public sealed class DotnetProcessGuardTests : IDisposable
         var value = document.RootElement.GetProperty("environmentValue").GetString()!;
         var exit = document.RootElement.GetProperty("exitCode").GetRawText();
         return ([mode, Path.Combine(_data, "stdout.bin"), Path.Combine(_data, "stderr.bin"), value, exit,
-            Path.Combine(_directory, "ready.pid")], new Dictionary<string, string> { ["PROBE_VALUE"] = value });
+            Path.Combine(_directory, "ready.pid")], new Dictionary<string, string> { ["PROBE_VALUE"] = value, ["PROBE_PARENT_ID"] = Environment.ProcessId.ToString(CultureInfo.InvariantCulture) });
     }
 
-    private bool RecordedProbeIsRunning(string name)
-    {
-        var marker = Path.Combine(_directory, name);
-        if (!File.Exists(marker) || !int.TryParse(File.ReadAllText(marker), NumberStyles.None, CultureInfo.InvariantCulture, out var pid))
-        {
-            return false;
-        }
-        if (OperatingSystem.IsLinux())
-        {
-            return LinuxProbeIsRunning(pid);
-        }
-        try
-        {
-            using var process = Process.GetProcessById(pid);
-            return !process.HasExited;
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-    }
+    private bool RecordedProbeIsRunning(string name) => DotnetProcessObservation.Read(Path.Combine(_directory, name)).IsLive;
 
-    private static bool LinuxProbeIsRunning(int pid)
+    private async Task<DotnetProcessSample[]> ObserveOwnedProbesAsync(Stopwatch clock, TimeSpan budget, params string[] names)
     {
-        try
+        var samples = await Task.WhenAll(names.Select(name =>
+            DotnetProcessObservation.WaitForTerminalAsync(Path.Combine(_directory, name), clock, budget))).ConfigureAwait(true);
+        _output.WriteLine("Original clock=" + clock.Elapsed.ToString("c", CultureInfo.InvariantCulture) +
+            "; total budget=" + budget.ToString("c", CultureInfo.InvariantCulture));
+        foreach (var sample in samples)
         {
-            var stat = File.ReadAllText("/proc/" + pid.ToString(CultureInfo.InvariantCulture) + "/stat");
-            var stateIndex = stat.LastIndexOf(')') + 2;
-            if (stateIndex < 2 || stateIndex >= stat.Length)
-            {
-                throw new InvalidDataException("the owned probe's Linux process stat is malformed");
-            }
-            // An unreaped zombie has exited; a fresh Process.HasExited can still report false.
-            // Stopped, sleeping and uninterruptible processes remain live and must fail cleanup.
-            return stat[stateIndex] is not ('Z' or 'X' or 'x');
+            _output.WriteLine(sample.Diagnostics);
         }
-        catch (IOException problem) when (problem is FileNotFoundException or DirectoryNotFoundException)
-        {
-            return false;
-        }
+        return samples;
     }
 
     private void StopRecordedProbe()
@@ -229,13 +278,19 @@ public sealed class DotnetProcessGuardTests : IDisposable
     private void StopRecordedProbe(string name)
     {
         var marker = Path.Combine(_directory, name);
-        if (!File.Exists(marker) || !int.TryParse(File.ReadAllText(marker), NumberStyles.None, CultureInfo.InvariantCulture, out var pid))
+        var sample = DotnetProcessObservation.Read(marker);
+        if (!sample.IsLive)
         {
             return;
         }
         try
         {
-            using var process = Process.GetProcessById(pid);
+            using var process = Process.GetProcessById(sample.ProcessId);
+            var confirmed = DotnetProcessObservation.Read(marker);
+            if (!confirmed.IsLive || confirmed.ProcessId != process.Id)
+            {
+                return;
+            }
             process.Kill(entireProcessTree: true);
             _ = process.WaitForExit(5000);
         }

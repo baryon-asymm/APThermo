@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Text.Json;
 
 namespace APThermo.Fixtures.Tests.ProcessProbe;
 
@@ -25,7 +26,15 @@ internal static class Program
             return Spawn(args);
         }
 
-        File.WriteAllText(args[5], Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+        WriteReady(args[5]);
+        if (args[0] == "controlled")
+        {
+            var watch = Stopwatch.StartNew();
+            while (!File.Exists(args[5] + ".release") && watch.Elapsed < TimeSpan.FromSeconds(20))
+            {
+                Thread.Sleep(10);
+            }
+        }
         if (args[0] == "block")
         {
             Thread.Sleep(TimeSpan.FromSeconds(20));
@@ -33,11 +42,34 @@ internal static class Program
         return int.Parse(args[4], CultureInfo.InvariantCulture);
     }
 
+    private static void WriteReady(string marker)
+    {
+        using var process = Process.GetCurrentProcess();
+        var parent = Environment.GetEnvironmentVariable("PROBE_PARENT_ID");
+        string? linuxStart = null;
+        if (OperatingSystem.IsLinux())
+        {
+            var stat = File.ReadAllText("/proc/self/stat");
+            linuxStart = stat[(stat.LastIndexOf(')') + 2)..].Split(' ', StringSplitOptions.RemoveEmptyEntries)[19];
+        }
+        var identity = new
+        {
+            Environment.ProcessId,
+            ParentProcessId = parent,
+            StartTimeUtcTicks = process.StartTime.ToUniversalTime().Ticks,
+            LinuxStartTicks = linuxStart,
+        };
+        File.WriteAllText(marker + ".identity.json", JsonSerializer.Serialize(identity));
+        File.WriteAllText(marker + ".pending", Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+        File.Move(marker + ".pending", marker, overwrite: true);
+    }
+
     private static int Spawn(string[] args)
     {
         var start = new ProcessStartInfo("dotnet") { UseShellExecute = false };
         start.ArgumentList.Add(Assembly.GetExecutingAssembly().Location);
         start.ArgumentList.Add("block");
+        start.Environment["PROBE_PARENT_ID"] = Environment.ProcessId.ToString(CultureInfo.InvariantCulture);
         foreach (var argument in args.Skip(1))
         {
             start.ArgumentList.Add(argument);
@@ -48,7 +80,7 @@ internal static class Program
         {
             Thread.Sleep(10);
         }
-        File.WriteAllText(args[5] + ".parent", Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+        WriteReady(args[5] + ".parent");
         if (args[0] == "tree")
         {
             Thread.Sleep(TimeSpan.FromSeconds(20));
