@@ -61,8 +61,12 @@ Windows preflight runs under Windows PowerShell 5.1, without Python or Git Bash.
 - [x] A23/A34: missing/native-failing tools refuse, a valid preflight passes, and release notes match the exact version heading. (2026-11-14, `test_delivery.py`).
 
   ⚠ 2026-11-14: was "2026-11-14 — A23/A34: missing/native-failing tools refuse, a valid preflight passes, and release notes match the exact version heading. Evidence: `test_delivery.py`, Windows PowerShell 5.1 controlled .cmd probes plus Bash literal-version cases; 11 guards pass together, eight failures on frozen pre-fix sources." The preservation guard rejected that free-form completion because its added prose was not a bounded dated citation. The original requirement is unchanged above, with a dated test citation; the measurements remain recorded in this note.
-- [ ] Actual release dispatch on the Windows/Linux self-hosted runner classes proves
+- [x] Actual release dispatch on the Windows/Linux self-hosted runner classes proves
   the preflight path on GitHub; local controlled probes are narrower evidence.
+  (2026-11-15: Release dispatch `43691442012` at exact `0f7ecb6f4fff` passes both
+  preflight/CUDA paths, Windows job `132747447148` and Linux job `132748505091`;
+  explicit matching shells and actual runner labels are retained in the final proof index.
+  External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
 
 ## Taboos
 

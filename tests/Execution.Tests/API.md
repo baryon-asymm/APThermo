@@ -7,13 +7,17 @@ are compared by their bits.
 
 ## What this node guarantees ✅
 
+⚠ 2026-11-15: R09 below previously said actual-device maximum verification was
+pending. Both final c0df budget phases now pass at the unchanged 500 ms target;
+the own-node acceptance records current launch maxima and complete coverage.
+
 | Claim | Confirmed by | State |
 |---|---|---|
 | every function of the root's math list, `KernelMath.Fma` and the unfused product and sum beside it included, is linked on CUDA and equals the CPU accelerator bit for bit on every input (a NaN's payload aside), and the CPU accelerator reproduces the host's own functions bit for bit | L1 probe kernel | ✅ (2026-10-05) |
 | CUDA batches equal CPU-accelerator batches bit for bit, in every field of every case: the status, the iteration count (the bracketed cases' sum of attempts included), the state, the figures and every amount, on 100 000 cases, on every rocket and throat fixture family, on the equilibrium families of the 0.2.1 fixtures, on every equilibrium fixture table (tp, hp and sp), on the seeded families, on the 0.2.2 gas-plateau families and on the 0.2.2 gasless and bracketed families (`RecoveryFamilies`), on the 0.2.2 trace-gas families (`TraceGasFamilies`, 2026-10-05), the transport pass and the species-function batch included | L2 (`CudaTests`, `SpeciesFunctionTests`) | ✅ (2026-10-05) |
 | the exact comparison is not degenerate: every kind of difference, down to one unit in the last place, is refused with a message naming the case and the field | L0 (`ExactComparisonTests`) | ✅ (2026-10-05) |
 | every host-compared station of every family closes the element balance to a relative residual of at most `ElementBalance.ClosureBound`, 1e-13 | L2 (`BatchTests`) | ✅ |
-| every observed synchronized launch of the unchanged bracketing and trace-gas workloads meets the original per-launch budget, with nonempty count and complete case coverage; cumulative Kernel remains a throughput measure | L2 (`CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`, `AFamilyOfTraceGasStatesStaysWithinTheLaunchBudget`), R09 | ⏳ actual-device maximum verification pending |
+| every observed synchronized launch of the unchanged bracketing and trace-gas workloads meets the original per-launch budget, with nonempty count and complete case coverage; cumulative Kernel remains a throughput measure | L2 (`CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`, `AFamilyOfTraceGasStatesStaysWithinTheLaunchBudget`), R09 | ✅ (2026-11-15, actual c0df Windows/Linux budget phases; [acceptance](ACCEPTANCE.md)) |
 | batches on the CPU accelerator seeded by moles equal the solver called with the same seed, bit for bit, and independently of the chunking: the `seeded` fixtures, warm starts at half pressure, the bracketed gas-plateau states seeded 20 K above the plateau (2026-10-04) | L2 (`BatchTests.ASeededFamilyEqualsTheHostSolverBitForBit`, `ASeededBatchIsIndependentOfChunking`) | ✅ (2026-10-04) |
 | batches on the CPU accelerator equal the numerical nodes called case by case, bit for bit, the rocket and throat families, the 0.2.1 and 0.2.2 equilibrium families and the species-function batch included | L2 | ✅ |
 | batches are deterministic and independent of chunking | L2 | ✅ |

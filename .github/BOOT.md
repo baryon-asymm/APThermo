@@ -121,10 +121,15 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
 
 ## Acceptance criteria
 
-- [ ] 2026-11-14 audit delivery changes: local discovery/adversarial script guards,
+- [x] 2026-11-14 audit delivery changes: local discovery/adversarial script guards,
       actionlint and protocol checks, followed by actual hosted CI/trace scan and
       release-dispatch proof on the target runner classes. Local checks alone do not
       fulfil the GitHub evidence invariant.
+  (2026-11-15: Exact-source `0f7ecb6f4fff` CI `43691428901`, hosted trace
+  `43691604795` and Release dispatch `43691442012` all pass; both CUDA/preflight
+  jobs and Pack succeed, Publish and GitHub Release are skipped. Native c0df
+  evidence and explicit unchanged-runtime comparison retain their actual sources.
+  External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
 
 - [x] 2026-10-01 — `.github` and (until its removal, HISTORY.md#isaprobe-removed)
       `diagnostics/IsaProbe` are nodes and the protocol lint reads them: 0 errors for both (`python -X utf8 tools/protocol-lint/protocol_lint.py .
@@ -169,3 +174,7 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
 formerly permissive preflight/native exits, shell ref interpolation and regex version
 matching are corrected. Hosted matrices now run strict lint and delivery guards.
 This does not tick the open actual-run criterion above.
+
+⚠ 2026-11-15: the 2026-11-14 local-only handoff note above did not accept the
+actual-run criterion. The newly dated criterion now cites actual successful
+CI, trace and release-dispatch proof; its earlier pending stage remains historical.

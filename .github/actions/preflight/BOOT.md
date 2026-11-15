@@ -20,7 +20,11 @@ Use the checked-out action path to invoke the script and inherit .github host re
 
 ## Acceptance criteria
 
-- [ ] Both OS branches invoke their matching script, with explicit shells; release dispatch on both target runner classes remains required.
+- [x] Both OS branches invoke their matching script, with explicit shells; release dispatch on both target runner classes remains required.
+  (2026-11-15: Release dispatch `43691442012` at exact `0f7ecb6f4fff` passes both
+  preflight/CUDA paths, Windows job `132747447148` and Linux job `132748505091`;
+  explicit matching shells and actual runner labels are retained in the final proof index.
+  External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
 
 ## Taboos
 

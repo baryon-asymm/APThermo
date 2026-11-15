@@ -5,6 +5,39 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
+## Current audit closure — 2026-11-15
+
+All recorded obligations A01–A41, R01–R14 and T01–T16 are accepted within their
+documented scope. The generated `fix-evidence/closure-obligation-map.json` records
+71 overlapping stable IDs (41 original findings, 14 verification findings and
+16 test-quality observations), with no unresolved source references. This is an
+obligation index, not a defect count or a claim about unexamined behavior.
+
+| Obligations | Current state | Dated evidence |
+|---|---|---|
+| A01–A41 | Closed 2026-11-15 | Generated 71-ID map, native evidence and final runner-path proof index |
+| R01–R14 | Closed 2026-11-15 | Same index; R13 actual hosted native import/binding and R14 actual current process-control suites included |
+| T01–T16 | Addressed 2026-11-15 | Same generated map links each observation to its concrete repair and verification |
+
+Final native execution retains its actual source
+`c0df7b146ffdd3addb733e8931aaabf0ca5fc660`. The explicit unchanged-runtime comparison
+to `0f7ecb6f4fff173fc8716e93655303f09b412d7c` is retained at
+`fix-evidence/root/remote-integration-0f7e-v1/runtime-carryforward.json`.
+Current GitHub evidence is CI `43691428901`, hosted trace dispatch `43691604795`
+and Release dispatch `43691442012`, all at the exact latter source. Release passes
+through both self-hosted preflight/CUDA jobs and Pack; Publish to NuGet and Create
+GitHub Release are skipped. Actual source/run/job/artifact hashes and the applicable
+node criteria are recorded in `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.
+
+⚠ 2026-11-15: the slice tables and earlier handoff paragraphs below retain their
+original dated states, including “full platform/hardware matrix pending”, “whole
+CI pending” and “hosted confirmation pending”. Those statements described their
+earlier source and verification stage; they are historical evidence, not current
+open obligations. The dated current state above supersedes them without deleting
+their wording, failures, local-only limits or measurement provenance. In particular,
+the f769 CI/Release failures remain failures and the d454 positive runs retain d454
+as their actual source; neither is relabelled as a newer successful execution.
+
 ## Acceptance
 
 A row closes only after its old-failing/positive controls and affected checks pass.
@@ -119,7 +152,12 @@ issues. They remain part of this closure, without reclassifying failed runs as p
   Evidence 2026-11-15: final native proof at executed code `c0df7b146ffdd3addb733e8931aaabf0ca5fc660`;
   the dated final native verification table below names the source/result/TRX
   and supplementary evidence. GitHub validation remains a separate open criterion.
-- [ ] Workflow validation on the affected runner paths.
+- [x] Workflow validation on the affected runner paths.
+  (2026-11-15: Exact-source `0f7ecb6f4fff` CI `43691428901`, hosted trace
+  `43691604795` and Release dispatch `43691442012` all pass; both CUDA/preflight
+  jobs and Pack succeed, Publish and GitHub Release are skipped. Native c0df
+  evidence and explicit unchanged-runtime comparison retain their actual sources.
+  External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
 
 ## Final native verification — 2026-11-15
 
@@ -185,3 +223,23 @@ are not an equal-input parser error. CUDA timing headroom is measured without pr
 a display-driver reset. Changes to model domains or unbounded cache policy need an
 explicit contract, not an invented defect or an unexplained default change.
 
+## Final GitHub verification — 2026-11-15
+
+Actual source: `0f7ecb6f4fff173fc8716e93655303f09b412d7c`, branch
+`codex/audit-closure`. These actual runner-path results supplement, rather than
+redate, the native c0df measurements above.
+
+| Path | Actual result | Source-bound evidence |
+|---|---|---|
+| CI Windows / Linux | 7,612/7,612 each, zero failed or skipped; package samples and installed tool pass | run `43691428901`; Windows native CEA import and unchanged 38-case binding pass |
+| Hosted trace Windows / Linux | 2/2 full-corpus scan facts each, zero skipped | dispatch `43691604795`; discovery/matrix/TRX ZIP digests verified |
+| Release hosted Windows / Linux | 7,612/7,612 each, Fixtures 188/188, zero failed or skipped | dispatch `43691442012`, jobs `132742795768` / `132742795725` |
+| Release CUDA Windows / Linux | 450/450 each, zero failed or skipped; original throughput fact included | jobs `132747447148` / `132748505091`; actual matching preflight scripts and runner labels |
+| Original throughput | Windows 34.26x and 1.314e-7 s/step; Linux 48.64x and 1.272e-7 s/step | Fresh host `Throughput.actual.txt` / `Throughput.linux.actual.txt`; unchanged 5x/80%/115% gates and distinct original ceilings |
+| Release packages / symbols | Pack passes; all 4 archive digests and commit metadata checked; library 7 PDB / 212 documents, tool 8 PDB / 283 documents, SourceLink records all name exact 0f7 | artifact `14153576112`; compiled read-only PDB verifier, no repeated pack/sample execution |
+| Temporary GPU listeners | Both owned run-once processes ended; no runner service created | external Windows/Linux terminal receipts; other repository runners untouched |
+
+The final proof index records every source/run/job/artifact and supporting hash.
+GitHub server job timestamps and runner-host log/file clocks are retained separately;
+the release dependency graph establishes Windows-before-Linux ordering. A clock
+comparison across those domains is not used as a scheduling or freshness proof.

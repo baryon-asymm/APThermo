@@ -228,6 +228,10 @@ C0 hardware shows a per-step throughput regression. Moving that dormant payload
 to global scratch is a controlled storage remedy, pending measured confirmation;
 it preserves the bank algorithm and every existing performance gate.
 
+⚠ 2026-11-15: measured confirmation was pending at that 2026-11-14 handoff.
+The final native hardware criterion below now records c0df passing both platforms
+and the original throughput gates; the pending status is superseded.
+
 ⚠ 2026-11-14: a flat appended-double `SubView(...).Cast<MixtureState>()` experiment
 round-tripped its state but overwrote the leading sentinel at an eight-byte offset
 in a real CPU-compiled kernel. The isolation control rejects that variant.
@@ -265,6 +269,10 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
   Targeted storage/recovery/A01/A35/R08/no-hidden-state/kernel/bit controls: 58 pass
   (r10-targeted-final.trx). Generated local sizes: RecheckState 192→32 bytes,
   AttemptPlan 432→272 bytes; state 152 bytes. Full CPU and hardware gates remain pending.
+
+  ⚠ 2026-11-15: the pending phrase records the narrower 2026-11-14 CPU slice.
+  The final native hardware criterion below supersedes it with both full CPU
+  cohorts, actual CUDA/architecture checks and unchanged throughput gates at c0df.
 
 - [x] 2026-11-14 — R08: `RecoveryCandidateTests` drives initial Warm HP/SP through AttemptPlan.Next,
   checks first probe Defaults/Cold, exact original restoration and counted work after
@@ -366,7 +374,6 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
       - the throughput tripwire green in five quiet Release runs per platform, re-approved at 18.52× (Windows)
         and 25.92× (WSL2);
       - the fast set 1 min 56 s on Windows and 127 s under WSL2, green (root `ACCEPTANCE.md`, the test pyramid).
-
 
 - [x] 2026-11-14 — CPU bank selection and transfer: `RecoveryCandidateTests` checks
   two improving HP/SP candidates, original/tie retention, every state property

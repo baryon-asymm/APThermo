@@ -34,10 +34,14 @@ fail the job; never fall back to a local Fortran build or skip fixture binding.
   produces seven. The actual built Debug assembly discovers exactly both documented
   CPU/LongRunning facts (`SCRATCH/audit/trace-discovery/matrix.json`); that matrix
   explicitly says not-run. actionlint 1.7.12 accepts the affected workflow files.
-- [ ] A real hosted Windows/Linux trace-scan run executes both full scan corpora and
+- [x] A real hosted Windows/Linux trace-scan run executes both full scan corpora and
   publishes discovery/matrix/TRX evidence with no skip. The audit baseline is 4158
   meaningful scan rows and 1632 expected states; each owning scan fact enforces its
   corpus. Local metadata discovery is not execution proof.
+  (2026-11-15: Trace dispatch `43691604795` at exact `0f7ecb6f4fff` executes
+  both full corpora, exactly 2 passed facts per hosted OS, with discovery/matrix/TRX
+  artifact digests verified. CI/Release also pass the actual delivery and trace guards.
+  External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
 
 - [x] 2026-11-14 — A33 local controls: both release ref uses bind through the actual
   YAML env mappings and quoted shell variables (`test_delivery.py`, 11 total guards);
@@ -45,15 +49,23 @@ fail the job; never fall back to a local Fortran build or skip fixture binding.
   literal value. The frozen old workflow executes their controlled sentinel and
   turns the guards red. actionlint 1.7.12 reports no workflow errors.
 
-- [ ] A33/A39: adversarial ref values remain literal, hosted scan wiring discovers both facts and publishes nonempty evidence; a real hosted run remains required.
+- [x] A33/A39: adversarial ref values remain literal, hosted scan wiring discovers both facts and publishes nonempty evidence; a real hosted run remains required.
+  (2026-11-15: Trace dispatch `43691604795` at exact `0f7ecb6f4fff` executes
+  both full corpora, exactly 2 passed facts per hosted OS, with discovery/matrix/TRX
+  artifact digests verified. CI/Release also pass the actual delivery and trace guards.
+  External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
 
 - [x] 2026-11-15 — Isolated Windows CPython 3.13.15, CEA 3.3.4 and NumPy 2.5.3
   binary wheels load libcea with isolated mode and empty PATH; full unchanged
   generator sample reports unchanged 38. Evidence: SCRATCH/audit/install-cea313.log,
   native-import-cea313.log and fixture-sample-cea313.log. The binary-only cp315
   download refuses the unavailable wheel (cp315-no-wheel-red.log).
-- [ ] The changed Python environment and mandatory binding comparison pass on a
+- [x] The changed Python environment and mandatory binding comparison pass on a
   real hosted Windows run; local import/sample evidence is not hosted proof.
+  (2026-11-15: CI `43691428901`, hosted Windows job `132742713874`, passes
+  isolated CPython 3.13.17 x64 / CEA 3.3.4 / NumPy 2.5.3 native import and the
+  unchanged 38-fixture sample comparison at exact source `0f7ecb6f4fff`.
+  External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
 
 ## Taboos
 
@@ -75,3 +87,7 @@ records the cp313 Windows wheel and no cp315 wheel; [NASA installation guidance]
 distinguishes published-package installation from source builds. The missing DLL
 of the hosted source build is not identified by its ImportError; no stronger root
 cause is claimed. The tested wheel carries the C binding DLL within its package.
+
+⚠ 2026-11-15: the pending hosted-import and scan phrases above record the local
+handoff stage. The dated criteria now cite successful actual hosted import/binding,
+full trace corpora and the complete release dispatch at exact source `0f7ecb6f4fff`.
