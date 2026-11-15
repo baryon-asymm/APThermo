@@ -8,6 +8,8 @@ internal sealed record DotnetProcessSample(bool IsLive, int ProcessId, string Di
 
 internal static class DotnetProcessObservation
 {
+    private const int LinuxNoSuchProcess = 3;
+
     internal static DotnetProcessSample Read(string marker)
     {
         if (!File.Exists(marker))
@@ -45,29 +47,33 @@ internal static class DotnetProcessObservation
         return sample.IsLive ? Read(marker) : sample;
     }
 
+    internal static bool IsMissingLinuxProcess(IOException problem) =>
+        problem is FileNotFoundException or DirectoryNotFoundException || problem.HResult == LinuxNoSuchProcess;
+
     private static DotnetProcessSample ReadLinux(int pid, JsonElement identity, string description)
     {
+        string stat;
         try
         {
-            var stat = File.ReadAllText("/proc/" + pid.ToString(CultureInfo.InvariantCulture) + "/stat");
-            var delimiter = stat.LastIndexOf(')');
-            if (delimiter < 0)
-            {
-                throw new InvalidDataException("the owned probe's Linux process stat has no command delimiter");
-            }
-            var fields = stat[(delimiter + 2)..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (fields.Length <= 19)
-            {
-                throw new InvalidDataException("the owned probe's Linux process stat is incomplete");
-            }
-            var sameIdentity = fields[19] == identity.GetProperty("LinuxStartTicks").GetString();
-            var live = sameIdentity && fields[0] is not ("Z" or "X" or "x");
-            return new DotnetProcessSample(live, pid, description + "; observed=" + stat);
+            stat = File.ReadAllText("/proc/" + pid.ToString(CultureInfo.InvariantCulture) + "/stat");
         }
-        catch (IOException problem) when (problem is FileNotFoundException or DirectoryNotFoundException)
+        catch (IOException problem) when (IsMissingLinuxProcess(problem))
         {
             return new DotnetProcessSample(false, pid, description + "; observed=absent");
         }
+        var delimiter = stat.LastIndexOf(')');
+        if (delimiter < 0)
+        {
+            throw new InvalidDataException("the owned probe's Linux process stat has no command delimiter");
+        }
+        var fields = stat[(delimiter + 2)..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (fields.Length <= 19)
+        {
+            throw new InvalidDataException("the owned probe's Linux process stat is incomplete");
+        }
+        var sameIdentity = fields[19] == identity.GetProperty("LinuxStartTicks").GetString();
+        var live = sameIdentity && fields[0] is not ("Z" or "X" or "x");
+        return new DotnetProcessSample(live, pid, description + "; observed=" + stat);
     }
 
     private static DotnetProcessSample ReadProcess(int pid, JsonElement identity, string description)
@@ -75,6 +81,7 @@ internal static class DotnetProcessObservation
         try
         {
             using var process = Process.GetProcessById(pid);
+            _ = process.SafeHandle;
             if (process.HasExited)
             {
                 return new DotnetProcessSample(false, pid, description + "; observed=exited");

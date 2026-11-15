@@ -109,6 +109,9 @@ between open and read as IOException with raw HResult 3 (Linux ESRCH), in additi
 to missing file/directory. This specific absence is terminal. Other I/O errors,
 permission failures and malformed state remain verification failures; do not infer
 absence from a generic File.Exists result or swallow all IOException instances.
+Raw errno 3 is not the Windows HRESULT 0x80070003; EIO (5) stays an error.
+This handling does not establish the cause of the historical 84e failed instant.
+
 Each guard logs its original clock/budget and final owned states before assertions.
 The bounded waiter accepts an already running clock, never starts or restarts it,
 and makes a final state read at the boundary. Controlled release occurs after the
