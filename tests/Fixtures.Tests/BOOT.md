@@ -104,6 +104,11 @@ StartTime on that same Process, closing the check/reopen race when a child exits
 between getters. Handle acquisition errors remain errors unless the framework
 specifically reports an absent process; never normalize access denial as exit.
 Only fixture-owned processes are queried, with the framework's requested access.
+A normal exit between GetProcessById and initial handle acquisition may itself
+raise ProcessHasExited/InvalidOperationException. Handle that only around the
+SafeHandle acquisition and only when a fresh framework HasExited observation
+confirms exit; other InvalidOperationException sites and Win32/access errors stay
+failures. Do not mask malformed identity data as process disappearance.
 For the Linux owned `/proc/<pid>/stat` read only, .NET 10 may report disappearance
 between open and read as IOException with raw HResult 3 (Linux ESRCH), in addition
 to missing file/directory. This specific absence is terminal. Other I/O errors,
