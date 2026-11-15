@@ -2,7 +2,7 @@
 
 ## Contract ✅
 
-Host preflight and release-note extraction, plus controlled local guard tests.
+Host preflight, release-note extraction and CPU verification orchestration, plus controlled local guard tests.
 
 `preflight-windows.ps1` / `preflight-linux.sh`: run at repository root; exit 0
 only when git, the SDK selected by .NET under global.json and nvidia-smi run successfully and

@@ -174,7 +174,7 @@ class HostedRunnerGuards(unittest.TestCase):
     def test_discovery_rejects_empty_duplicate_outside_missing_and_missing_designations(self):
         invalid = [[], self.projects + [hosted.CLI], self.projects + ["../Outside.Tests.csproj"],
                    self.projects + ["C:/outside/Outside.Tests.csproj"],
-                   self.projects + ["tests/Missing.Tests/Missing.Tests.csproj"], self.projects[1:]]
+                   self.projects + ["tests/Missing.Tests/Missing.Tests.csproj"], self.projects[1:], self.projects[:1] + self.projects[2:]]
         for found in invalid:
             with self.subTest(found=found):
                 code, manifest = self.execute(discovery=found)

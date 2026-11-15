@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Host preflight and release-note extraction, plus controlled local guard tests.
+Host preflight, release-note extraction and CPU verification orchestration, plus controlled local guard tests.
 
 ## Invariants
 
