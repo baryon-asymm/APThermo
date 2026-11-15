@@ -1,11 +1,16 @@
 # API.md — Protocol.Tests
 
-## Python process completion ⏳
+## Python process completion ✅
 
 The caller-supplied script deadline spans process exit and both redirected
 streams. Timeout remains a test failure with bounded cleanup and diagnostic
 context; normal PythonRun exit/output semantics and script limits are unchanged.
 R17's owned inherited-pipe and live-parent controls verify this independently.
+Both redirected streams explicitly decode the UTF-8 emitted by Python -X utf8.
+
+⚠ 2026-11-15 (R17): the former Windows platform-default decoder corrupted valid
+UTF-8 output. The independent Unicode control was red on the frozen helper; the
+explicit decoder corrects this behavior rather than claiming its old bytes were exact.
 
 The node exposes nothing outward. Its contract points upward: what the tree may
 consider guaranteed about the agreement between its documents and its code.

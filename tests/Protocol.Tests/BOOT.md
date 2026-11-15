@@ -106,6 +106,11 @@ children rule, links check removed (the linter has it).
 ReadToEndAsync without a deadline. Astra's independent source review found the
 inherited-pipe gap. This does not explain any historical numerical/GPU failure.
 
+⚠ 2026-11-15 (R17): the initial Unicode control also found Windows platform-default
+decoding corrupting Python -X utf8 output. Both stream decoders now explicitly use
+UTF-8; ASCII normal/nonzero controls remain distinct from that old-red Unicode case.
+No caller script deadline, normal exit code or stdout-before-stderr ordering changed.
+
 - Part of the fast set except process-launching `LintTests`/`ToolSelfTestTests`,
   which carry `Category=EndToEnd`. `BenchmarkComparisonFixture` alone creates and
   disposes two CPU engines once per test process for its whole-entry control;

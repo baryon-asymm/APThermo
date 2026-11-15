@@ -192,3 +192,18 @@ only in this node.
   generic record instantiations/nullability, synthesized record-struct interfaces,
   inherited interface closure, and deliberately omitted bases. Evidence:
   `SCRATCH/audit/it03-red/it03-red.trx`, `it03-bases-green/it03-bases-green.trx`.
+
+
+- [x] 2026-11-15 — R17 local owned-process controls: frozen original helper fails
+  inherited stdout/stderr/both after 12 seconds despite a three-second deadline;
+  Windows old cohort has four red/three positive cases (UTF-8 is a separate red),
+  Linux accepted old cohort has three red/four positive cases. Final controls pass
+  9/9 and full Protocol.Tests pass 163/163 on each OS, zero skips, builds 0/0.
+  Evidence: `SCRATCH/audit/python-deadline/frozen-red-proof-v2.json`,
+  `frozen-red-proof-linux-v2.json`, `final-controls-windows-v2/`,
+  `final-controls-linux-v2/`, `full-protocol-windows-final-v4/`, `full-protocol-linux-v2/`
+  and `verification-summary.json` in that same audit directory. The additional
+  injected kill-filter diagnostic is red when its AggregateException filter is
+  removed (`kill-filter-mutant/`); this is not a native OS failure claim. Earlier invalid
+  teardown/preflight attempts remain separate; actual fresh hosted acceptance
+  remains the unchecked R17 criterion above.
