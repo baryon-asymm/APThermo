@@ -216,3 +216,24 @@ only in this node.
   removed (`kill-filter-mutant/`); this is not a native OS failure claim. Earlier invalid
   teardown/preflight attempts remain separate; actual fresh hosted acceptance
   remains the unchecked R17 criterion above.
+
+- [x] 2026-11-15 — R17 local controlled-readiness correction: the actual per-call CTS
+  remains unexpired during a controlled four-second preparation history that spends
+  the former two/three-second acquisition gates. Atomic nonce/mode/stage ACK and
+  pinned live identities precede normal parent exit and a live inherited-pipe child;
+  only then does an exact three-second advance expire the actual helper deadline.
+  A single real thirty-second fixture guard starts before dispatch, with real five-
+  second teardown and independent sixty-second Python self-stop. ASCII/nonzero/UTF-8,
+  live-parent, invalid nonce/mode/stage, dead identity, spent budget and direct System-
+  clock wiring controls remain distinct. Final controls 17/17 and full Protocol.Tests
+  171/171 pass on Windows and Ubuntu 24.04/WSL, zero skips; forced Release builds 0/0.
+  Frozen source5d09 is preserved; mechanically restored old acquisition gates are red
+  separately (one case each). The original parent-only wait AND uncancellable readers,
+  mechanically adapted to the per-call clock, fail all three owned inherited-pipe modes
+  at the outer fixture guard. This is a counterfactual proof, not an assertion that the
+  exact historical scheduler cause is known. Evidence: `SCRATCH/audit/python-controlled-clock/`
+  `frozen-inputs.json`, `counterfactual-results.json`, `controls-windows-final/`,
+  `controls-linux-final/`, `protocol-windows-final/`, `protocol-linux-final/`,
+  `verification-summary.json` and `HANDOFF.md`. Earlier local 9/163 results and actual
+  source5d09 hosted failures remain valid dated history; both fresh hosted criteria
+  above stay unchecked until the owning root completes actual CI/release verification.

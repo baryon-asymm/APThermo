@@ -1,6 +1,6 @@
 # API.md — Protocol.Tests
 
-## Controlled Python deadline clock ⏳
+## Controlled Python deadline clock ✅
 
 The existing three-argument PythonProcess.RunAsync uses TimeProvider.System and
 retains caller deadlines, UTF-8/output/exit semantics and bounded cleanup. An

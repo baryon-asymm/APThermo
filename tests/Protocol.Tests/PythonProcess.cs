@@ -15,9 +15,13 @@ internal static class PythonProcess
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(5);
 
     /// <summary>Runs a Python script; its supplied timeout covers exit and both streams, including inherited pipes.</summary>
-    public static async Task<PythonRun> RunAsync(string script, IReadOnlyList<string> arguments, TimeSpan timeout)
+    public static Task<PythonRun> RunAsync(string script, IReadOnlyList<string> arguments, TimeSpan timeout) =>
+        RunAsync(script, arguments, timeout, TimeProvider.System);
+
+    internal static async Task<PythonRun> RunAsync(string script, IReadOnlyList<string> arguments, TimeSpan timeout, TimeProvider clock)
     {
-        using var deadline = new CancellationTokenSource(timeout);
+        ArgumentNullException.ThrowIfNull(clock);
+        using var deadline = new CancellationTokenSource(timeout, clock);
         using var process = Start(StartInfo(script, arguments));
         var output = process.StandardOutput.ReadToEndAsync(deadline.Token);
         var error = process.StandardError.ReadToEndAsync(deadline.Token);
