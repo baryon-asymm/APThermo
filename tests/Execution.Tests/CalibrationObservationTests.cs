@@ -53,12 +53,12 @@ public sealed class CalibrationObservationTests
 
     /// <summary>Exact-boundary age is inclusive; expiry at either stage and reversed time retain the actual cause.</summary>
     [Theory]
-    [InlineData(5000000L, 0L, 15, 15, CalibrationReason.ReusedPrefix)]
-    [InlineData(5000001L, 0L, 1, 1, CalibrationReason.Expired)]
-    [InlineData(5000000L, 1L, 15, 1, CalibrationReason.Expired)]
-    [InlineData(-1L, 0L, 1, 1, CalibrationReason.BackwardClock)]
+    [InlineData(5000000L, 0L, 15, 15, nameof(CalibrationReason.ReusedPrefix))]
+    [InlineData(5000001L, 0L, 1, 1, nameof(CalibrationReason.Expired))]
+    [InlineData(5000000L, 1L, 15, 1, nameof(CalibrationReason.Expired))]
+    [InlineData(-1L, 0L, 1, 1, nameof(CalibrationReason.BackwardClock))]
     public void StagedFreshnessKeepsItsCauseAndNullableAge(long beforeTicks, long uploadTicks,
-        int beforeCases, int afterCases, CalibrationReason reason)
+        int beforeCases, int afterCases, string reason)
     {
         using var scenario = new CalibrationScenario();
         scenario.Clock.Timestamp = TimeSpan.TicksPerSecond;
@@ -72,16 +72,16 @@ public sealed class CalibrationObservationTests
         run.ObserveSuccessfulLaunch(afterCases, TimeSpan.Zero);
         var after = scenario.Cache.Observation;
         Assert.Equal(TimeSpan.FromTicks(beforeTicks), before.BeforeUpload.CandidateAge);
-        Assert.Equal(reason, after.AfterUpload.Reason);
+        Assert.Equal(Enum.Parse<CalibrationReason>(reason), after.AfterUpload.Reason);
         Assert.Equal(after.AfterUpload, after.PhysicalFirstLaunch);
         Assert.Equal(TimeSpan.FromTicks(beforeTicks + uploadTicks), after.AfterUpload.CandidateAge);
     }
 
     /// <summary>Failed identity short circuits are reported once, with no invented candidate age.</summary>
     [Theory]
-    [InlineData(false, CalibrationReason.IdentityMismatch)]
-    [InlineData(true, CalibrationReason.UnsupportedIdentity)]
-    public void IdentityMissesDoNotPretendToExpire(bool unsupported, CalibrationReason reason)
+    [InlineData(false, nameof(CalibrationReason.IdentityMismatch))]
+    [InlineData(true, nameof(CalibrationReason.UnsupportedIdentity))]
+    public void IdentityMissesDoNotPretendToExpire(bool unsupported, string reason)
     {
         using var scenario = new CalibrationScenario();
         scenario.Train();
@@ -91,9 +91,9 @@ public sealed class CalibrationObservationTests
         Assert.Equal(1, run.FirstChunkCases());
         var observation = scenario.Cache.Observation;
         Assert.True(observation.PreviousEntryPresent);
-        Assert.Equal(reason, observation.MatchReason);
-        Assert.Equal(reason, observation.BeforeUpload.Reason);
-        Assert.Equal(reason, observation.AfterUpload.Reason);
+        Assert.Equal(Enum.Parse<CalibrationReason>(reason), observation.MatchReason);
+        Assert.Equal(Enum.Parse<CalibrationReason>(reason), observation.BeforeUpload.Reason);
+        Assert.Equal(Enum.Parse<CalibrationReason>(reason), observation.AfterUpload.Reason);
         Assert.Null(observation.BeforeUpload.CandidateAge);
         Assert.Null(observation.AfterUpload.CandidateAge);
     }
@@ -122,10 +122,10 @@ public sealed class CalibrationObservationTests
 
     /// <summary>Partial, abandoned and over-target work cannot be labeled a completed publication.</summary>
     [Theory]
-    [InlineData("partial", CalibrationOutcome.NotPublished)]
-    [InlineData("over-target", CalibrationOutcome.NotPublished)]
-    [InlineData("abandoned", CalibrationOutcome.Abandoned)]
-    public void NonpublicationIsIndependentOfTheFirstPhysicalChoice(string mode, CalibrationOutcome outcome)
+    [InlineData("partial", nameof(CalibrationOutcome.NotPublished))]
+    [InlineData("over-target", nameof(CalibrationOutcome.NotPublished))]
+    [InlineData("abandoned", nameof(CalibrationOutcome.Abandoned))]
+    public void NonpublicationIsIndependentOfTheFirstPhysicalChoice(string mode, string outcome)
     {
         using var scenario = new CalibrationScenario();
         scenario.Train();
@@ -148,7 +148,7 @@ public sealed class CalibrationObservationTests
             run.Complete();
         }
 
-        Assert.Equal(outcome, scenario.Cache.Observation.Outcome);
+        Assert.Equal(Enum.Parse<CalibrationOutcome>(outcome), scenario.Cache.Observation.Outcome);
         Assert.Equal(0, scenario.Cache.Observation.PublicationId);
         Assert.Equal(physical, scenario.Cache.Observation.PhysicalFirstLaunch);
     }
