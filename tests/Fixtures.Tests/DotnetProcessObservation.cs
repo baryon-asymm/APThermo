@@ -81,7 +81,14 @@ internal static class DotnetProcessObservation
         try
         {
             using var process = Process.GetProcessById(pid);
-            _ = process.SafeHandle;
+            try
+            {
+                _ = process.SafeHandle;
+            }
+            catch (InvalidOperationException) when (process.HasExited)
+            {
+                return new DotnetProcessSample(false, pid, description + "; observed=exited before handle acquisition");
+            }
             if (process.HasExited)
             {
                 return new DotnetProcessSample(false, pid, description + "; observed=exited");

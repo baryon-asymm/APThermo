@@ -109,6 +109,8 @@ raise ProcessHasExited/InvalidOperationException. Handle that only around the
 SafeHandle acquisition and only when a fresh framework HasExited observation
 confirms exit; other InvalidOperationException sites and Win32/access errors stay
 failures. Do not mask malformed identity data as process disappearance.
+An exception inside the exit filter leaves the original failure propagating;
+StartTime and identity parsing are outside that catch.
 For the Linux owned `/proc/<pid>/stat` read only, .NET 10 may report disappearance
 between open and read as IOException with raw HResult 3 (Linux ESRCH), in addition
 to missing file/directory. This specific absence is terminal. Other I/O errors,
