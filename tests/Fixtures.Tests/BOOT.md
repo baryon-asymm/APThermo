@@ -104,6 +104,11 @@ StartTime on that same Process, closing the check/reopen race when a child exits
 between getters. Handle acquisition errors remain errors unless the framework
 specifically reports an absent process; never normalize access denial as exit.
 Only fixture-owned processes are queried, with the framework's requested access.
+For the Linux owned `/proc/<pid>/stat` read only, .NET 10 may report disappearance
+between open and read as IOException with raw HResult 3 (Linux ESRCH), in addition
+to missing file/directory. This specific absence is terminal. Other I/O errors,
+permission failures and malformed state remain verification failures; do not infer
+absence from a generic File.Exists result or swallow all IOException instances.
 Each guard logs its original clock/budget and final owned states before assertions.
 The bounded waiter accepts an already running clock, never starts or restarts it,
 and makes a final state read at the boundary. Controlled release occurs after the
