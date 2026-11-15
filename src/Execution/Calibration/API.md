@@ -5,6 +5,9 @@
 An internal immutable value snapshot identifies the latest transaction and preceding
 publication, identity match disposition, generation/normal consumption, candidate
 prefix, staged first-choice reasons/nullable ages and completion/publication outcome.
+The preceding terminal outcome is retained even if no reusable entry exists.
+Nonpublication distinguishes unsupported identity, incomplete coverage, invalid or
+over-target observation, no useful prefix, abandonment and superseding generation.
 All ages use the transaction's existing monotonic provider and completion epoch;
 they are not the full age of the earlier prefix measurement. Absence is not age zero.
 The second upload check retains a prior expiry reason. First physical launch choice

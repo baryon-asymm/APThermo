@@ -49,6 +49,12 @@ SHA-256; ILGPU 1.5.3 ArrayView type identification only, without CUDA runtime.
   Keep RunTimings unchanged: it is assembled before Complete. Parent/friend tests
   read a value copy after Run returns. No retained table/delegate/array/buffer/result,
   cached timing, growing log or callback; expose no new package API or global hook.
+- Begin captures the prior transaction's terminal outcome before its normal Clear,
+  including when no entry exists. Completion distinguishes unsupported identity,
+  incomplete coverage, invalid/over-target observation, no useful prefix, publication,
+  abandonment and superseding generation. A generic NotPublished alone cannot tell
+  why the next call found no reusable observation. Use the original decision state;
+  do not recompute work, change branch ordering or publish before result assembly.
 - This stage changes NO matching order, launch choice, target, TTL, growth, median,
   workloads, input hashing or failure/lifecycle ordering. Reuse existing clock reads
   where possible. Observation has finite cost and is not a performance correction.
