@@ -5,6 +5,24 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
+## Reopened verification — 2026-11-15
+
+Final-head CI `43695098528` at `84e0cb09`, Ubuntu job `132753766806`, fails
+`DeadlineRefusesProcessOrInheritedPipeHang` in tree mode again: 187/188 Fixtures
+facts pass; the child-live assertion fails after about two seconds. The log has
+no PID/kernel-state snapshot, so its exact failed instant is unknown. R14/T14 and
+the root aggregate are reopened while the observation/cleanup boundary is checked.
+The complete earlier acceptance below is the prior candidate state, not current
+readiness. The frozen successful c0df/0f7 runs remain successful for their sources.
+
+The .NET contract describes Kill as asynchronous; parent exit plus pipe EOF does
+not establish that every descendant has reached its terminal kernel state.
+The corrective work must separately observe the owned descendants within the
+remaining original cleanup budget and still reject a truly live survivor. No
+new post-timeout grace period, relaxed timeout, dead-state classification or
+retry-until-green is accepted. A controlled known-answer witness must fail the
+previous immediate observation and pass the corrected bounded observation.
+
 ## Current audit closure — 2026-11-15
 
 All recorded obligations A01–A41, R01–R14 and T01–T16 are accepted within their

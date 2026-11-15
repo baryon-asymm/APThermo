@@ -70,7 +70,37 @@ process controls remain distinct from any thermodynamic reference calculation.
   Fixtures node's procedure instead, and its last run is dated in that node's
   acceptance criteria.
 
+### Asynchronous descendant observation
+
+A tree guard observes the fixture-owned PID identities until they are absent or
+non-executing, within the remaining original cleanup budget. For a two-second
+deadline this is the original invocation stopwatch capped at two plus five seconds;
+for ready-tree cancellation start a cleanup stopwatch immediately before requesting
+cancellation and cap it at five seconds. Do not restart the budget after Run returns.
+The original outer ten-second ceiling includes observation. Poll only while live
+and while time remains, checking terminal state once more at the boundary.
+Keep R14's absent/Z/X/x semantics; sleeping/stopped/uninterruptible and PF_EXITING
+alone remain live. PID/parent/start-time/state diagnostics concern only owned probe
+identities and must be captured before fixture teardown on failure. Never scan or
+terminate unrelated machine processes. Preserve all raw bytes and cancellation tokens.
+Controlled transitions use finite owned processes and an explicit readiness/release
+handshake, not a sleep chosen to make the test pass. A child held live beyond the
+remaining budget must fail, well before its unchanged twenty-second self-stop.
+Production Harness changes are outside this first remedy unless controlled evidence
+shows that its documented attempt/bounded-drain contract is itself violated; escalate
+that finding to the root rather than silently changing the contract.
+
 ## Acceptance criteria
+
+- [ ] Explain and guard the recurrent hosted tree-cleanup observation without
+  pretending that the historical failed instant was sampled. Freeze a controlled
+  immediate-observation red/positive pair before the remedy; prove bounded owned
+  live-to-terminal transition and budget-exhausted live refusal. Parent-only kill
+  mutants must still fail the real deadline and cancellation tree guards on both
+  Windows and Linux. Keep the two/five/ten/twenty-second limits, raw bytes and caller
+  tokens unchanged. All targeted controls, full Fixtures and actual hosted CI on
+  both OS must pass with diagnostic state/identity evidence retained.
+
 
 - [x] 2026-11-15 — Hosted-Linux process observation repair: owned zombie/live/stopped
   controls are old-red/new-green; both Windows and Linux direct-parent-only kill

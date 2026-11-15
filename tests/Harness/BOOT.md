@@ -188,6 +188,13 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
   has none, so that a comparison can never be empty by accident.
   - ⚠ 2026-09-26: was properties only, now fields too → HISTORY.md#differences-fields
 
+⚠ 2026-11-15: Kill is an asynchronous OS request. Waiting for the associated
+parent and draining its pipes does not synchronously prove terminal states of all
+descendants. The existing attempt/at-most-five-second reap/drain contract is
+unchanged; external process-state observers must fit inside that same remaining
+budget rather than append a new grace period. Primary contract:
+[.NET Process.Kill](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.kill?view=net-10.0).
+
 ## Acceptance criteria
 
 → [ACCEPTANCE.md](ACCEPTANCE.md)

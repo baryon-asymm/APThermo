@@ -211,3 +211,10 @@ token splitting and ~0/~1 decoding. Raw fragment characters follow RFC 3986; lit
 reserved/Unicode characters use their valid percent-encoded forms. Plus remains plus,
 encoded percent is not decoded again, and Unicode is not normalized. Traversal stays
 object-only; remote/anchor references and cyclic schemas remain unsupported (IT04).
+
+
+⚠ 2026-11-15: tree kill requests are asynchronous. Parent exit and pipe EOF are
+not a synchronous guarantee that every descendant already has terminal kernel
+state. The interrupted-call cleanup budget remains five seconds; any external
+state observation must use its remaining time, not a new grace period. No Run
+signature, raw-byte, exception, timer or cancellation contract changes.
