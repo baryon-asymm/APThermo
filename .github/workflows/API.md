@@ -1,11 +1,13 @@
 # API.md — .github/workflows
 
-## GPU project execution ✅
+## GPU project execution ⏳
 
-Each existing GPU solution command uses `-m:1` with the unchanged CUDA-or-bit
-filter, shared benchmark fixture and three timed samples. Fresh per-project TRX
-and always-upload artifacts identify OS/run/attempt. The existing shells, limits,
-sequential OS dependencies and dispatch publication conditions remain unchanged.
+Each GPU job uses the ancestor's exact remainder/fresh shared-sweep partition;
+both invocations use Release/no-build/-m:1. The pair shares one Lazy sweep in a
+fresh Execution.Tests process, preserving all samples, work and gates. Build id,
+post-failure pair condition and distinct GPU_TEST_TRX/GPU_SWEEP_TRX names are the
+workflows BOOT contract. Always artifacts contain both fresh report sets and actual
+throughput records. Existing shells, limits, OS order and publication conditions stay.
 
 ## Contract ✅
 

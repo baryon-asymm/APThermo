@@ -33,15 +33,31 @@ collisions. CI Pack/sample/tool and Windows CEA binding run only in core; packag
 upload remains Ubuntu core. Release hosted job timeout stays thirty minutes per
 lane and CUDA/publishing dependency/event conditions remain unchanged.
 
-R16 requires `-m:1` in each GPU solution test command. Keep the existing shell,
-Release/no-build and exact `Category=Cuda|Category=BitSnapshot` filter. Preserve
-the shared Execution.Tests process, original warm-ups, all three timed samples,
-calibration TTL, gates, Windows-before-Linux dependency and job limits. Emit fresh
-TRX per project and always upload GPU evidence under an OS/run/attempt-unique
-artifact name; do not introduce Python or another self-hosted dependency. The
-former concurrent command remains a historical failed run, not proof of its cause.
+R16's project serialization remains in BOTH GPU invocations via `-m:1`.
+The ancestor defines the exact solution-remainder/shared-sweep partition. Name the
+build step `Build` with id `build`; retain `CUDA tests` for the remainder and add
+`CUDA sweep checks` for the fresh pair. The latter condition is
+`${{ !cancelled() && steps.build.outcome == 'success' }}`; preserve native failures.
+Keep the original GPU_TEST_TRX for remainder reports and add GPU_SWEEP_TRX with
+`gpu-${{ github.run_id }}-${{ github.run_attempt }}-sweep.trx` for pair reports.
+Always upload BOTH per-project TRX paths and original actual throughput records
+under the existing OS/run/attempt artifact identity. Keep existing shells,
+Release/no-build, all selected cases, benchmark work/three samples/warm-ups/gates,
+calibration policy, OS dependency and job limits. No Python/new self-hosted dependency.
+Pair selection refuses an empty result with the native VSTest run setting
+`RunConfiguration.TreatNoTestsAsError=true`. Local guards verify both named source
+facts still exist; actual fresh reports must prove both executed and all case identities.
+
+⚠ 2026-11-15 (R10): the former one-command R16 policy is superseded by the exact
+two-process selection in the ancestor, preserving both shared-sweep facts together.
 
 ## Acceptance criteria
+
+- [ ] R10 sweep isolation: both actual GPU jobs execute the original complete case
+  population exactly once across remainder and fresh shared-sweep reports, with
+  unchanged work/gates/policies, both pair facts present and no skips. Windows,
+  Linux and Pack pass; dispatch publishing remains skipped. Compiling/native argv
+  controls and deliberately broken selection/phase/failure/artifact wiring are red.
 
 - [x] 2026-11-15 — R16 local implementation: both GPU commands retain the complete
   original solution/category selection and add `-m:1` plus run/attempt-specific

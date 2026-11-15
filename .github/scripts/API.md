@@ -1,12 +1,14 @@
 # API.md — .github/scripts
 
-## GPU release command guards ✅
+## GPU release command guards ⏳
 
-`test_delivery.py` checks both actual GPU job commands: sequential project
-execution, complete CUDA-or-bit selection, Release/no-build, original shells,
-dependencies and job limits. Frozen former wiring and deliberate independent
-Windows/Linux command mutations must fail. These are local stdlib guards;
-actual self-hosted verification is a separate acceptance requirement.
+`test_delivery.py` checks both phases of both actual GPU jobs: the ancestor's exact
+disjoint remainder/pair selection, live named source facts, Release/no-build/-m:1,
+native empty-pair refusal, original shells/limits/OS dependencies, successful-build
+id and the post-failure/noncancelled pair condition. Separate fresh TRX paths and
+always artifacts cover both phases. Native argv controls and independent workflow
+mutations cover omitted/duplicated work, hidden extra calls and failure masking.
+Local stdlib guard proof remains separate from actual full self-hosted acceptance.
 
 ## Contract ✅
 

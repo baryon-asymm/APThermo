@@ -53,13 +53,21 @@ command, absent/failed/skipped/inconsistent TRX and positive normal cases. Guard
 must read actual workflow wiring/runner commands; remove-a-lane/filter mutations
 must be red. No numerical/GPU/credential/publication operations in local guards.
 
-R16 delivery guards inspect both actual release GPU job blocks, not merely the
-first step named CUDA tests. Require project serialization `-m:1`, the original
-solution, Release/no-build and exact CUDA-or-bit filter, with Windows PowerShell
-and Linux Bash unchanged. Preserve the sequential job dependencies and limits.
-Freeze the former commands and see the new guard red for each OS before changing
-the workflow; positive controls and deliberate command mutations must distinguish
-the two job blocks. Tests use bounded fake fixtures, never actual CUDA or publishing.
+Delivery guards inspect BOTH invocations in BOTH actual GPU job blocks, requiring
+the ancestor's exact solution-remainder/fresh-pair partition, original source facts,
+Release/no-build/-m:1 and original Windows PowerShell/Linux Bash. Require build id,
+the explicit post-failure/noncancelled pair condition and native empty-pair refusal.
+Check both distinct run/attempt TRX variables and always-upload paths, unchanged
+OS dependencies/limits, and exactly two test invocations per job. Refuse failure
+masking, duplicated/omitted pair work, missing pair/one member, wrong Boolean
+precedence, colliding/dropped reports and extra test calls. Both native shell argv
+captures cover both commands. Freeze source1a8 before changing workflow; it must
+be red per OS under the new guard, then the corrected wiring and positive controls
+green. Deliberate independent mutations must identify the affected phase/job.
+Use bounded fake fixtures; no actual CUDA, publishing, approval or numerical changes.
+
+⚠ 2026-11-15 (R10): the R16 single-invocation guard is extended to the ancestor's
+two-invocation contract after observed expiry and a successful same-source fresh pair.
 
 ## Acceptance criteria
 

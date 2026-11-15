@@ -48,10 +48,13 @@ CI/release now use the disjoint exhaustive project lanes declared in
 [scripts/API.md](scripts/API.md); the release CUDA/Pack/publication chain is
 unchanged. Actual hosted acceptance is tracked in BOOT.md.
 
-## GPU project serialization ✅
+## GPU project serialization ⏳
 
-Both self-hosted CUDA jobs run the unchanged solution filter with `-m:1`, keeping
-all selected cases and the shared benchmark fixture in their original processes.
-Windows still precedes Linux; both precede Pack. No new self-hosted dependency,
-retry, timeout, sample exclusion or publication route is introduced. R16's actual
-runner acceptance is recorded in workflows/BOOT.md.
+Each self-hosted job runs the original CUDA-or-bit population in two disjoint
+invocations: the solution remainder, then both original shared-sweep facts in one
+fresh Execution.Tests process. Both use Release/no-build/-m:1 and distinct fresh
+TRX paths. Their union preserves every original case identity and the shared sweep's
+work, warm-ups, samples and gates. The pair still runs after remainder failure when
+build succeeded and the job is not cancelled; the failed job remains failed.
+Windows precedes Linux, both precede Pack; existing shells/dependencies/limits and
+dispatch publication conditions stay. Actual runner acceptance is in workflows/BOOT.md.

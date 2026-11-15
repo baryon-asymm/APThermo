@@ -140,13 +140,31 @@ CUDA jobs/Pack/publishing conditions. The R15 change leaves self-hosted commands
 
 ### GPU project serialization
 
-Each self-hosted CUDA solution test command must pass `-m:1`: run test projects
-sequentially within a GPU job as well as Windows before Linux. Keep the entire
-`Category=Cuda|Category=BitSnapshot` filter, Release/no-build, existing shells,
-job limits, all sample work and throughput gates. Do not split the benchmark from
-its shared correctness fixture, discard a cold sample or change calibration TTL.
-Hosted stdlib guards read both actual GPU commands and reject lost serialization
-or altered selection. Actual Windows and Linux GPU runs and Pack are required.
+Each self-hosted GPU job uses two sequential Release/no-build/-m:1 invocations.
+The solution invocation selects `(Category=Cuda|Category=BitSnapshot)` excluding
+exactly the two shared-sweep facts below. A fresh Execution.Tests invocation runs
+both facts together, preserving their one Lazy sweep, original work, five warm-ups,
+three timed samples, cold sample, all gates and 500 ms launch/freshness policies:
+`APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic`
+and `APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`.
+Use exact FullyQualifiedName equality/inequality and a parenthesized category OR.
+The two actual result populations must be disjoint and exhaust the original
+machine-generated CUDA-or-bit case identities, including parameterized rows.
+Keep existing shells, job limits, Windows-before-Linux and publishing conditions.
+The fresh-pair step runs after a successful named build even if the remainder fails,
+unless cancelled. Preserve the failed job status; no retries or continue-on-error.
+Both invocations have distinct OS/run/attempt-bound TRX paths and always-upload
+evidence. Missing/empty pair results cannot establish acceptance. Native shell
+argv controls and deliberate phase/selection/failure/artifact mutations must be red.
+Actual Windows/Linux union-of-identities and Pack proof remains mandatory.
+
+⚠ 2026-11-15 (R10): was one complete category invocation with the shared sweep
+inside the full Execution process; now the original selection is partitioned above.
+Source1a8 full Windows fails throughput with a matching published entry aged
+1.0437997 s before the third launch. One same-source fresh process runs BOTH sweep
+facts successfully (21.31x, per-step1.261e-7, ages4.9066/5.6060 ms). This supports
+isolating the measurement's process state, without identifying the pause's cause
+or changing library policy. Earlier failed runs remain failed.
 
 ⚠ 2026-11-15 (R16): was "Self-hosted commands/shells remain unchanged." That was
 the R15 change boundary. Source6878's Windows GPU run has 449/450 passing cases;
