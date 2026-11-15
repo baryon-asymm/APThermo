@@ -22,14 +22,24 @@
   `linux-old-filter-red/`, `cleanup-fixed/`, `windows-fixtures-r18/` and
   `linux-fixtures-r18/`, with TRX and source hashes retained.)
 
-- [ ] R18: injected documented partial tree-kill failure cannot replace timeout or
+- [x] R18: injected documented partial tree-kill failure cannot replace timeout or
   caller cancellation, their raw stdout/stderr, readable excerpts or caller token;
   cleanup remains bounded and ordinary cleanup remains positive. Frozen prior
   filtering is red, full consuming process guards pass on Windows/Linux.
-- [ ] R19: the runner and Docs diagnostic consumer use the same immutable actual
+  (2026-11-15: exact source `f21ac451c286`. Cleanup failures remain secondary to the
+  original timeout/cancellation.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
+- [x] R19: the runner and Docs diagnostic consumer use the same immutable actual
   timeout/cleanup policy. A controlled alternate policy makes the frozen duplicate
   metadata red without a real wait, corrected metadata follows actual policy,
   the unchanged real defaults and the reviewed public surface/API checks pass.
+  (2026-11-15: exact source `f21ac451c286`. Runner and consumer share the immutable
+  policy and alternate-value controls.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 - [x] 2026-11-14: A16/A17, `Fixtures.Tests.OracleGuardTests` preserves approved
       bytes for conventional/arbitrary/upper-case names and writes distinct actual

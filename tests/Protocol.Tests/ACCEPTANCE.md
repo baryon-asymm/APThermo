@@ -6,7 +6,7 @@ only in this node.
 
 ## Acceptance criteria
 
-- [ ] R17 hosted handshake: delayed owned readiness beyond the former two/three-
+- [x] R17 hosted handshake: delayed owned readiness beyond the former two/three-
   second acquisition windows remains valid while the actual per-call deadline
   clock is paused. Only after acknowledged identities, parent exit and live pipe
   ownership does an exact three-second advance cause the expected helper failure.
@@ -14,12 +14,22 @@ only in this node.
   normal/live-parent, nonce/stage/dead-identity/spent-budget controls are distinct.
   Actual System-clock timer wiring remains proved. Final controls/full Protocol
   and fresh Windows/Linux CI/release paths pass; all owned tasks/probes are reaped.
+  (2026-11-15: exact source `f21ac451c286`. Owned delayed readiness and per-call clock
+  controls pass all four cohorts.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
-- [ ] R17: inherited stdout/stderr after Python parent exit and a live hanging
+- [x] R17: inherited stdout/stderr after Python parent exit and a live hanging
   parent fail within the original supplied deadline plus one bounded cleanup;
   ordinary/nonzero/UTF-8 output remains exact. Frozen parent-only waiting fails
   the owned inherited-pipe control, all final controls and full Protocol.Tests
   pass on Windows/Linux, with no skipped cases or surviving owned probes.
+  (2026-11-15: exact source `f21ac451c286`. Parent exit with inherited pipes remains
+  bounded, with UTF-8 output intact.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 - [x] 2026-09-13 — Lint wired:
       `LintTests.TheTreePassesTheProtocolLinterWithNoErrorAndNoWarning` runs the linter as a

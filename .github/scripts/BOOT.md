@@ -95,9 +95,14 @@ two-invocation contract after observed expiry and a successful same-source fresh
   `mutation-results.json`, `actual-discovery-partition.json` in the same directory.
 
 
-- [ ] R15 runner/guard controls and deliberate wiring/discovery/result mutations
+- [x] R15 runner/guard controls and deliberate wiring/discovery/result mutations
   prove exact project coverage and honest started/failed/complete states; actual
   hosted artifacts confirm all generated assignments and real passed TRX.
+  (2026-11-15: exact source `f21ac451c286`. Generated hosted assignments and honest
+  runner/guard states pass both OS.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 
 - [x] 2026-11-14 — A39 fresh-report control: `test_trace_scan.py` ten tests pass.
@@ -135,6 +140,11 @@ two-invocation contract after observed expiry and a successful same-source fresh
   preflight/CUDA paths, Windows job `132747447148` and Linux job `132748505091`;
   explicit matching shells and actual runner labels are retained in the final proof index.
   External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
+  (2026-11-15: exact source `f21ac451c286`. Actual Windows/Linux preflight and both GPU
+  phases pass.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 ## Taboos
 

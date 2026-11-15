@@ -190,9 +190,14 @@ required before acceptance.
   `mutation-results.json`, `test_hosted_tests.py.log`, `test_trace_scan.py.log`.
   Actual Windows/Linux case-population and Pack acceptance remains unchecked.
 
-- [ ] R15 hosted lanes run every discovered test project exactly once per OS,
+- [x] R15 hosted lanes run every discovered test project exactly once per OS,
   retain all original filters/deadlines/approvals, and pass fresh actual CI and
   release-dispatch paths with per-project manifest/TRX and package consumption.
+  (2026-11-15: exact source `f21ac451c286`. All 11 projects and 7,672 cases pass per OS
+  without skips.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 
 - [x] 2026-11-14 audit delivery changes: local discovery/adversarial script guards,
@@ -204,6 +209,11 @@ required before acceptance.
   jobs and Pack succeed, Publish and GitHub Release are skipped. Native c0df
   evidence and explicit unchanged-runtime comparison retain their actual sources.
   External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
+  (2026-11-15: exact source `f21ac451c286`. All current delivery paths and controlled
+  refusal cases pass.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 - [x] 2026-10-01 — `.github` and (until its removal, HISTORY.md#isaprobe-removed)
       `diagnostics/IsaProbe` are nodes and the protocol lint reads them: 0 errors for both (`python -X utf8 tools/protocol-lint/protocol_lint.py .

@@ -17,17 +17,27 @@ The node frame remains in BOOT.md.
   `linux-docs-pure-final/`, `windows-fixtures-final/`, `linux-fixtures-final/` and
   `windows-metadata-final/`. The only surface additions are the two policy getters.)
 
-- [ ] R19: cold-call limit metadata follows the actual immutable Harness policy;
+- [x] R19: cold-call limit metadata follows the actual immutable Harness policy;
   an isolated alternate-policy control rejects the frozen duplicated literals
   without a real CLI or timed wait. All nine original diagnostic controls and
   both original cold invocation populations/arguments remain valid.
+  (2026-11-15: exact source `f21ac451c286`. Actual cold-call metadata uses the immutable
+  300 s / 5 s policy.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
-- [ ] R15: every actual cold CLI invocation retains identity, input hash, limits,
+- [x] R15: every actual cold CLI invocation retains identity, input hash, limits,
   start/end/outcome context before a failure can escape. Controlled normal/timeout
   runners prove result/exception/raw-byte identity; omitting context is old-red.
   Both actual hosted OS paths execute every generated invocation in both field
   and exact modes with the unchanged five-minute process deadline. Actual logs/TRX
   establish the new execution; they do not infer which historical49 command hung.
+  (2026-11-15: exact source `f21ac451c286`. All original cold calls retain source, argv,
+  input and outcome identity.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 
 - [x] 2026-11-14 — Owner-approved A26 schema-input bytes match CLI delivery and the canonical resource; `CommandLineExampleTests` 4/4. Evidence: `SCRATCH/audit/schema-approval-proof.json`, `schema-approval-docs/schema-approval-docs.trx`.

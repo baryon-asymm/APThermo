@@ -61,11 +61,16 @@ two-process selection in the ancestor, preserving both shared-sweep facts togeth
   `mutation-results.json`, `test_hosted_tests.py.log`, `test_trace_scan.py.log`.
   Actual Windows/Linux case-population and Pack acceptance remains unchecked.
 
-- [ ] R10 sweep isolation: both actual GPU jobs execute the original complete case
+- [x] R10 sweep isolation: both actual GPU jobs execute the original complete case
   population exactly once across remainder and fresh shared-sweep reports, with
   unchanged work/gates/policies, both pair facts present and no skips. Windows,
   Linux and Pack pass; dispatch publishing remains skipped. Compiling/native argv
   controls and deliberately broken selection/phase/failure/artifact wiring are red.
+  (2026-11-15: exact source `f21ac451c286`. Each GPU job preserves the disjoint 448 + 2
+  selection and all 450 identities.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 - [x] 2026-11-15 — R16 local implementation: both GPU commands retain the complete
   original solution/category selection and add `-m:1` plus run/attempt-specific
@@ -77,13 +82,18 @@ two-process selection in the ancestor, preserving both shared-sweep facts togeth
   `frozen-controls.json`, `mutation-results.json`, `actionlint.log`.
   Actual self-hosted/Pack acceptance remains the separate unchecked R16 criterion.
 
-- [ ] R16: both self-hosted GPU jobs execute solution test projects sequentially,
+- [x] R16: both self-hosted GPU jobs execute solution test projects sequentially,
   preserve the complete original CUDA-or-bit selection and all three timed samples,
   and pass unchanged throughput and launch-budget gates on Windows and Linux.
   Frozen former commands are red under the new bounded wiring guard; deliberate
   loss of serialization or selected work is refused. Fresh source-bound reports
   and actual job logs establish the executed cases, no skips and project ordering;
   Pack passes, while dispatch publishing/release creation remain skipped.
+  (2026-11-15: exact source `f21ac451c286`. GPU projects remain sequential and all
+  original gates pass.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 - [x] 2026-11-15 — R15 local wiring: `test_hosted_tests.py` passes 15 tests,
   including deliberate lane/filter/package/binding/artifact/timeout/dependency
@@ -93,9 +103,14 @@ two-process selection in the ancestor, preserving both shared-sweep facts togeth
   `frozen-controls.json` in the same directory. Actual hosted evidence stays open.
 
 
-- [ ] R15 workflow guards reject missing/duplicate lane wiring, dropped filters,
+- [x] R15 workflow guards reject missing/duplicate lane wiring, dropped filters,
   misplaced package/binding steps or colliding artifacts; actual hosted CI and
   release dispatch cover all lanes on both OS with complete source-bound evidence.
+  (2026-11-15: exact source `f21ac451c286`. All six hosted lanes and their wiring guards
+  pass.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 
 - [x] 2026-11-14 — A39 local wiring: eight `test_trace_scan.py` guards pass; bypassing
@@ -111,6 +126,11 @@ two-process selection in the ancestor, preserving both shared-sweep facts togeth
   both full corpora, exactly 2 passed facts per hosted OS, with discovery/matrix/TRX
   artifact digests verified. CI/Release also pass the actual delivery and trace guards.
   External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
+  (2026-11-15: exact source `f21ac451c286`. Both complete trace corpora pass, two facts
+  per OS without skips.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 - [x] 2026-11-14 — A33 local controls: both release ref uses bind through the actual
   YAML env mappings and quoted shell variables (`test_delivery.py`, 11 total guards);
@@ -123,6 +143,11 @@ two-process selection in the ancestor, preserving both shared-sweep facts togeth
   both full corpora, exactly 2 passed facts per hosted OS, with discovery/matrix/TRX
   artifact digests verified. CI/Release also pass the actual delivery and trace guards.
   External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
+  (2026-11-15: exact source `f21ac451c286`. Literal ref controls and full trace
+  execution/artifacts pass.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 - [x] 2026-11-15 — Isolated Windows CPython 3.13.15, CEA 3.3.4 and NumPy 2.5.3
   binary wheels load libcea with isolated mode and empty PATH; full unchanged
@@ -135,6 +160,11 @@ two-process selection in the ancestor, preserving both shared-sweep facts togeth
   isolated CPython 3.13.17 x64 / CEA 3.3.4 / NumPy 2.5.3 native import and the
   unchanged 38-fixture sample comparison at exact source `0f7ecb6f4fff`.
   External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
+  (2026-11-15: exact source `f21ac451c286`. Hosted Windows native CEA import and
+  unchanged 38 fixtures pass.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 ## Taboos
 

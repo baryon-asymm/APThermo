@@ -5,6 +5,46 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
+## Accepted implementation and runtime verification — 2026-11-15
+
+The A01–A41, R01–R19 and T01–T16 obligations have reviewed fixes and current
+evidence. The generated map retains 76 overlapping stable IDs, not 76 distinct
+defects. Earlier criteria, measurements and failed/cancelled histories remain below.
+
+Actual source `f21ac451c286bcbea88703b7bf4b6e90af35709e` passes CI `43742270400`,
+Trace `43742270272` and Release `43742272942`. CI and Release each pass 7,672
+cases per OS, without skips, over the generated 11-project partition. Each GPU
+passes all original 450 identities exactly once: 448 remainder cases and both
+shared-sweep facts in a fresh process, with 12 TRX per OS. Original work, five
+warm-ups, three samples including the cold sample, 500 ms launch/freshness
+policies and every throughput/bit/numerical gate remain unchanged. Windows records
+ratio 20.32 and per-step 1.271e-7; Linux 26.10 and 1.328e-7.
+
+Current Debug passes 7,614 fast cases in 191.780 s against 300 s, and 59 EndToEnd
+cases in 194.378 s against 600 s. No skips; the full math case passes with all
+three pinned corpus hashes. GPU runners start after local checks and terminate
+after their jobs. Pack produces four archives. PDB/SourceLink verification derives
+7 assemblies/7 PDBs/217 documents for the library and 8/8/288 for the tool, all at
+the exact source. Dispatch publishing and release creation remain skipped.
+
+Runtime proof: external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`,
+SHA-256 `7aca04b5eb9363f4e6a3fe65a66e61a0c6b7babe5a355f7c58b123dcda343312`.
+The later documentation commit receives separate unchanged-code identity and
+actual CI/Trace verification, without claiming its own future hash or result.
+
+The R10 remedy isolates the original shared pair. Runtime C# retains the reviewed
+observation implementation; numerical sources, data, fixtures, samples and scientific
+approvals retain their generated identities. Observation has finite cost.
+Source `1a8aca20` remains a failed Windows 449/450 run: its third matching published entry
+expired at 1.0437997 s. Its failed actual record is fresh within that fact. The
+separately declared same-source fresh pair passes 2/2, ratio 21.31, per-step
+1.261e-7, repeat ages 4.9066/5.6060 ms. This supports process isolation; the pause
+cause remains unknown. The earlier a930 Linux diagnostic remains separately scoped.
+Accepted `0f7`, the failed `84` tree check, `49` CLI, `6878` Windows GPU,
+`5d09` setup, `463` Linux GPU, and owner-superseded `76` cancellation retain their
+real outcomes. Current acceptance
+supersedes readiness without relabelling those stages.
+
 ## Latest GPU verification and independent timeout review — 2026-11-15
 
 2026-11-15: source `a93074210a6c02646c2197b764334a83e221cefd` adds bounded
@@ -251,6 +291,11 @@ issues. They remain part of this closure, without reclassifying failed runs as p
   jobs and Pack succeed, Publish and GitHub Release are skipped. Native c0df
   evidence and explicit unchanged-runtime comparison retain their actual sources.
   External audit index: `fix-evidence/github-0f7/final-proof-index-0f7-v1.json`.)
+  (2026-11-15: exact source `f21ac451c286`. Actual CI, Trace, both GPU jobs, Pack and
+  PDB/SourceLink checks pass.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 ## Final native verification — 2026-11-15
 

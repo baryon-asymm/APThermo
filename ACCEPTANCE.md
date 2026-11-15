@@ -6,7 +6,7 @@ frame; this file holds the criteria that prove it, read only in the root node.
 
 ## Acceptance criteria
 
-- [ ] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
+- [x] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
       verification in [AUDIT-CLOSURE.md](AUDIT-CLOSURE.md) has dated evidence; the
       prior criteria and historical measurements remain discoverable.
   (2026-11-15: Exact-source `0f7ecb6f4fff` CI `43691428901`, hosted trace
@@ -17,6 +17,11 @@ frame; this file holds the criteria that prove it, read only in the root node.
   (2026-11-15: reopened after final-head CI `43695098528` at `84e0cb09`;
   Ubuntu job `132753766806` again rejects the tree-child assertion. Historical
   accepted runs above retain their actual sources; current completion is pending.)
+  (2026-11-15: exact source `f21ac451c286`. All 76 overlapping obligations have reviewed
+  fixes and current evidence.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
   ⚠ 2026-11-15: the formerly checked aggregate is reopened after the actual
   final-head Linux tree assertion failed. Its requirement and earlier proof are
   retained, while its completion mark is withdrawn pending the corrected guard:

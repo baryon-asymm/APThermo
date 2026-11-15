@@ -140,10 +140,15 @@ about PF_EXITING or the historical failed instant is inferred from a later pass.
   `linux-old-filter-red/`, `cleanup-fixed/`, `windows-fixtures-r18/` and
   `linux-fixtures-r18/`, with TRX and source hashes retained.)
 
-- [ ] R18: controlled partial tree-kill AggregateException on the actual cleanup
+- [x] R18: controlled partial tree-kill AggregateException on the actual cleanup
   path preserves primary timeout/cancellation, raw arrays, excerpts and caller
   token within the existing cleanup budget. Frozen prior filtering is red;
   normal cleanup and the full process-fixture controls pass on Windows/Linux.
+  (2026-11-15: exact source `f21ac451c286`. Partial tree-kill controls preserve primary
+  timeout/cancellation identity.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 - [x] 2026-11-15 — Local asynchronous-observation controls: immediate frozen waiter
   is red only for release-after-first-LIVE on each OS (three positives); final bounded
@@ -158,7 +163,7 @@ about PF_EXITING or the historical failed instant is inferred from a later pass.
   windows-fixtures-final-v2.trx, linux-fixtures-final-v2.trx and verification-summary.json.
   The actual hosted acceptance remains the separate unchecked criterion below.
 
-- [ ] Explain and guard the recurrent hosted tree-cleanup observation without
+- [x] Explain and guard the recurrent hosted tree-cleanup observation without
   pretending that the historical failed instant was sampled. Freeze a controlled
   immediate-observation red/positive pair before the remedy; prove bounded owned
   live-to-terminal transition and budget-exhausted live refusal. Parent-only kill
@@ -166,6 +171,11 @@ about PF_EXITING or the historical failed instant is inferred from a later pass.
   Windows and Linux. Keep the two/five/ten/twenty-second limits, raw bytes and caller
   tokens unchanged. All targeted controls, full Fixtures and actual hosted CI on
   both OS must pass with diagnostic state/identity evidence retained.
+  (2026-11-15: exact source `f21ac451c286`. Owned-tree PID/start-time and terminal-state
+  controls pass all cohorts.
+  CI `43742270400`, Trace `43742270272`, Release `43742272942`.
+  Source-bound reports, controls and artifact inventory:
+  external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
 
 
 - [x] 2026-11-15 — Hosted-Linux process observation repair: owned zombie/live/stopped
