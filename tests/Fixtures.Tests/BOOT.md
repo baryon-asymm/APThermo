@@ -26,6 +26,21 @@ provenance and coverage, never their values (AGENTS.md §1).
   has its own finite self-stop, and tests clean up only the PID written by their own
   probe. Ordinary byte/argument/environment/nonzero-exit cases remain exact.
 
+- A Linux probe is live unless its owned PID is absent or `/proc/<pid>/stat`
+  reports zombie/dead state (`Z`, `X`, `x`). Sleeping, stopped and uninterruptible
+  processes remain live. Read the state after the final `)` delimiting the command
+  name; a missing delimiter/state field and read failures fail verification.
+  Other platforms retain `Process.HasExited`. Cancellation of a ready tree proves
+  that both observations were live beforehand and both are non-executing afterwards.
+
+⚠ 2026-11-15: the former fresh `Process.GetProcessById(pid).HasExited` observation
+could label an already exited Linux zombie as running. Hosted release run
+43687839467 failed the live-child assertion; the same assertion reproduced locally.
+An owned unreaped child deterministically showed kernel `Z` with HasExited=false;
+the new observation distinguishes that state while direct-parent-only kill mutants
+still fail both tree controls. The hosted log contains no process-state sample, so
+its exact failed instant still requires confirmation by the orchestrator's rerun.
+
 - **Lists are produced by the machine**: kinds by listing `cases/`, compared fields by
   reading the fixtures, the pinned version by reading `requirements.txt`. The one typed
   list is the set of kinds of the case matrix, which is the design decision under test.
@@ -56,6 +71,15 @@ process controls remain distinct from any thermodynamic reference calculation.
   acceptance criteria.
 
 ## Acceptance criteria
+
+- [x] 2026-11-15 — Hosted-Linux process observation repair: owned zombie/live/stopped
+  controls are old-red/new-green; both Windows and Linux direct-parent-only kill
+  mutations fail deadline and cancellation tree controls. The twelve process guards
+  pass within the full Fixtures.Tests suite, 188/188 on each platform. Evidence:
+  `SCRATCH/audit/process-tree-ci/linux-old-observer-control-red.json`,
+  `linux-owned-states-final.json`, `linux-kill-direct-mutant.trx`,
+  `windows-kill-direct-mutant.trx`, `linux-fixtures-final.trx`,
+  `windows-fixtures-rebuilt-final-v2.trx` in that same evidence directory.
 
 - [x] 2026-11-14 — T14: `DotnetProcessGuardTests` eleven controls pass; old unbounded
   forwarding implementation had seven failures and two positive byte/exit controls.

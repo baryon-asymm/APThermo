@@ -29,3 +29,16 @@ nonzero exits, validation, cancellation, deadline and inherited-pipe/tree cleanu
 
 ⚠ 2026-11-14: the old introduction said nobody referenced a test project; the protocol
 inventory does reference this assembly. This is verification, not a consumer API.
+
+## Process liveness evidence ✅
+
+Process-tree controls require both owned processes to be live before cancellation
+and non-executing after cleanup. On Linux, a remaining zombie/dead `/proc` record is
+an exited process awaiting reaping, while sleeping/stopped processes remain live.
+Other platforms use the original Process.HasExited observation. Missing Linux
+records mean exit; missing delimiter/state fields and access failures fail verification.
+No process/stream deadline, cleanup budget or byte-preservation requirement changes.
+
+⚠ 2026-11-15: the earlier fresh Process.HasExited observation could report a Linux
+zombie as live. Owned OS controls demonstrate that false positive and retain live
+and stopped positive controls; direct-parent-only kill mutations remain red.

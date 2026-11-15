@@ -92,6 +92,34 @@ public sealed class DotnetProcessGuardTests : IDisposable
         Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(_data, "stderr.bin")).ConfigureAwait(true), Assert.IsType<byte[]>(problem.Data["StandardError"]));
     }
 
+    /// <summary>Both live processes are observed before cancellation and neither can execute afterwards.</summary>
+    [Fact]
+    public async Task CancellationStopsAnAlreadyWritingProcessTree()
+    {
+        var (arguments, environment) = Input("tree");
+        using var cancellation = new CancellationTokenSource();
+        var pending = Task.Run(() => DotnetProcess.Run(_assembly, arguments, _directory,
+            TimeSpan.FromSeconds(10), environment, cancellation.Token));
+        var watch = Stopwatch.StartNew();
+        while (!RecordedProbeIsRunning("ready.pid.parent") && watch.Elapsed < TimeSpan.FromSeconds(5))
+        {
+            await Task.Delay(10).ConfigureAwait(true);
+        }
+        var ready = File.Exists(Path.Combine(_directory, "ready.pid.parent"));
+        var childWasLive = RecordedProbeIsRunning("ready.pid");
+        var parentWasLive = RecordedProbeIsRunning("ready.pid.parent");
+        await cancellation.CancelAsync().ConfigureAwait(true);
+        var problem = await Assert.ThrowsAsync<OperationCanceledException>(async () => await pending.ConfigureAwait(true)).ConfigureAwait(true);
+        Assert.True(ready, "the tree probe did not reach its ready marker");
+        Assert.True(childWasLive, "the observation failed to detect the owned live child");
+        Assert.True(parentWasLive, "the observation failed to detect the owned live parent");
+        Assert.Equal(cancellation.Token, problem.CancellationToken);
+        Assert.False(RecordedProbeIsRunning("ready.pid"), "the cancelled child survived cleanup");
+        Assert.False(RecordedProbeIsRunning("ready.pid.parent"), "the cancelled parent survived cleanup");
+        Assert.NotEmpty(Assert.IsType<byte[]>(problem.Data["StandardOutput"]));
+        Assert.NotEmpty(Assert.IsType<byte[]>(problem.Data["StandardError"]));
+    }
+
     /// <summary>Readable messages stay bounded while exception data retains the complete raw prefix.</summary>
     [Fact]
     public void DiagnosticExcerptIsBoundedWithoutTruncatingRawEvidence()
@@ -155,12 +183,36 @@ public sealed class DotnetProcessGuardTests : IDisposable
         {
             return false;
         }
+        if (OperatingSystem.IsLinux())
+        {
+            return LinuxProbeIsRunning(pid);
+        }
         try
         {
             using var process = Process.GetProcessById(pid);
             return !process.HasExited;
         }
         catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    private static bool LinuxProbeIsRunning(int pid)
+    {
+        try
+        {
+            var stat = File.ReadAllText("/proc/" + pid.ToString(CultureInfo.InvariantCulture) + "/stat");
+            var stateIndex = stat.LastIndexOf(')') + 2;
+            if (stateIndex < 2 || stateIndex >= stat.Length)
+            {
+                throw new InvalidDataException("the owned probe's Linux process stat is malformed");
+            }
+            // An unreaped zombie has exited; a fresh Process.HasExited can still report false.
+            // Stopped, sleeping and uninterruptible processes remain live and must fail cleanup.
+            return stat[stateIndex] is not ('Z' or 'X' or 'x');
+        }
+        catch (IOException problem) when (problem is FileNotFoundException or DirectoryNotFoundException)
         {
             return false;
         }
