@@ -7,6 +7,15 @@
   and unchanged gates. This is diagnostic evidence; full performance acceptance
   stays separate and cannot be claimed from host controls or a discarded failure.
 
+- [x] 2026-11-15 — R10 host decision-observation controls: final affected host
+  set passes 147/147, including the original lifecycle, weak-ownership, identity,
+  prefix and current-computation facts plus controlled decision histories.
+  `SCRATCH/audit/final-host.log`/`.trx`; five compiling diagnostic mutations fail
+  precise assertions (7/3/10/6/5 failures out of 22 each), restored before final green;
+  `behavioral-mutants.json` retains commands, source/control hashes and counters.
+  Sweep retains exactly three value snapshots after its original elapsed assignments
+  and prints them before unchanged gates. Actual Linux diagnosis above remains open.
+
 - [x] 2026-11-14 — Diagnostic budget override restoration: the CPU-only
   `DiagnosticOverrideRestoresTheOriginalBudgetOnFailure` control passed in
   `SCRATCH/audit/launch-plan-diagnostic-control.log`. The exact original session

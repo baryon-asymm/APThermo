@@ -1,12 +1,16 @@
 # API.md — Execution.Tests
 
-## Calibration decision diagnosis ⏳
+## Calibration decision diagnosis ✅
 
 The original throughput path retains three post-return internal value observations
 alongside its original three timed runs. Diagnostics distinguish actual identity,
 presence, age/expiry stage, generation and publication; no prior result/time is reused.
 Host known-answer controls use the same production calibration/BatchRun boundaries.
 An actual Linux run provides current decisions, not a retrospective cause claim.
+CudaTiming.CalibrationRuns contains the three original timed CUDA runs in order.
+SweepRun copies each Engine.CalibrationObservation only after the original elapsed
+assignment. CudaTests prints all three value snapshots before throughput gate assertions.
+CPU-only controls do not establish actual Linux diagnostic evidence.
 
 The node exposes nothing outward. Its contract points upward: what the parent may
 consider proven about `Execution`, and it holds the approved throughput figures that other

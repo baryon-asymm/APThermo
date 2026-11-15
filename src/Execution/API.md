@@ -1,6 +1,6 @@
 # API.md — Execution
 
-## Repeat-calibration diagnostics (tree contract) ⏳
+## Repeat-calibration diagnostics (tree contract) ✅
 
 Engine supplies an internal immutable calibration-observation value copy for its
 friend tests, backed by the session's one bounded last-transaction observation.
@@ -8,6 +8,13 @@ See [Calibration observation](Calibration/API.md). Read it immediately after the
 current Run returns; it includes the actual post-result-assembly publication outcome.
 No new package API, result/time cache, mutable hook or strong workload retention.
 Existing RunTimings and all numerical/timing/safety policies are unchanged.
+
+```csharp
+internal sealed class Engine
+{
+    internal Calibration.CalibrationObservation CalibrationObservation { get; }
+}
+```
 
 Namespace `APThermo.Execution`. The node exposes the accelerator options and
 description, the CUDA-forbidden probe, and the exception a failed bind raises.

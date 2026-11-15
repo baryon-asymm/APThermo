@@ -1,3 +1,5 @@
+using APThermo.Execution.Calibration;
+
 namespace APThermo.Execution.Tests;
 
 /// <summary>
@@ -11,6 +13,9 @@ internal sealed record CudaTiming(TimeSpan Elapsed, TimeSpan Kernel, IReadOnlyLi
 {
     /// <summary>The bounded R09 observation of each timed run, in original order; not per-launch samples.</summary>
     public IReadOnlyList<RunTimings> LaunchRuns { get; init; } = [];
+
+    /// <summary>Exactly the original three timed CUDA calls, copied after their existing elapsed assignments.</summary>
+    public IReadOnlyList<CalibrationObservation> CalibrationRuns { get; init; } = [];
 
     /// <summary>No CUDA run: every time is zero.</summary>
     public static CudaTiming None { get; } = new(TimeSpan.Zero, TimeSpan.Zero, []);

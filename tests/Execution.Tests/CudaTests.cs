@@ -378,6 +378,11 @@ public sealed class CudaTests(ITestOutputHelper output)
             output.WriteLine($"CUDA timed run {index + 1}: {LaunchBudgetObservation.Describe(sweep.CudaTime.LaunchRuns[index])}");
         }
 
+        for (var index = 0; index < sweep.CudaTime.CalibrationRuns.Count; index++)
+        {
+            output.WriteLine($"CUDA calibration run {index + 1}: {CalibrationDecisionDiagnostics.Describe(sweep.CudaTime.CalibrationRuns[index])}");
+        }
+
         // The completed sweep has already compiled this exact cache entry; this reads its existing delegate, not a new kernel.
         var cachedRocket = cuda.Launchers.Get<Delegate>(nameof(Kernels.Rocket), out _);
         foreach (var line in CachedKernelDiagnostics.Lines(cachedRocket))

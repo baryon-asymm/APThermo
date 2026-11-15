@@ -55,12 +55,13 @@ internal sealed class CalibrationKey
         return new CalibrationKey(launcher, tables, Convert.ToHexString(hash.GetHashAndReset()));
     }
 
-    internal bool Matches(CalibrationKey other) =>
-        _identity == other._identity &&
-        _launcher.TryGetTarget(out var launcher) && other._launcher.TryGetTarget(out var otherLauncher) &&
-        ReferenceEquals(launcher, otherLauncher) &&
-        _tables.TryGetTarget(out var tables) && other._tables.TryGetTarget(out var otherTables) &&
-        ReferenceEquals(tables, otherTables);
+    // Preserve the original identity/launcher/table short-circuit order in this single comparison.
+    internal CalibrationReason Compare(CalibrationKey other) =>
+        _identity != other._identity ? CalibrationReason.IdentityMismatch :
+        !_launcher.TryGetTarget(out var launcher) || !other._launcher.TryGetTarget(out var otherLauncher) ? CalibrationReason.DeadLauncher :
+        !ReferenceEquals(launcher, otherLauncher) ? CalibrationReason.LauncherMismatch :
+        !_tables.TryGetTarget(out var tables) || !other._tables.TryGetTarget(out var otherTables) ? CalibrationReason.DeadTables :
+        ReferenceEquals(tables, otherTables) ? CalibrationReason.Matched : CalibrationReason.TablesMismatch;
 
     private static void Append(IncrementalHash hash, string value)
     {

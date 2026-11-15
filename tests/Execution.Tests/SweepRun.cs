@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using APThermo.Execution.Calibration;
 
 namespace APThermo.Execution.Tests;
 
@@ -73,6 +74,7 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
     private static (RocketBatchResult First, CudaTiming Time, RocketBatchResult Second) TimeMedianKeepingTwo(Engine engine, UploadedTables tables, RocketBatch batch)
     {
         var results = new RocketBatchResult[TimedRunCount];
+        var observations = new CalibrationObservation[TimedRunCount];
         var elapsed = new TimeSpan[TimedRunCount];
         var watch = new Stopwatch();
         for (var i = 0; i < TimedRunCount; i++)
@@ -80,10 +82,15 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
             watch.Restart();
             results[i] = engine.Run(tables, batch);
             elapsed[i] = watch.Elapsed;
+            observations[i] = engine.CalibrationObservation;
         }
 
         var kernels = results.Select(result => result.Timings.Kernel).ToArray();
-        var timing = CudaTiming.From(elapsed, kernels) with { LaunchRuns = [.. results.Select(result => result.Timings)] };
+        var timing = CudaTiming.From(elapsed, kernels) with
+        {
+            LaunchRuns = [.. results.Select(result => result.Timings)],
+            CalibrationRuns = observations,
+        };
         return (results[0], timing, results[1]);
     }
 }

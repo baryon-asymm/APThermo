@@ -100,6 +100,17 @@ before changing policy; the exact historical miss cause remains unknown.
 
 ## Acceptance criteria
 
+- [x] Decision snapshots retain preceding terminal outcomes without an entry,
+  the single identity-match cause, staged nullable ages, generation association,
+  physical first choice and separate publication/nonpublication reasons.
+  (2026-11-15: `CalibrationObservationTests`, `CalibrationIdentityObservationTests`
+  and `CalibrationPublicationObservationTests`; final affected host set 147/147 in
+  `SCRATCH/audit/final-host.log` and `.trx`. Five compiling recording mutations fail
+  assertions: missing-before 7, wrong-stage 3, false publication 10, missing previous
+  outcome 6, collapsed reason 5; source/control hashes and restoration receipts are
+  `SCRATCH/audit/behavioral-mutants.json`. These are host diagnostics, not actual
+  Linux throughput evidence or an explanation of an unsampled historical miss.)
+
 - [x] Cold and every incompatible workload start at one; a compatible live repeat
   reuses only the observed prefix, then retains current 2x and all static bounds.
   (2026-11-15: `CalibrationIdentityTests`, `CalibrationPrefixTests` and

@@ -197,6 +197,8 @@ internal sealed class Engine : IDisposable
 
     internal Accelerator IlgpuAccelerator => _session.Accelerator;
 
+    internal Calibration.CalibrationObservation CalibrationObservation => _session.Calibration.Observation;
+
     internal void ClearCalibration() => _session.Calibration.Clear();
 
     /// <summary>The typed launchers this engine compiled (2026-09-30, "Release at dispose"): visible to the tests node the way

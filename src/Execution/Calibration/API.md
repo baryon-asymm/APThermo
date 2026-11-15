@@ -1,6 +1,6 @@
 # API.md — Execution.Calibration
 
-## Calibration observation (tree contract) ⏳
+## Calibration observation (tree contract) ✅
 
 An internal immutable value snapshot identifies the latest transaction and preceding
 publication, identity match disposition, generation/normal consumption, candidate
@@ -16,6 +16,65 @@ The parent exposes a value copy for friend tests after Run has returned. No work
 identity object, array, buffer, delegate, result or RunTimings is retained in it.
 Diagnostics do not change the existing policy or claim zero observation overhead.
 
+```csharp
+namespace APThermo.Execution.Calibration;
+
+internal enum CalibrationReason
+{
+    NotChecked, NoPreviousEntry, UnsupportedIdentity, IdentityMismatch,
+    DeadLauncher, LauncherMismatch, DeadTables, TablesMismatch, Matched,
+    ReusedPrefix, Expired, BackwardClock, Superseded, Finished,
+}
+
+internal enum CalibrationOutcome
+{
+    NotApplicable, Pending, Published, NotPublished, Abandoned, Invalidated, Superseded,
+}
+
+internal enum CalibrationNonpublication
+{
+    None, UnsupportedIdentity, IncompleteCoverage, InvalidObservation, OverTarget, NoUsefulPrefix,
+}
+
+internal readonly record struct CalibrationChoice(int Cases, CalibrationReason Reason, TimeSpan? CandidateAge);
+
+internal readonly record struct CalibrationObservation
+{
+    public long TransactionId { get; init; }
+    public long PreviousTransactionId { get; init; }
+    public CalibrationOutcome PreviousOutcome { get; init; }
+    public CalibrationNonpublication PreviousNonpublicationReason { get; init; }
+    public long PreviousPublicationId { get; init; }
+    public long PublicationId { get; init; }
+    public long PreviousGeneration { get; init; }
+    public long BeginGeneration { get; init; }
+    public long CurrentGeneration { get; init; }
+    public bool PreviousEntryPresent { get; init; }
+    public int PriorPrefixCases { get; init; }
+    public CalibrationReason MatchReason { get; init; }
+    public CalibrationChoice BeforeUpload { get; init; }
+    public CalibrationChoice AfterUpload { get; init; }
+    public CalibrationChoice PhysicalFirstLaunch { get; init; }
+    public CalibrationNonpublication NonpublicationReason { get; init; }
+    public CalibrationOutcome Outcome { get; init; }
+}
+```
+
+Transaction and publication identifiers are session-local unchecked Int64 sequences;
+they are bounded correlation scalars, not globally unique identifiers. The before/after
+stages are the existing first and second FirstChunkCases calls in BatchRun. Candidate
+age is from successful completion of the preceding entry to that existing clock read.
+An already expired/removed candidate retains its last sampled age and specific reason;
+a second absent-candidate check does not read the clock again. PhysicalFirstLaunch is
+frozen at the first ObserveSuccessfulLaunch, independently of eventual publication.
+PreviousGeneration is before Begin's normal consumption; BeginGeneration is after it.
+CurrentGeneration identifies later invalidation separately. PreviousOutcome and its
+reason survive absence of a reusable entry. Nonpublication reasons follow the existing
+invalid state, then unsupported identity, incomplete coverage and no useful prefix.
+InvalidObservation/OverTarget retain the first invalid observation's cause. CPU/unbounded
+bypasses expose NotApplicable or an explicitly Invalidated older transaction; they do
+not produce a fresh bounded transaction. Complete is still called after result assembly.
+
 Internal host-only contract for the parent pipelines. This project-less node
 has no package surface. Implementation helpers remain private to this node.
 
@@ -30,6 +89,7 @@ internal sealed class LaunchCalibrationCache
     public CalibrationRun Begin<TViews>(Delegate launcher, UploadedTables tables, ChunkPlan plan,
         string? inputIdentity, in TViews views) where TViews : struct;
     public void Clear();
+    public CalibrationObservation Observation { get; }
 }
 
 internal sealed class CalibrationRun : IDisposable
