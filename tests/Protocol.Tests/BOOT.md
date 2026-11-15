@@ -91,6 +91,21 @@ children rule, links check removed (the linter has it).
 
 ## Constraints
 
+R17 handshake controls use the SAME runner with a per-call TimeProvider; the
+original three-argument entry delegates with TimeProvider.System. No global hook
+or new package. Pause logical expiry until live identities, validated atomic
+nonce/mode/stage ACK, normal parent exit and live inherited-pipe child are proved;
+then advance the supplied three seconds. Cleanup stays on its real five-second clock.
+One real thirty-second fixture watchdog covers setup through completion; bounded
+teardown is separate, and self-stop is at least sixty seconds. These fixture bounds
+replace the former post-ACK-only sixteen-second outer guard, not a caller deadline.
+Normal value checks use that fixture guard; retain a direct System-clock wiring
+control. Invalid/dead identities, nonce/stage or spent budgets fail setup explicitly.
+⚠ 2026-11-15: source5d09 CI/Release fail in Acknowledge before the helper assertion:
+the two-second ready bound, active three-second helper timer and twelve-second
+probe watchdog raced ownership capture. The failed instants remain unknown;
+controlled readiness/expiry must prove the remedy without a retry or dropped case.
+
 - R17: the supplied Python timeout covers process exit AND completion of both
   redirected streams. A descendant holding a pipe after parent exit must not
   extend it indefinitely. On expiry keep the calling test's XunitException,

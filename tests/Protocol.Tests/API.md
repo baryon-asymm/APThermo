@@ -1,5 +1,22 @@
 # API.md — Protocol.Tests
 
+## Controlled Python deadline clock ⏳
+
+The existing three-argument PythonProcess.RunAsync uses TimeProvider.System and
+retains caller deadlines, UTF-8/output/exit semantics and bounded cleanup. An
+additional node-local per-call TimeProvider path exercises the same actual CTS,
+stream readers, completion and cleanup; it is not a second runner or global override.
+Only the deadline clock is controlled; cleanup retains its real five-second cap.
+
+Probe readiness uses atomic nonce/mode/stage records and ACK content validation.
+Owned identities are acquired before normal parent exit, with partial acquisitions
+registered for safe teardown. Expired or mismatched ownership is a fixture failure.
+The whole fixture has one real thirty-second bound from before dispatch; owned
+teardown remains bounded to five seconds, and independent self-stop is at least
+sixty seconds. This separates preparation from the logical deadline being tested.
+State/timer/identity/remaining-budget diagnostics are captured before assertions.
+No setup failure is counted as the expected helper timeout.
+
 ## Python process completion ✅
 
 The caller-supplied script deadline spans process exit and both redirected

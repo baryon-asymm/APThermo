@@ -7,6 +7,16 @@ retains the original reproductions; these stable IDs preserve the mapping.
 
 ## Latest GPU verification and independent timeout review — 2026-11-15
 
+⚠ 2026-11-15: subsequent source `5d0906d7913fd3cad12cfd2f3887452789324302`
+passes local merged Release checks and corrected Debug sets, but its actual CI
+`43721105782` and Release `43721163754` fail Windows Protocol probe preparation.
+CI loses the parent PID during Capture in pipe mode both; Release cancels the
+two-second ready-file read in mode stdout. Each has 162/163 Protocol passes;
+Ubuntu has 7,641/7,641. The helper-completion assertion was not reached. R17's
+current hosted acceptance remains open pending deterministic ready/clock staging.
+Trace passes; GPU/Pack skip. Preserve the exact failed logs/TRX; the unsampled
+historical timer/scheduling cause is not inferred from a later successful run.
+
 Source `68781f6972b4f2f7bf0ffdd63985c0cbba4ade35` passes CI `43710324828`,
 Trace `43710324831` and all six Release hosted lanes (7,625/7,625 per OS, no skips).
 Release `43710385057` fails Windows GPU job `132803574118`: 449/450 pass, with

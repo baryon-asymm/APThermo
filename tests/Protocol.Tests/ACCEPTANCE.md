@@ -6,6 +6,15 @@ only in this node.
 
 ## Acceptance criteria
 
+- [ ] R17 hosted handshake: delayed owned readiness beyond the former two/three-
+  second acquisition windows remains valid while the actual per-call deadline
+  clock is paused. Only after acknowledged identities, parent exit and live pipe
+  ownership does an exact three-second advance cause the expected helper failure.
+  Old acquisition-clock and original parent-only/unbounded-reader controls are red;
+  normal/live-parent, nonce/stage/dead-identity/spent-budget controls are distinct.
+  Actual System-clock timer wiring remains proved. Final controls/full Protocol
+  and fresh Windows/Linux CI/release paths pass; all owned tasks/probes are reaped.
+
 - [ ] R17: inherited stdout/stderr after Python parent exit and a live hanging
   parent fail within the original supplied deadline plus one bounded cleanup;
   ordinary/nonzero/UTF-8 output remains exact. Frozen parent-only waiting fails
