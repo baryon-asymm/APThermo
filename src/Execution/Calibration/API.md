@@ -71,6 +71,12 @@ PreviousGeneration is before Begin's normal consumption; BeginGeneration is afte
 CurrentGeneration identifies later invalidation separately. PreviousOutcome and its
 reason survive absence of a reusable entry. Nonpublication reasons follow the existing
 invalid state, then unsupported identity, incomplete coverage and no useful prefix.
+PreviousPublicationId identifies the reusable entry consumed by this Begin; it is zero
+when no entry exists. The snapshot records the latest lifecycle state: Clear updates
+Outcome to Invalidated and preserves the recorded first physical choice. A preceding
+Abandoned outcome can therefore become Invalidated when the owner subsequently clears
+the session. An older snapshot's PublicationId can survive Clear as historical context;
+the next Begin still reports zero PreviousPublicationId for the absent entry.
 InvalidObservation/OverTarget retain the first invalid observation's cause. CPU/unbounded
 bypasses expose NotApplicable or an explicitly Invalidated older transaction; they do
 not produce a fresh bounded transaction. Complete is still called after result assembly.
