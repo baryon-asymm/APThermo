@@ -1,6 +1,6 @@
 # API.md — .github/scripts
 
-## GPU release command guards ⏳
+## GPU release command guards ✅
 
 `test_delivery.py` checks both phases of both actual GPU jobs: the ancestor's exact
 disjoint remainder/pair selection, live named source facts, Release/no-build/-m:1,

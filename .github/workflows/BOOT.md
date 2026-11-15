@@ -53,6 +53,14 @@ two-process selection in the ancestor, preserving both shared-sweep facts togeth
 
 ## Acceptance criteria
 
+- [x] 2026-11-15 — R10 local wiring proof: delivery guards pass 25 tests, including
+  both commands under native PowerShell 5.1/Bash. Frozen current/source1a8 wiring
+  fails both jobs; 102 independent per-job mutations fail with archived assertions.
+  Unchanged hosted/trace guards pass 15/10 tests. Evidence:
+  `SCRATCH/audit/gpu-sweep-isolation/frozen-controls.json`, `delivery-green.log`,
+  `mutation-results.json`, `test_hosted_tests.py.log`, `test_trace_scan.py.log`.
+  Actual Windows/Linux case-population and Pack acceptance remains unchecked.
+
 - [ ] R10 sweep isolation: both actual GPU jobs execute the original complete case
   population exactly once across remainder and fresh shared-sweep reports, with
   unchanged work/gates/policies, both pair facts present and no skips. Windows,

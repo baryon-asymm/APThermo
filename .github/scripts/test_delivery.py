@@ -75,6 +75,36 @@ def one_value(text, key, indent):
     return values[0].strip() if len(values) == 1 else ""
 
 
+SWEEP_FACTS = (
+    "APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic",
+    "APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio",
+)
+REMAINDER_FILTER = "(Category=Cuda|Category=BitSnapshot)" + "".join(
+    "&FullyQualifiedName!=" + fact for fact in SWEEP_FACTS)
+SWEEP_FILTER = "|".join("FullyQualifiedName=" + fact for fact in SWEEP_FACTS)
+SWEEP_CONDITION = "${{ !cancelled() && steps.build.outcome == 'success' }}"
+GPU_PHASES = ("CUDA tests", "CUDA sweep checks")
+
+
+def gpu_arguments(phase, variable):
+    project = "APThermo.sln" if phase == "CUDA tests" else "tests/Execution.Tests/APThermo.Execution.Tests.csproj"
+    selection = REMAINDER_FILTER if phase == "CUDA tests" else SWEEP_FILTER
+    arguments = ["dotnet", "test", project, "--configuration", "Release", "--no-build", "-m:1",
+                 "--filter", selection, "--logger", "trx;LogFileName=" + variable]
+    return arguments if phase == "CUDA tests" else arguments + ["--", "RunConfiguration.TreatNoTestsAsError=true"]
+
+
+def sweep_source_violations(text):
+    """Inspect only named declaration/attribute metadata, never test bodies."""
+    problems = []
+    for fact in SWEEP_FACTS:
+        name = fact.rsplit(".", 1)[1]
+        declarations = re.findall(r'((?:    \[[^\n]+\]\n)+)    public void ' + re.escape(name) + r'\(\)', text)
+        if len(declarations) != 1 or '[Fact]' not in declarations[0] or '[Trait("Category", "Cuda")]' not in declarations[0]:
+            problems.append("missing or changed original source fact: " + fact)
+    return problems
+
+
 def gpu_release_violations(text):
     """Read both actual job blocks; a configuration guard never starts a tool."""
     violations = {}
@@ -93,25 +123,37 @@ def gpu_release_violations(text):
             problems.append("GPU job limit changed")
         if one_value(job, "runs-on", 4) != "['self-hosted', '" + platform + "', 'gpu']":
             problems.append("GPU runner class changed")
-        if one_value(job, "GPU_TEST_TRX", 6) != "gpu-${{ github.run_id }}-${{ github.run_attempt }}.trx":
-            problems.append("TRX identity is not run/attempt-specific")
+        for key, suffix in [("GPU_TEST_TRX", ""), ("GPU_SWEEP_TRX", "-sweep")]:
+            if one_value(job, key, 6) != "gpu-${{ github.run_id }}-${{ github.run_attempt }}" + suffix + ".trx":
+                problems.append(key + " identity is not distinct/run/attempt-specific")
         checkout = gpu_step(job, "Checkout")
         if one_value(checkout, "persist-credentials", 10) != "false" or one_value(checkout, "clean", 10) != "true":
             problems.append("fresh credential-free checkout changed")
-        if one_value(gpu_step(job, "Build"), "shell", 8) != shell:
-            problems.append("explicit GPU build shell changed")
-        step = gpu_step(job, "CUDA tests")
-        if one_value(step, "shell", 8) != shell:
-            problems.append("explicit GPU shell changed")
-        try:
-            arguments = shlex.split(one_value(step, "run", 8))
-        except ValueError:
-            arguments = []
-        expected = ["dotnet", "test", "APThermo.sln", "--configuration", "Release", "--no-build",
-                    "-m:1", "--filter", "Category=Cuda|Category=BitSnapshot",
-                    "--logger", "trx;LogFileName=" + variable]
-        if arguments != expected:
-            problems.append("GPU command lost serialization, selection or fresh logger")
+        build = gpu_step(job, "Build")
+        if one_value(build, "shell", 8) != shell or one_value(build, "id", 8) != "build":
+            problems.append("explicit GPU build shell/id changed")
+        if one_value(build, "run", 8) != "dotnet build APThermo.sln --configuration Release" or one_value(build, "if", 8):
+            problems.append("successful unconditional build changed")
+        if len(re.findall(r"\bdotnet\s+test\b", job)) != 2:
+            problems.append("GPU job must contain exactly two test invocations")
+        if re.search(r"(?m)^\s*continue-on-error:", job):
+            problems.append("GPU failure masking is forbidden")
+        for phase, key in zip(GPU_PHASES, ["GPU_TEST_TRX", "GPU_SWEEP_TRX"]):
+            step = gpu_step(job, phase)
+            if one_value(step, "shell", 8) != shell:
+                problems.append(phase + ": explicit GPU shell changed")
+            condition = "" if phase == "CUDA tests" else SWEEP_CONDITION
+            if one_value(step, "if", 8) != condition:
+                problems.append(phase + ": post-failure/noncancelled build condition changed")
+            try:
+                arguments = shlex.split(one_value(step, "run", 8))
+            except ValueError:
+                arguments = []
+            prefix = "$env:" if shell == "powershell" else "$"
+            if arguments != gpu_arguments(phase, prefix + key):
+                problems.append(phase + ": selection/serialization/native refusal/logger command changed")
+        if job.find("- name: Build") > job.find("- name: CUDA tests") or job.find("- name: CUDA tests") > job.find("- name: CUDA sweep checks"):
+            problems.append("build/remainder/fresh-pair order changed")
         upload = gpu_step(job, "Upload GPU test evidence")
         if one_value(upload, "if", 8) != "always()" or one_value(upload, "uses", 8) != "actions/upload-artifact@v7":
             problems.append("GPU evidence is not always uploaded")
@@ -122,6 +164,7 @@ def gpu_release_violations(text):
             problems.append("missing GPU evidence does not fail")
         paths = [line.strip() for line in upload.splitlines() if line.startswith("            ")]
         if paths != ["tests/**/TestResults/${{ env.GPU_TEST_TRX }}",
+                     "tests/Execution.Tests/TestResults/${{ env.GPU_SWEEP_TRX }}",
                      "tests/Execution.Tests/Throughput*.actual.txt"]:
             problems.append("per-project TRX or throughput evidence changed")
     if "  pull_request:" in text or "    branches:" in text:
@@ -130,36 +173,110 @@ def gpu_release_violations(text):
     return violations
 
 
+def gpu_job_mutations(job, name):
+    """Independent defects in each actual phase, retained for red-control evidence."""
+    shell = "powershell" if name == "cuda-windows" else "bash"
+    mutations = {}
+    for phase in GPU_PHASES:
+        step = gpu_step(job, phase)
+        changes = {"serialization removed": (" -m:1", ""), "serialization widened": (" -m:1", " -m:2"),
+                   "Release lost": ("--configuration Release", "--configuration Debug"),
+                   "no-build lost": (" --no-build", ""), "shell implicit": ("        shell: " + shell, ""),
+                   "logger lost": ("--logger", "--verbosity"), "failure masked": ("        run: dotnet", "        continue-on-error: true\n        run: dotnet")}
+        for label, (before, after) in changes.items():
+            mutations[phase + ": " + label] = job.replace(step, step.replace(before, after, 1), 1)
+        mutations[phase + ": omitted"] = job.replace("      - name: " + phase + step, "", 1)
+        mutations[phase + ": duplicated"] = job.replace("      - name: " + phase + step, ("      - name: " + phase + step) * 2, 1)
+    remainder = gpu_step(job, "CUDA tests")
+    pair = gpu_step(job, "CUDA sweep checks")
+    for fact in SWEEP_FACTS:
+        mutations["remainder: exclusion omitted " + fact] = job.replace("&FullyQualifiedName!=" + fact, "", 1)
+        mutations["remainder: exclusion widened " + fact] = job.replace("FullyQualifiedName!=" + fact, "FullyQualifiedName!~" + fact, 1)
+        member = "FullyQualifiedName=" + fact
+        reduced = SWEEP_FILTER.replace(member + "|", "").replace("|" + member, "")
+        mutations["pair: member omitted " + fact] = job.replace(pair, pair.replace(SWEEP_FILTER, reduced), 1)
+    changes = {
+        "remainder: category narrowed": ("(Category=Cuda|Category=BitSnapshot)", "Category=Cuda"),
+        "remainder: Boolean precedence": ("(Category=Cuda|Category=BitSnapshot)", "Category=Cuda|Category=BitSnapshot"),
+        "remainder: pair duplicated": (REMAINDER_FILTER, "(Category=Cuda|Category=BitSnapshot)"),
+        "pair: wrong project": ("test tests/Execution.Tests/APThermo.Execution.Tests.csproj", "test APThermo.sln"),
+        "pair: wrong Boolean": (SWEEP_FILTER, SWEEP_FILTER.replace("|", "&")),
+        "pair: condition missing": ("        if: " + SWEEP_CONDITION + "\n", ""),
+        "pair: failure skipped": (SWEEP_CONDITION, "${{ success() }}"),
+        "pair: cancellation ignored": (SWEEP_CONDITION, "${{ always() }}"),
+        "pair: build outcome ignored": (SWEEP_CONDITION, "${{ !cancelled() }}"),
+        "pair: empty accepted": (" -- RunConfiguration.TreatNoTestsAsError=true", ""),
+        "pair: empty setting disabled": ("TreatNoTestsAsError=true", "TreatNoTestsAsError=false"),
+        "build id lost": ("        id: build\n", ""),
+        "dependency lost": ("    needs: matrix" if name == "cuda-windows" else "    needs: [matrix, cuda-windows]", "    needs: check"),
+        "timeout raised": ("    timeout-minutes: 180", "    timeout-minutes: 181"),
+        "remainder stale TRX": ("gpu-${{ github.run_id }}-${{ github.run_attempt }}.trx", "gpu.trx"),
+        "pair colliding TRX": ("gpu-${{ github.run_id }}-${{ github.run_attempt }}-sweep.trx", "gpu-${{ github.run_id }}-${{ github.run_attempt }}.trx"),
+        "checkout not fresh": ("          clean: true", "          clean: false"),
+        "build shell implicit": ("        id: build\n        shell: " + shell, "        id: build"),
+        "artifact collides": ("gpu-tests-windows-" if name == "cuda-windows" else "gpu-tests-linux-", "gpu-tests-"),
+        "upload conditional": ("        if: always()", "        if: success()"),
+        "missing evidence ignored": ("          if-no-files-found: error", "          if-no-files-found: ignore"),
+        "remainder reports dropped": ("            tests/**/TestResults/${{ env.GPU_TEST_TRX }}\n", ""),
+        "pair reports dropped": ("            tests/Execution.Tests/TestResults/${{ env.GPU_SWEEP_TRX }}\n", ""),
+        "hidden extra test": ("      - name: Upload GPU test evidence", "      - name: Hidden test\n        shell: " + shell + "\n        run: |\n          dotnet test APThermo.sln\n\n      - name: Upload GPU test evidence"),
+    }
+    mutations.update({label: job.replace(before, after, 1) for label, (before, after) in changes.items()})
+    mutations["pair: logger collides"] = job.replace(pair, pair.replace("GPU_SWEEP_TRX", "GPU_TEST_TRX"), 1)
+    mutations["remainder: success forced"] = job.replace(remainder, remainder.rstrip() + " || true\n\n", 1)
+    mutations["pair: before remainder"] = job.replace("      - name: CUDA tests" + remainder + "      - name: CUDA sweep checks" + pair,
+                                                       "      - name: CUDA sweep checks" + pair + "      - name: CUDA tests" + remainder, 1)
+    return mutations
+
+
+def capture_gpu_arguments(command, name):
+    with tempfile.TemporaryDirectory() as directory:
+        environment = dict(os.environ, GPU_TEST_TRX="gpu-123-4.trx", GPU_SWEEP_TRX="gpu-123-4-sweep.trx")
+        if name == "cuda-windows":
+            shell = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+            stub = Path(directory) / "dotnet.exe"
+            source = ("using System; using System.Text; public static class CaptureArguments { "
+                      "public static void Main(string[] args) { foreach (var argument in args) "
+                      "Console.WriteLine(Convert.ToBase64String(Encoding.UTF8.GetBytes(argument))); } }")
+            environment["PATH"] = directory + os.pathsep + environment["PATH"]
+            environment["EXPECTED_DOTNET"] = str(stub)
+            script = ("Add-Type -TypeDefinition '" + source + "' -OutputType ConsoleApplication -OutputAssembly $env:EXPECTED_DOTNET\n"
+                      "if ((Get-Command dotnet -CommandType Application | Select-Object -First 1).Source -ne $env:EXPECTED_DOTNET) { throw 'stub not selected' }\n" + command)
+            result = subprocess.run([str(shell), "-NoProfile", "-NonInteractive", "-Command", script],
+                                    cwd=directory, env=environment, text=True, capture_output=True, timeout=30)
+            if result.returncode:
+                raise AssertionError(result.stderr)
+            return [base64.b64decode(line).decode("utf-8") for line in result.stdout.splitlines()]
+        script = 'dotnet() { printf \'%s\\0\' "$@" > argv.bin; }\n' + command
+        result = subprocess.run([bash_path(), "-c", script], cwd=directory, env=environment,
+                                text=True, capture_output=True, timeout=30)
+        if result.returncode:
+            raise AssertionError(result.stderr)
+        return (Path(directory) / "argv.bin").read_bytes().decode().split("\0")[:-1]
+
+
 class GpuReleaseGuards(unittest.TestCase):
     def test_both_gpu_jobs_obey_the_release_contract(self):
         for name, problems in gpu_release_violations(RELEASE.read_text(encoding="utf-8")).items():
             with self.subTest(job=name):
                 self.assertEqual([], problems)
 
+    def test_original_shared_sweep_facts_still_exist(self):
+        source = (ROOT / "tests/Execution.Tests/CudaTests.cs").read_text(encoding="utf-8-sig")
+        self.assertEqual([], sweep_source_violations(source))
+        for fact in SWEEP_FACTS:
+            with self.subTest(fact=fact):
+                self.assertTrue(sweep_source_violations(source.replace(fact.rsplit(".", 1)[1] + "()", "RemovedFact()", 1)))
+
     def test_each_gpu_job_rejects_command_shell_dependency_and_artifact_drift(self):
         text = RELEASE.read_text(encoding="utf-8")
         self.assertEqual({"cuda-windows": [], "cuda-linux": []}, gpu_release_violations(text))
         for name in ["cuda-windows", "cuda-linux"]:
             original = gpu_job(text, name)
-            changes = {
-                "serialization removed": (" -m:1", ""),
-                "serialization widened": (" -m:1", " -m:2"),
-                "selection narrowed": ("Category=Cuda|Category=BitSnapshot", "Category=Cuda"),
-                "build shell implicit": ("        shell: powershell" if name == "cuda-windows" else "        shell: bash", ""),
-                "test shell implicit": ("      - name: CUDA tests\n        shell: powershell" if name == "cuda-windows" else "      - name: CUDA tests\n        shell: bash", "      - name: CUDA tests"),
-                "dependency lost": ("    needs: matrix" if name == "cuda-windows" else "    needs: [matrix, cuda-windows]", "    needs: check"),
-                "timeout raised": ("    timeout-minutes: 180", "    timeout-minutes: 181"),
-                "stale TRX name": ("gpu-${{ github.run_id }}-${{ github.run_attempt }}.trx", "gpu.trx"),
-                "checkout not fresh": ("          clean: true", "          clean: false"),
-                "artifact collides": ("gpu-tests-windows-" if name == "cuda-windows" else "gpu-tests-linux-", "gpu-tests-"),
-                "upload conditional": ("        if: always()", "        if: success()"),
-                "missing evidence ignored": ("          if-no-files-found: error", "          if-no-files-found: ignore"),
-                "project reports dropped": ("            tests/**/TestResults/${{ env.GPU_TEST_TRX }}", "            tests/Execution.Tests/TestResults/${{ env.GPU_TEST_TRX }}"),
-            }
-            for mutation, (before, after) in changes.items():
+            for mutation, changed_job in gpu_job_mutations(original, name).items():
                 with self.subTest(job=name, mutation=mutation):
-                    self.assertIn(before, original)
-                    changed = text.replace(original, original.replace(before, after, 1), 1)
+                    self.assertNotEqual(original, changed_job)
+                    changed = text.replace(original, changed_job, 1)
                     problems = gpu_release_violations(changed)
                     self.assertTrue(problems[name], "mutation was not refused")
                     other = "cuda-linux" if name == "cuda-windows" else "cuda-windows"
@@ -168,33 +285,15 @@ class GpuReleaseGuards(unittest.TestCase):
     def test_available_shells_receive_the_exact_arguments(self):
         text = RELEASE.read_text(encoding="utf-8")
         jobs = ["cuda-linux"] + (["cuda-windows"] if os.name == "nt" else [])
-        expected = ["test", "APThermo.sln", "--configuration", "Release", "--no-build", "-m:1",
-                    "--filter", "Category=Cuda|Category=BitSnapshot", "--logger", "trx;LogFileName=gpu-123-4.trx"]
         for name in jobs:
-            with self.subTest(job=name), tempfile.TemporaryDirectory() as directory:
-                command = one_value(gpu_step(gpu_job(text, name), "CUDA tests"), "run", 8)
-                environment = dict(os.environ, GPU_TEST_TRX="gpu-123-4.trx")
-                if name == "cuda-windows":
-                    shell = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
-                    stub = Path(directory) / "dotnet.exe"
-                    source = ("using System; using System.Text; public static class CaptureArguments { "
-                              "public static void Main(string[] args) { foreach (var argument in args) "
-                              "Console.WriteLine(Convert.ToBase64String(Encoding.UTF8.GetBytes(argument))); } }")
-                    environment["PATH"] = directory + os.pathsep + environment["PATH"]
-                    environment["EXPECTED_DOTNET"] = str(stub)
-                    script = ("Add-Type -TypeDefinition '" + source + "' -OutputType ConsoleApplication -OutputAssembly $env:EXPECTED_DOTNET\n"
-                              "if ((Get-Command dotnet -CommandType Application | Select-Object -First 1).Source -ne $env:EXPECTED_DOTNET) { throw 'stub not selected' }\n" + command)
-                    result = subprocess.run([str(shell), "-NoProfile", "-NonInteractive", "-Command", script],
-                                            cwd=directory, env=environment, text=True, capture_output=True, timeout=30)
-                    self.assertEqual(0, result.returncode, result.stderr)
-                    actual = [base64.b64decode(line).decode("utf-8") for line in result.stdout.splitlines()]
-                else:
-                    script = 'dotnet() { printf \'%s\\0\' "$@" > argv.bin; }\n' + command
-                    result = subprocess.run([bash_path(), "-c", script], cwd=directory, env=environment,
-                                            text=True, capture_output=True, timeout=30)
-                    self.assertEqual(0, result.returncode, result.stderr)
-                    actual = (Path(directory) / "argv.bin").read_bytes().decode().split("\0")[:-1]
-                self.assertEqual(expected, actual)
+            for phase, variable in zip(GPU_PHASES, ["GPU_TEST_TRX", "GPU_SWEEP_TRX"]):
+                with self.subTest(job=name, phase=phase):
+                    command = one_value(gpu_step(gpu_job(text, name), phase), "run", 8)
+                    filename = "gpu-123-4.trx" if phase == "CUDA tests" else "gpu-123-4-sweep.trx"
+                    expected = gpu_arguments(phase, filename)[1:]
+                    actual = capture_gpu_arguments(command, name)
+                    print(json.dumps({"job": name, "phase": phase, "native_argv": actual}))
+                    self.assertEqual(expected, actual)
 
     def test_release_refuses_pr_and_branch_push_execution(self):
         text = RELEASE.read_text(encoding="utf-8")

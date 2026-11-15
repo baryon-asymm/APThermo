@@ -128,6 +128,7 @@ jobs:
     timeout-minutes: 180
     env:
       GPU_TEST_TRX: gpu-${{ github.run_id }}-${{ github.run_attempt }}.trx
+      GPU_SWEEP_TRX: gpu-${{ github.run_id }}-${{ github.run_attempt }}-sweep.trx
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -146,12 +147,18 @@ jobs:
           DOTNET_INSTALL_DIR: ${{ runner.tool_cache }}/dotnet
 
       - name: Build
+        id: build
         shell: powershell
         run: dotnet build APThermo.sln --configuration Release
 
       - name: CUDA tests
         shell: powershell
-        run: dotnet test APThermo.sln --configuration Release --no-build -m:1 --filter "Category=Cuda|Category=BitSnapshot" --logger "trx;LogFileName=$env:GPU_TEST_TRX"
+        run: dotnet test APThermo.sln --configuration Release --no-build -m:1 --filter "(Category=Cuda|Category=BitSnapshot)&FullyQualifiedName!=APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic&FullyQualifiedName!=APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio" --logger "trx;LogFileName=$env:GPU_TEST_TRX"
+
+      - name: CUDA sweep checks
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        shell: powershell
+        run: dotnet test tests/Execution.Tests/APThermo.Execution.Tests.csproj --configuration Release --no-build -m:1 --filter "FullyQualifiedName=APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic|FullyQualifiedName=APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio" --logger "trx;LogFileName=$env:GPU_SWEEP_TRX" -- RunConfiguration.TreatNoTestsAsError=true
 
       - name: Upload GPU test evidence
         if: always()
@@ -160,6 +167,7 @@ jobs:
           name: gpu-tests-windows-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             tests/**/TestResults/${{ env.GPU_TEST_TRX }}
+            tests/Execution.Tests/TestResults/${{ env.GPU_SWEEP_TRX }}
             tests/Execution.Tests/Throughput*.actual.txt
           if-no-files-found: error
 
@@ -172,6 +180,7 @@ jobs:
     timeout-minutes: 180
     env:
       GPU_TEST_TRX: gpu-${{ github.run_id }}-${{ github.run_attempt }}.trx
+      GPU_SWEEP_TRX: gpu-${{ github.run_id }}-${{ github.run_attempt }}-sweep.trx
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -190,12 +199,18 @@ jobs:
           DOTNET_INSTALL_DIR: ${{ runner.tool_cache }}/dotnet
 
       - name: Build
+        id: build
         shell: bash
         run: dotnet build APThermo.sln --configuration Release
 
       - name: CUDA tests
         shell: bash
-        run: dotnet test APThermo.sln --configuration Release --no-build -m:1 --filter "Category=Cuda|Category=BitSnapshot" --logger "trx;LogFileName=$GPU_TEST_TRX"
+        run: dotnet test APThermo.sln --configuration Release --no-build -m:1 --filter "(Category=Cuda|Category=BitSnapshot)&FullyQualifiedName!=APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic&FullyQualifiedName!=APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio" --logger "trx;LogFileName=$GPU_TEST_TRX"
+
+      - name: CUDA sweep checks
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        shell: bash
+        run: dotnet test tests/Execution.Tests/APThermo.Execution.Tests.csproj --configuration Release --no-build -m:1 --filter "FullyQualifiedName=APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic|FullyQualifiedName=APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio" --logger "trx;LogFileName=$GPU_SWEEP_TRX" -- RunConfiguration.TreatNoTestsAsError=true
 
       - name: Upload GPU test evidence
         if: always()
@@ -204,6 +219,7 @@ jobs:
           name: gpu-tests-linux-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             tests/**/TestResults/${{ env.GPU_TEST_TRX }}
+            tests/Execution.Tests/TestResults/${{ env.GPU_SWEEP_TRX }}
             tests/Execution.Tests/Throughput*.actual.txt
           if-no-files-found: error
 

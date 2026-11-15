@@ -48,7 +48,7 @@ CI/release now use the disjoint exhaustive project lanes declared in
 [scripts/API.md](scripts/API.md); the release CUDA/Pack/publication chain is
 unchanged. Actual hosted acceptance is tracked in BOOT.md.
 
-## GPU project serialization ⏳
+## GPU project serialization ✅
 
 Each self-hosted job runs the original CUDA-or-bit population in two disjoint
 invocations: the solution remainder, then both original shared-sweep facts in one

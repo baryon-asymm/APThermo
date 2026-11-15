@@ -1,6 +1,6 @@
 # API.md — .github/workflows
 
-## GPU project execution ⏳
+## GPU project execution ✅
 
 Each GPU job uses the ancestor's exact remainder/fresh shared-sweep partition;
 both invocations use Release/no-build/-m:1. The pair shares one Lazy sweep in a
