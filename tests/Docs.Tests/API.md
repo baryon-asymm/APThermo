@@ -1,6 +1,6 @@
 # API.md — Docs.Tests
 
-## Cold-call policy source ⏳
+## Cold-call policy source ✅
 
 Cold process metadata reads DotnetProcess.DefaultTimeout and CleanupTimeout,
 the same immutable values the actual runner uses. Limits, invocation population,
@@ -131,3 +131,8 @@ R15's unchecked criterion in ACCEPTANCE.md.
 ⚠ 2026-11-15: runner failures previously escaped before RunToExit0's assertion could
 name the invocation. The new context identifies future calls; it does not reconstruct
 the unknown command/cause of the historical Release49 timeout.
+
+⚠ 2026-11-15 (R19): cold metadata previously repeated timeout/cleanup literals.
+It now reads the actual immutable Harness properties; neither limit changed.
+`ColdCliDiagnosticTests.LimitsMatchTheActualRunnerPolicy` is checked in a pure
+alternate-policy build, so a matching duplicate literal cannot hide drift.

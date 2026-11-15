@@ -1,6 +1,6 @@
 # API.md — Harness
 
-## Process policy ⏳
+## Process policy ✅
 
 ```csharp
 namespace APThermo.Harness;

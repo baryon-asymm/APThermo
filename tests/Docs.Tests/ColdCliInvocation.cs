@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using APThermo.Fixtures;
+using APThermo.Harness;
 
 namespace APThermo.Docs.Tests;
 
@@ -20,7 +21,7 @@ internal sealed class ColdCliInvocation(ColdCliSettings settings, Func<IReadOnly
     {
         var started = Stopwatch.GetTimestamp();
         var process = new ColdCliProcess(settings.AssemblyPath, settings.WorkingDirectory, args,
-            TimeSpan.FromMinutes(5).TotalSeconds, TimeSpan.FromSeconds(5).TotalSeconds);
+            DotnetProcess.DefaultTimeout.TotalSeconds, DotnetProcess.CleanupTimeout.TotalSeconds);
         var context = new ColdCliContext(Interlocked.Increment(ref _ordinal), where, settings.Mode, process, []);
         BestEffort(() => context = context with { Process = process with { Arguments = [.. args] } });
         BestEffort(() => context = context with { Inputs = InputsOf(args) });

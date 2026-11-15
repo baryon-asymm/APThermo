@@ -304,6 +304,8 @@ static class APThermo.Harness.DotnetProcess
     static DotnetProcessResult Run(String assemblyPath, IReadOnlyList<String> arguments, String workingDirectory, IReadOnlyDictionary<String, String>? environment = null)
     static DotnetProcessResult Run(String assemblyPath, IReadOnlyList<String> arguments, String workingDirectory, TimeSpan timeout, IReadOnlyDictionary<String, String>? environment = null, CancellationToken cancellationToken = default)
     static String BuiltAssemblyPath(String assemblyName, params String[] projectDirectory)
+    static TimeSpan CleanupTimeout { get; }
+    static TimeSpan DefaultTimeout { get; }
 
 sealed class (record) APThermo.Harness.DotnetProcessResult : IEquatable<DotnetProcessResult>
     .ctor(Int32 ExitCode, ReadOnlyMemory<Byte> Output, ReadOnlyMemory<Byte> Error)

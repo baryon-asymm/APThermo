@@ -5,6 +5,18 @@ The node frame remains in BOOT.md.
 
 ## Acceptance criteria
 
+- [x] R19 local immutable-policy consumers match the actual runner configuration.
+  (2026-11-15: `ColdCliDiagnosticTests.LimitsMatchTheActualRunnerPolicy`, isolated
+  17-second/3-second policy variants on Windows and Linux make frozen duplicated
+  metadata red once and corrected metadata green once, without a real CLI or wait.
+  Actual 300-second/5-second source bytes are restored. Final Docs pure controls
+  10/10 and full Fixtures 198/198 on each OS; Windows surface/declaration/coverage/
+  dependency/diagnostic/process-category checks 15/15. Evidence:
+  `SCRATCH/audit/secondary-policy/alternate-policy-proof-v2.json`,
+  `linux-alternate-policy-proof.json`, `windows-docs-pure-final/`,
+  `linux-docs-pure-final/`, `windows-fixtures-final/`, `linux-fixtures-final/` and
+  `windows-metadata-final/`. The only surface additions are the two policy getters.)
+
 - [ ] R19: cold-call limit metadata follows the actual immutable Harness policy;
   an isolated alternate-policy control rejects the frozen duplicated literals
   without a real CLI or timed wait. All nine original diagnostic controls and

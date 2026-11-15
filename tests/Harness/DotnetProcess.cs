@@ -19,8 +19,11 @@ public static class DotnetProcess
 {
     private const string Host = "dotnet";
 
-    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(5);
-    private static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(5);
+    /// <summary>The immutable deadline used by the original process runner overload.</summary>
+    public static TimeSpan DefaultTimeout { get; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>The immutable additional window for attempted tree termination and stream drainage.</summary>
+    public static TimeSpan CleanupTimeout { get; } = TimeSpan.FromSeconds(5);
 
     /// <summary>Runs an assembly with a five-minute process/stream deadline.</summary>
     /// <param name="assemblyPath">The built assembly path.</param>

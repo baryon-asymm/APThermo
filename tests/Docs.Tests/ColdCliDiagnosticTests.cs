@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using APThermo.Fixtures;
+using APThermo.Harness;
 using Xunit.Abstractions;
 
 namespace APThermo.Docs.Tests;
@@ -154,6 +155,19 @@ public sealed class ColdCliDiagnosticTests(ITestOutputHelper output)
     public void InProcessFactsRequireNoProcessLogger() =>
         _ = Assert.IsType<CommandLineExampleTests>(new CommandLineExampleTests());
 
+    /// <summary>Recorded limits come from the actual runner policy even in an isolated alternate-policy build.</summary>
+    [Fact]
+    public void LimitsMatchTheActualRunnerPolicy()
+    {
+        var lines = new List<string>();
+        var diagnostic = new ColdCliInvocation(Settings, _ => new CliRun(0, "", ""), record => Capture(lines, record));
+        _ = diagnostic.Run("policy-control.md:1", ["--help"]);
+        using var started = JsonDocument.Parse(lines[0]);
+        var process = started.RootElement.GetProperty("Context").GetProperty("Process");
+        Assert.Equal(DotnetProcess.DefaultTimeout.TotalSeconds, process.GetProperty("TimeoutSeconds").GetDouble());
+        Assert.Equal(DotnetProcess.CleanupTimeout.TotalSeconds, process.GetProperty("CleanupSeconds").GetDouble());
+    }
+
     private void Capture(List<string> lines, string record)
     {
         lines.Add(record);
@@ -173,8 +187,8 @@ public sealed class ColdCliDiagnosticTests(ITestOutputHelper output)
         Assert.Equal(expectedArgs, process.GetProperty("Arguments").EnumerateArray().Select(item => item.GetString()!));
         Assert.Equal(Settings.AssemblyPath, process.GetProperty("AssemblyPath").GetString());
         Assert.Equal(Settings.WorkingDirectory, process.GetProperty("WorkingDirectory").GetString());
-        Assert.Equal(TimeSpan.FromMinutes(5).TotalSeconds, process.GetProperty("TimeoutSeconds").GetDouble());
-        Assert.Equal(TimeSpan.FromSeconds(5).TotalSeconds, process.GetProperty("CleanupSeconds").GetDouble());
+        Assert.Equal(DotnetProcess.DefaultTimeout.TotalSeconds, process.GetProperty("TimeoutSeconds").GetDouble());
+        Assert.Equal(DotnetProcess.CleanupTimeout.TotalSeconds, process.GetProperty("CleanupSeconds").GetDouble());
         var observedInput = Assert.Single(context.GetProperty("Inputs").EnumerateArray());
         Assert.Equal(input, observedInput.GetProperty("Path").GetString());
         Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(input))), observedInput.GetProperty("Sha256").GetString());

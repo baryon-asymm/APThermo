@@ -66,3 +66,9 @@ and cancellation retain raw fixture bytes, bounded excerpts and caller token; a
 simulated documented AggregateException survives as secondary CleanupException
 data. The injected kill still terminates the owned real probe. Ordinary cleanup
 and normal exit are positive controls; no mutable global hook is introduced.
+
+## Immutable process policy ✅
+
+`DotnetProcessPolicyTests.DefaultsRemainDocumentedAndReadOnly` checks the actual
+runner's unchanged five-minute/five-second properties and absence of setters.
+The Docs node separately proves that metadata follows this same actual policy.
