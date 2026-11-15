@@ -7,6 +7,16 @@ retains the original reproductions; these stable IDs preserve the mapping.
 
 ## Latest GPU verification and independent timeout review — 2026-11-15
 
+⚠ 2026-11-15: actual source `463cf30f14ebff12221d2d04f2ea0fca2c8fba0a`
+passes CI/Trace, every hosted cohort (7,649/7,649 per OS), corrected Debug budgets
+and Windows GPU (450/450). Linux GPU job `132858167211` fails only throughput:
+449/450, ratio 14.01 versus 80% of approved 25.92 (20.736). Its per-step median
+2.709e-7 also exceeds 1.42025e-7 arithmetically; that second assertion was not
+reached. Current physical maxima stay below 45 ms, with cold/cold/hit decisions.
+Pack skips. R10 remains open; serialization alone was insufficient for Linux
+acceptance. Add bounded actual decision/age/publication observations before any
+policy change. Do not infer the unsampled miss cause or relabel this failed run.
+
 ⚠ 2026-11-15: subsequent source `5d0906d7913fd3cad12cfd2f3887452789324302`
 passes local merged Release checks and corrected Debug sets, but its actual CI
 `43721105782` and Release `43721163754` fail Windows Protocol probe preparation.

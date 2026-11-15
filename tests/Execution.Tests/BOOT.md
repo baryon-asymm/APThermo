@@ -235,6 +235,22 @@ Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with its driver for the CUDA
 
 ## Constraints
 
+R10 observational diagnosis records the actual calibration decision for each of the
+original three CUDA timed calls, after the existing elapsed assignment and Run return.
+Retain exactly three value snapshots and print them before existing gate assertions:
+transaction/publication association, match reason, staged ages/decisions and physical
+first choice. Preserve cold sample, order, work, stopwatch boundaries, all gates and
+the shared sweep fixture. This diagnostic stage is not a performance fix.
+Controlled clock histories distinguish cold, hit, pre/post-upload expiry at the exact
+boundary, changed/dead identities, normal consumption versus superseding generation,
+unsupported/partial/over-target/abandoned/nonpublished outcomes. Current work/results
+and observations must remain fresh. Existing weak-lifecycle and full-field controls
+stay; do not use real sleeps or a fixed adaptive host partition as their oracle.
+Deliberate missing/wrong-stage observations and false publication must be red.
+An actual bounded Linux original-throughput diagnostic follows only after local
+controls; one predeclared execution, unchanged selection/work/gates, all outcomes
+retained. A clean diagnostic run cannot reconstruct an unsampled historical miss.
+
 - An opt-in `CudaDiagnostic`/`LongRunning` plan diagnostic may temporarily attach `LaunchBudget.None`
   to the existing session of the frozen throughput family, restoring the original
   budget in `finally`. Compare the identical full batch and one-launch prefixes of

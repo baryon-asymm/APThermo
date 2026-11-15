@@ -1,5 +1,13 @@
 # API.md — Execution.Tests
 
+## Calibration decision diagnosis ⏳
+
+The original throughput path retains three post-return internal value observations
+alongside its original three timed runs. Diagnostics distinguish actual identity,
+presence, age/expiry stage, generation and publication; no prior result/time is reused.
+Host known-answer controls use the same production calibration/BatchRun boundaries.
+An actual Linux run provides current decisions, not a retrospective cause claim.
+
 The node exposes nothing outward. Its contract points upward: what the parent may
 consider proven about `Execution`, and it holds the approved throughput figures that other
 nodes refer to. Since 2026-10-05 it holds no tolerance table: CUDA and the CPU accelerator

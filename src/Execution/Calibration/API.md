@@ -1,5 +1,18 @@
 # API.md — Execution.Calibration
 
+## Calibration observation (tree contract) ⏳
+
+An internal immutable value snapshot identifies the latest transaction and preceding
+publication, identity match disposition, generation/normal consumption, candidate
+prefix, staged first-choice reasons/nullable ages and completion/publication outcome.
+All ages use the transaction's existing monotonic provider and completion epoch;
+they are not the full age of the earlier prefix measurement. Absence is not age zero.
+The second upload check retains a prior expiry reason. First physical launch choice
+is frozen on current successful synchronization; later publication cannot replace it.
+The parent exposes a value copy for friend tests after Run has returned. No workload
+identity object, array, buffer, delegate, result or RunTimings is retained in it.
+Diagnostics do not change the existing policy or claim zero observation overhead.
+
 Internal host-only contract for the parent pipelines. This project-less node
 has no package surface. Implementation helpers remain private to this node.
 

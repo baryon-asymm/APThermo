@@ -1,5 +1,12 @@
 # ACCEPTANCE.md — tests/Execution.Tests
 
+- [ ] R10 decision observability: controlled histories and deliberate mutations
+  prove accurate identity/presence, before/after-upload age/reason, generation and
+  post-result publication outcomes without altered work, choices or cached timings.
+  Actual original Linux throughput diagnostics retain all three current decisions
+  and unchanged gates. This is diagnostic evidence; full performance acceptance
+  stays separate and cannot be claimed from host controls or a discarded failure.
+
 - [x] 2026-11-14 — Diagnostic budget override restoration: the CPU-only
   `DiagnosticOverrideRestoresTheOriginalBudgetOnFailure` control passed in
   `SCRATCH/audit/launch-plan-diagnostic-control.log`. The exact original session

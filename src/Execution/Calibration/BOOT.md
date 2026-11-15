@@ -35,6 +35,30 @@ SHA-256; ILGPU 1.5.3 ArrayView type identification only, without CUDA runtime.
 
 ## Constraints
 
+- R10 observational stage: retain one immutable scalar/value-copy observation of
+  the latest transaction, with bounded sequence identity. Record prior-entry and
+  publication status, the actual single identity comparison reason, prior prefix,
+  and the current generation separately from normal consume-at-Begin. Never infer
+  external invalidation solely from Begin's own Clear/generation increment.
+- Record first-choice decisions before and after initial upload, with nullable
+  candidate ages from the SAME existing monotonic clock. Preserve the specific
+  expired/mismatch reason after candidate removal; the second check must not erase
+  it as generic absence. Freeze the selected physical first-launch decision when
+  that current launch succeeds. Publication/abandonment is a separate outcome.
+- Publish diagnostic completion only at the existing post-result-assembly boundary.
+  Keep RunTimings unchanged: it is assembled before Complete. Parent/friend tests
+  read a value copy after Run returns. No retained table/delegate/array/buffer/result,
+  cached timing, growing log or callback; expose no new package API or global hook.
+- This stage changes NO matching order, launch choice, target, TTL, growth, median,
+  workloads, input hashing or failure/lifecycle ordering. Reuse existing clock reads
+  where possible. Observation has finite cost and is not a performance correction.
+  CPU/unbounded/nonapplicable state must not masquerade as a fresh CUDA transaction.
+
+⚠ 2026-11-15 (R10): actual sequential source463c passes Windows but fails Linux's
+throughput guard with cold/cold/hit choices. Bool-only reuse data cannot identify
+expiry, incompatibility, absence or failed publication. Capture those decisions
+before changing policy; the exact historical miss cause remains unknown.
+
 - The input digest is captured from ChunkBuffers BEFORE Allocate: Constant is
   uploaded there. Inputs stay stable until Run ends; caller mutation during a run
   is unsupported, as concurrent use of an engine already is. InputOutput is keyed
