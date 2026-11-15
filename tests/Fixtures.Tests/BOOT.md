@@ -92,7 +92,13 @@ that finding to the root rather than silently changing the contract.
 
 The owned marker is published after its identity sidecar: PID, recorded parent,
 UTC start time, and Linux kernel start ticks. Each sample checks that identity;
-a reused PID belongs to a different process and is never targeted for teardown.
+a mismatched identity is excluded from teardown, which rechecks the identity
+immediately before requesting kill.
+
+⚠ 2026-11-15: the former wording said a reused PID "is never targeted for teardown".
+The implemented read/recheck predicate excludes observed mismatches and rechecks
+immediately before requesting kill; it does not provide a kernel-atomic guarantee.
+
 Each guard logs its original clock/budget and final owned states before assertions.
 The bounded waiter accepts an already running clock, never starts or restarts it,
 and makes a final state read at the boundary. Controlled release occurs after the

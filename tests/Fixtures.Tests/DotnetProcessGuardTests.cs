@@ -228,7 +228,10 @@ public sealed class DotnetProcessGuardTests(ITestOutputHelper output) : IDisposa
     {
         var (arguments, environment) = Input("echo");
         _ = DotnetProcess.Run(_assembly, arguments, _directory, environment);
-        var sample = DotnetProcessObservation.Read(Path.Combine(_directory, "ready.pid"));
+        var marker = Path.Combine(_directory, "ready.pid");
+        Assert.True(File.Exists(marker), "the completed owned probe did not publish its ready marker");
+        var sample = DotnetProcessObservation.Read(marker);
+        Assert.True(sample.ProcessId > 0, "the completed owned probe identity was not read");
         Assert.False(sample.IsLive, sample.Diagnostics);
     }
 
