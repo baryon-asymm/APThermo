@@ -99,6 +99,11 @@ immediately before requesting kill.
 The implemented read/recheck predicate excludes observed mismatches and rechecks
 immediately before requesting kill; it does not provide a kernel-atomic guarantee.
 
+Windows samples retain one valid Process.SafeHandle before querying HasExited and
+StartTime on that same Process, closing the check/reopen race when a child exits
+between getters. Handle acquisition errors remain errors unless the framework
+specifically reports an absent process; never normalize access denial as exit.
+Only fixture-owned processes are queried, with the framework's requested access.
 Each guard logs its original clock/budget and final owned states before assertions.
 The bounded waiter accepts an already running clock, never starts or restarts it,
 and makes a final state read at the boundary. Controlled release occurs after the
