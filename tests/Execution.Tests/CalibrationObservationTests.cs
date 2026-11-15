@@ -153,7 +153,7 @@ public sealed class CalibrationObservationTests
         Assert.Equal(physical, scenario.Cache.Observation.PhysicalFirstLaunch);
     }
 
-    /// <summary>An ordinary CPU Run bypasses hashing and cannot expose an earlier synthetic transaction as fresh.</summary>
+    /// <summary>An ordinary CPU Run on a fresh engine reports no bounded transaction.</summary>
     [Fact]
     public void CpuRunDoesNotMasqueradeAsACudaTransaction()
     {
@@ -163,6 +163,33 @@ public sealed class CalibrationObservationTests
         _ = scenario.Cpu.Run(scenario.Tables, batch);
         Assert.Equal(CalibrationOutcome.NotApplicable, scenario.Cpu.CalibrationObservation.Outcome);
         Assert.Equal(0, scenario.Cpu.CalibrationObservation.TransactionId);
+    }
+
+    /// <summary>A real CPU Run invalidates the previously published observation of that exact engine session.</summary>
+    [Fact]
+    public void CpuRunInvalidatesAnOlderTransactionInItsActualSessionCache()
+    {
+        using var scenario = new CalibrationScenario();
+        var cache = scenario.Session.Calibration;
+        using (var training = cache.Begin(scenario.Launcher, scenario.Tables, scenario.Plan, "input-A", scenario.Views))
+        {
+            Assert.Equal(1, training.FirstChunkCases());
+            Complete(training);
+        }
+
+        var published = scenario.Cpu.CalibrationObservation;
+        Assert.Equal(cache.Observation, published);
+        Assert.Equal(CalibrationOutcome.Published, published.Outcome);
+        Assert.NotEqual(0, published.TransactionId);
+        Assert.Equal(published.TransactionId, published.PublicationId);
+        var batch = new SpeciesFunctionBatch(1);
+        batch.Temperature[0] = 1000;
+        var result = scenario.Cpu.Run(scenario.Tables, batch);
+        Assert.Equal(AcceleratorKind.Cpu, result.Accelerator.Kind);
+        var invalidated = scenario.Cpu.CalibrationObservation;
+        Assert.Equal(CalibrationOutcome.Invalidated, invalidated.Outcome);
+        Assert.Equal(published.TransactionId, invalidated.TransactionId);
+        Assert.True(invalidated.CurrentGeneration > published.CurrentGeneration);
     }
 
     private static void Complete(CalibrationRun run)

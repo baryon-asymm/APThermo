@@ -7,6 +7,18 @@
   and unchanged gates. This is diagnostic evidence; full performance acceptance
   stays separate and cannot be claimed from host controls or a discarded failure.
 
+- [x] 2026-11-15 — CPU bypass with an older actual-session transaction:
+  `CpuRunInvalidatesAnOlderTransactionInItsActualSessionCache` first establishes
+  nonzero Published through the Engine accessor, then the real CPU Run reports
+  Invalidated for the same transaction with increased current generation.
+  Both fresh/seeded positives pass; omitting only observation invalidation leaves
+  the fresh fact green and makes the seeded fact fail (Invalidated versus Published).
+  `SCRATCH/audit/seeded-session-mutation-receipt.json` retains frozen/source hashes,
+  the compiling mutation, assertion and byte-exact restoration to production 8bc.
+  Corrected affected host set 148/148, Shape/Diagnostics 18/18 and Release build 0/0:
+  `seeded-session-final-host`, `seeded-session-shape-diagnostics` and
+  `seeded-session-final-build` logs/TRX in `SCRATCH/audit/`. No device claim is made.
+
 - [x] 2026-11-15 — R10 host decision-observation controls: final affected host
   set passes 147/147, including the original lifecycle, weak-ownership, identity,
   prefix and current-computation facts plus controlled decision histories.
