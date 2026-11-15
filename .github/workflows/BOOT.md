@@ -21,6 +21,12 @@ Outside the tree: host shells and GitHub Actions versions inherited from the anc
 
 Inherit .github delivery policy and hosted evidence requirement. Every changed path must have executable local guards and a later actual GitHub run on its runner class. Trace scan discovery must contain both scan facts before execution; upload TRX and diagnostic files even after failure.
 
+CI's Windows fixture binding uses CPython 3.13 x64, a published-wheel ABI for the pinned
+CEA 3.3.4 reference package. Install the existing pinned requirements binary-only
+in a fresh virtual environment and import the native binding before running the
+unchanged generator sample comparison. Missing compatible wheels or native DLLs
+fail the job; never fall back to a local Fortran build or skip fixture binding.
+
 ## Acceptance criteria
 
 - [x] 2026-11-14 — A39 local wiring: eight `test_trace_scan.py` guards pass; bypassing
@@ -41,6 +47,14 @@ Inherit .github delivery policy and hosted evidence requirement. Every changed p
 
 - [ ] A33/A39: adversarial ref values remain literal, hosted scan wiring discovers both facts and publishes nonempty evidence; a real hosted run remains required.
 
+- [x] 2026-11-15 — Isolated Windows CPython 3.13.15, CEA 3.3.4 and NumPy 2.5.3
+  binary wheels load libcea with isolated mode and empty PATH; full unchanged
+  generator sample reports unchanged 38. Evidence: SCRATCH/audit/install-cea313.log,
+  native-import-cea313.log and fixture-sample-cea313.log. The binary-only cp315
+  download refuses the unavailable wheel (cp315-no-wheel-red.log).
+- [ ] The changed Python environment and mandatory binding comparison pass on a
+  real hosted Windows run; local import/sample evidence is not hosted proof.
+
 ## Taboos
 
 Do not run PR code on self-hosted runners or claim local validation proves GitHub execution.
@@ -50,3 +64,14 @@ Bash source. They now pass RELEASE_REF_NAME as environment data; event/version
 inputs use the same boundary. Strict protocol lint and the delivery guard suite
 now run explicitly in hosted CI/release matrices. These are local/CI guard changes;
 actual GitHub execution is still required by the ancestor's evidence invariant.
+
+⚠ 2026-11-15: CI selected floating Python 3.x (3.15.2 on hosted Windows job
+132731873556). CEA 3.3.4 had no cp315 wheel, so pip built an sdist successfully
+but importing libcea failed with a missing DLL before fixture comparison. The
+candidate environment uses the published cp313 wheel with binary-only installation;
+isolated Windows import and sample comparison of 38 fixtures now pass locally; actual hosted Windows CI is still required.
+Primary environment evidence: [CEA3.3.4 release metadata](https://pypi.org/pypi/cea/3.3.4/json)
+records the cp313 Windows wheel and no cp315 wheel; [NASA installation guidance](https://github.com/nasa/cea#install-recommended)
+distinguishes published-package installation from source builds. The missing DLL
+of the hosted source build is not identified by its ImportError; no stronger root
+cause is claimed. The tested wheel carries the C binding DLL within its package.

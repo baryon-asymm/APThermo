@@ -34,10 +34,11 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Setup Python 3
+      - name: Setup Python 3.13
         uses: actions/setup-python@v7
         with:
-          python-version: '3.x'
+          python-version: '3.13'
+          architecture: 'x64'
 
       - name: Protocol lint
         run: python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates --strict
@@ -67,7 +68,9 @@ jobs:
         shell: bash
         run: |
           python -m venv .venv-fixtures
-          .venv-fixtures/Scripts/python -m pip install --disable-pip-version-check -r tests/Fixtures/generate/requirements.txt
+          # CEA 3.3.4 publishes cp313 wheels; refuse an accidental source build with unbundled native dependencies.
+          .venv-fixtures/Scripts/python -m pip install --disable-pip-version-check --only-binary=:all: -r tests/Fixtures/generate/requirements.txt
+          .venv-fixtures/Scripts/python -I -c "import sys, cea, numpy; from importlib.metadata import version; from cea.lib import libcea; print(sys.version); print('CEA', version('cea'), 'NumPy', numpy.__version__, 'native', libcea.__file__)"
           .venv-fixtures/Scripts/python tests/Fixtures/generate/regenerate.py --check --sample
 
       - name: Build
