@@ -87,6 +87,14 @@ audit's `fix-evidence/independent-public-cli`, `independent-tooling` and
 
 ## Integration verification
 
+The actual GitHub runs after local acceptance exposed two additional delivery/test
+issues. They remain part of this closure, without reclassifying failed runs as passes.
+
+| ID | Mechanism | Status | Evidence |
+|---|---|---|---|
+| R13 | Floating CI Python selects an ABI without a published CEA wheel | Local fix and hosted binding step pass 2026-11-15; whole CI pending | CI `43687811351` at `f7692b80` selected Python 3.15.2, built CEA 3.3.4 from source and failed native import before fixture comparison. `d4540f3b` selects Python 3.13 x64, requires binary dependencies and checks native import before the unchanged sample binding. Fresh Windows import and 38 comparisons pass; the corresponding hosted Windows step in CI `43689713770` now passes. No CEA model, fixture, tolerance or approval changed |
+| R14 | Linux process liveness can report an exited zombie as a surviving child | Local pass 2026-11-15; hosted confirmation pending | Release `43687839467` at `f7692b80` failed the tree-cleanup assertion, while CI Ubuntu passed the same 7,611 cases. The historical log contains no kernel-state sample. A controlled owned zombie deterministically reproduces `Process.HasExited=false`; `b0c11e30` observes Linux process state and keeps sleeping/stopped processes live. Direct-parent-only kill mutations fail both tree controls on both OSes; final Fixtures.Tests passes 188/188 on each. Harness, probe, deadlines, raw bytes and all numerical materials are unchanged |
+
 - [x] Strict protocol lint and all tool self-tests.
   Evidence 2026-11-15: final native proof at executed code `c0df7b146ffdd3addb733e8931aaabf0ca5fc660`;
   the dated final native verification table below names the source/result/TRX
