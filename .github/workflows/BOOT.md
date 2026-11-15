@@ -43,6 +43,16 @@ former concurrent command remains a historical failed run, not proof of its caus
 
 ## Acceptance criteria
 
+- [x] 2026-11-15 — R16 local implementation: both GPU commands retain the complete
+  original solution/category selection and add `-m:1` plus run/attempt-specific
+  per-project TRX. OS/run/attempt artifact uploads run even after failure and include
+  actual throughput records; checkout explicitly cleans the owned workspace.
+  Delivery guards pass 24/24; frozen old wiring is red for both jobs, independent
+  command/dependency/evidence mutations are refused, and actionlint accepts all
+  three workflows. Evidence: `SCRATCH/audit/gpu-serialization/validation-results.json`,
+  `frozen-controls.json`, `mutation-results.json`, `actionlint.log`.
+  Actual self-hosted/Pack acceptance remains the separate unchecked R16 criterion.
+
 - [ ] R16: both self-hosted GPU jobs execute solution test projects sequentially,
   preserve the complete original CUDA-or-bit selection and all three timed samples,
   and pass unchanged throughput and launch-budget gates on Windows and Linux.

@@ -126,11 +126,14 @@ jobs:
     needs: matrix
     runs-on: ['self-hosted', 'windows', 'gpu']
     timeout-minutes: 180
+    env:
+      GPU_TEST_TRX: gpu-${{ github.run_id }}-${{ github.run_attempt }}.trx
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+          clean: true
 
       - name: Preflight
         uses: ./.github/actions/preflight
@@ -148,7 +151,17 @@ jobs:
 
       - name: CUDA tests
         shell: powershell
-        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category=Cuda|Category=BitSnapshot"
+        run: dotnet test APThermo.sln --configuration Release --no-build -m:1 --filter "Category=Cuda|Category=BitSnapshot" --logger "trx;LogFileName=$env:GPU_TEST_TRX"
+
+      - name: Upload GPU test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gpu-tests-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            tests/**/TestResults/${{ env.GPU_TEST_TRX }}
+            tests/Execution.Tests/Throughput*.actual.txt
+          if-no-files-found: error
 
   cuda-linux:
     name: CUDA (Linux GPU)
@@ -157,11 +170,14 @@ jobs:
     needs: [matrix, cuda-windows]
     runs-on: ['self-hosted', 'linux', 'gpu']
     timeout-minutes: 180
+    env:
+      GPU_TEST_TRX: gpu-${{ github.run_id }}-${{ github.run_attempt }}.trx
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+          clean: true
 
       - name: Preflight
         uses: ./.github/actions/preflight
@@ -179,7 +195,17 @@ jobs:
 
       - name: CUDA tests
         shell: bash
-        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category=Cuda|Category=BitSnapshot"
+        run: dotnet test APThermo.sln --configuration Release --no-build -m:1 --filter "Category=Cuda|Category=BitSnapshot" --logger "trx;LogFileName=$GPU_TEST_TRX"
+
+      - name: Upload GPU test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gpu-tests-linux-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            tests/**/TestResults/${{ env.GPU_TEST_TRX }}
+            tests/Execution.Tests/Throughput*.actual.txt
+          if-no-files-found: error
 
   pack:
     name: Pack

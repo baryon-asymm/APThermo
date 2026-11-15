@@ -1,6 +1,6 @@
 # API.md — .github/scripts
 
-## GPU release command guards ⏳
+## GPU release command guards ✅
 
 `test_delivery.py` checks both actual GPU job commands: sequential project
 execution, complete CUDA-or-bit selection, Release/no-build, original shells,

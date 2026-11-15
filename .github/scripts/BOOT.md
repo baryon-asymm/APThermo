@@ -63,6 +63,13 @@ the two job blocks. Tests use bounded fake fixtures, never actual CUDA or publis
 
 ## Acceptance criteria
 
+- [x] 2026-11-15 — R16 local source guards: `test_delivery.py` passes 24 tests;
+  the frozen former GPU workflow fails for both OS jobs before implementation.
+  Corrected commands pass; 26 independent per-job mutations and two event mutations
+  are refused without numerical/GPU execution. Evidence:
+  `SCRATCH/audit/gpu-serialization/frozen-controls.json`, `old-wiring-red-rechecked.log`,
+  `gpu-guards-green.log`, `delivery-final-v3-green.log` and `mutation-results.json`.
+
 - [x] 2026-11-15 — R15 local controls: `test_hosted_tests.py` passes 15 tests;
   frozen old workflows fail selection guards, and six frozen runner mutations
   fail for lost filter/serialization/start persistence/exit/partition/TRX checks.
