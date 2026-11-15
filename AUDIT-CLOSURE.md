@@ -7,6 +7,18 @@ retains the original reproductions; these stable IDs preserve the mapping.
 
 ## Latest GPU verification and independent timeout review — 2026-11-15
 
+2026-11-15: source `a93074210a6c02646c2197b764334a83e221cefd` adds bounded
+calibration observations without a performance-policy change. The one predeclared
+original Linux throughput fact passes: ratio 24.73, per-step 1.326e-7, cold/hit/hit.
+The matched entries are 6.3453/7.3300 ms old after upload, within the original
+500 ms lifetime. Windows/Linux host controls pass the same 148 identities; five
+diagnostic mutants and the seeded-session invalidation mutant fail as intended.
+An independent review caught and closed that seeded-session test precondition gap.
+External root diagnostic summary SHA-256:
+`97b7cc2615e987428aaf2e433d44c53531bc3c41e7609ede59fb81dcfb9f43ed`.
+This isolated success does not establish the historical miss cause or close R10's
+full Release acceptance. Full current CI/Trace/Release verification is next.
+
 ⚠ 2026-11-15: actual source `463cf30f14ebff12221d2d04f2ea0fca2c8fba0a`
 passes CI/Trace, every hosted cohort (7,649/7,649 per OS), corrected Debug budgets
 and Windows GPU (450/450). Linux GPU job `132858167211` fails only throughput:

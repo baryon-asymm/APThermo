@@ -1,11 +1,20 @@
 # ACCEPTANCE.md — tests/Execution.Tests
 
-- [ ] R10 decision observability: controlled histories and deliberate mutations
+- [x] R10 decision observability: controlled histories and deliberate mutations
   prove accurate identity/presence, before/after-upload age/reason, generation and
   post-result publication outcomes without altered work, choices or cached timings.
   Actual original Linux throughput diagnostics retain all three current decisions
   and unchanged gates. This is diagnostic evidence; full performance acceptance
   stays separate and cannot be claimed from host controls or a discarded failure.
+  (2026-11-15: source `a93074210a6c02646c2197b764334a83e221cefd` passes the
+  one predeclared original Linux throughput fact with all three observations:
+  identity-mismatch cold, then matched repeats aged 6.3453 and 7.3300 ms after
+  upload. Original ratio 24.73 and per-step 1.326e-7 pass unchanged gates.
+  The same 148 host identities pass Windows/Linux; compiling observation mutants
+  are red and restored. External `fix-evidence/root/R10-calibration-observation-once/`
+  `a93074210a6c02646c2197b764334a83e221cefd/root-diagnostic-summary-v1.json`
+  retains source/binary hashes, raw TRX/stdout, fresh actual bytes and all outcomes.
+  Full current Release acceptance remains pending. The old miss was not reproduced.)
 
 - [x] 2026-11-15 — CPU bypass with an older actual-session transaction:
   `CpuRunInvalidatesAnOlderTransactionInItsActualSessionCache` first establishes
@@ -27,6 +36,11 @@
   `behavioral-mutants.json` retains commands, source/control hashes and counters.
   Sweep retains exactly three value snapshots after its original elapsed assignments
   and prints them before unchanged gates. Actual Linux diagnosis above remains open.
+
+⚠ 2026-11-15: the preceding pending-Linux statement records the host-only handoff.
+The separate observability criterion above now carries actual source-a930 Linux
+evidence. This closes diagnostic coverage, while the full performance matrix remains
+open and the older source-463 miss cause remains unknown.
 
 - [x] 2026-11-14 — Diagnostic budget override restoration: the CPU-only
   `DiagnosticOverrideRestoresTheOriginalBudgetOnFailure` control passed in
