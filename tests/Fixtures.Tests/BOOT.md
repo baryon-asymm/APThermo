@@ -158,6 +158,15 @@ about PF_EXITING or the historical failed instant is inferred from a later pass.
 
 ## Acceptance criteria
 
+- [ ] `OwnerPreStartTests` proves actual pre-connect bootstrap cancellation and public
+  timeout, a controlled unconnected process with both cancellation modes and a
+  possibly partial START guard on Windows and Linux; the baseline leak and write-order
+  mutants must fail while the target never starts and the original token/bytes remain.
+  Windows Release passed 5/5 on 2026-11-16; native Linux and integrated acceptance remain pending.
+  The actual bootstrap is held before managed startup by the per-process .NET diagnostic
+  suspend option and is verified unconnected. A separate finite ProcessProbe substitutes
+  for a non-connecting owner to check exact fixture bytes; the two controls are distinct.
+
 - [x] 2026-11-16 — `DotnetProcessDirectoryTests` exercises a real child holding the
   private directory as CWD, controlled release after the actual Windows sharing
   error, refusal while held through a bounded test deadline, a non-sharing I/O

@@ -38,7 +38,12 @@ invalid lengths, incomplete frames and unexpected message order fail closed. Typ
 Stages in ERROR are 1 ownership setup, 2 target launch and 3 control/protocol failure.
 The server accepts one bootstrap connection under the original deadline; the bootstrap
 sets up ownership and connects before READY. A timeout before READY must stop/reap the
-bootstrap, which has not received START and cannot have launched the target. The parent
+bootstrap, which has not received START and cannot have launched the target. Before
+any START write begins, the parent closes control and directly kills and reaps its
+retained bootstrap process, even if it never connected or entered the job/session.
+The parent sets START-may-have-been-sent before beginning the write; a possibly partial
+write uses owned-scope termination and verified postcondition, not that direct path.
+The parent
 checks pre-cancellation before bootstrap launch and again before START; cancellation after
 START may race target creation, so the already-owned scope is terminated and reaped.
 After START and successful target creation the bootstrap sends STARTED exactly once, before

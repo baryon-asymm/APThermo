@@ -30,6 +30,11 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
     private readonly string _name = "apt-" + Guid.NewGuid().ToString("N");
     private readonly ProcessStartInfo _target = target;
     private readonly Action<int>? _started = started;
+    private bool _startMayHaveBeenSent;
+
+    internal Func<ProcessStartInfo, ProcessStartInfo>? OwnerStartOverride { get; set; }
+    internal Action? BeforeStartWrite { get; set; }
+    internal Action<Process>? OwnerLaunched { get; set; }
 
     internal async Task<DotnetProcessResult> RunAsync(CancellationToken interruption)
     {
@@ -52,7 +57,7 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         using var jobScope = new OwnedResource<WindowsJob>(() => OperatingSystem.IsWindows() ? WindowsJob.Create(_name) : null, secondary);
         using var pipeScope = new OwnedResource<NamedPipeServerStream>(() => new NamedPipeServerStream(_name, PipeDirection.InOut, 1,
             PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly), secondary);
-        using var ownerScope = new OwnedResource<Process>(() => Process.Start(OwnerStart()) ??
+        using var ownerScope = new OwnedResource<Process>(() => Process.Start(SelectOwnerStart()) ??
             throw new InvalidOperationException("process owner did not start"), secondary);
         var job = jobScope.Value;
         var pipe = pipeScope.Value!;
@@ -64,6 +69,7 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         var authorizedStop = false;
         try
         {
+            OwnerLaunched?.Invoke(owner);
             var exitCode = await RunOwnedAsync(pipe, owner, output, error, interruption).ConfigureAwait(false);
             await Wire.SendAsync(pipe, Wire.Release, ReadOnlyMemory<byte>.Empty, interruption).ConfigureAwait(false);
             authorizedStop = true;
@@ -108,6 +114,8 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         await connect.ConfigureAwait(false);
         _ = await ExpectAsync(pipe, Wire.Ready, 0, interruption).ConfigureAwait(false);
         interruption.ThrowIfCancellationRequested();
+        _startMayHaveBeenSent = true;
+        BeforeStartWrite?.Invoke();
         await Wire.SendAsync(pipe, Wire.Start, ReadOnlyMemory<byte>.Empty, interruption).ConfigureAwait(false);
         var pidBytes = await ExpectAsync(pipe, Wire.Started, sizeof(int), interruption).ConfigureAwait(false);
         var pid = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(pidBytes);
@@ -135,6 +143,12 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         }
         return kind != expected || payload.Length != length
             ? throw new InvalidDataException($"expected process-owner message {expected}") : payload;
+    }
+
+    private ProcessStartInfo SelectOwnerStart()
+    {
+        var start = OwnerStart();
+        return OwnerStartOverride is null ? start : OwnerStartOverride(start);
     }
 
     private ProcessStartInfo OwnerStart()
@@ -167,6 +181,22 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         }
     }
 
+    private static async Task<Exception?> StopBeforeStartAsync(NamedPipeServerStream pipe, Process owner, WindowsJob? job, CancellationToken token)
+    {
+        Exception? closeFailure = null;
+        try { await pipe.DisposeAsync().ConfigureAwait(false); }
+        catch (Exception problem) when (Record(problem, null)) { closeFailure = problem; }
+        try
+        {
+            if (!owner.HasExited) { owner.Kill(entireProcessTree: true); }
+        }
+        catch (InvalidOperationException) when (owner.HasExited) { }
+        job?.Stop();
+        await owner.WaitForExitAsync(token).ConfigureAwait(false);
+        if (job is not null) { await WaitForScopeEmptyAsync(owner.Id, job, token).ConfigureAwait(false); }
+        return closeFailure;
+    }
+
     private async Task<Exception?> CleanupAsync(NamedPipeServerStream pipe, Process owner, WindowsJob? job,
         ProcessOutput output, ProcessOutput error, bool stopping)
     {
@@ -175,15 +205,22 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         try
         {
             controlProbe?.Invoke(pipe);
-            if (!stopping && pipe.IsConnected)
+            if (!_startMayHaveBeenSent)
+            {
+                controlFailure = await StopBeforeStartAsync(pipe, owner, job, timeout.Token).ConfigureAwait(false);
+            }
+            else if (!stopping && pipe.IsConnected)
             {
                 try { await Wire.SendAsync(pipe, Wire.Terminate, ReadOnlyMemory<byte>.Empty, timeout.Token).ConfigureAwait(false); }
                 catch (Exception problem) when (Record(problem, null)) { controlFailure = problem; }
             }
-            if (job is not null) { job.Stop(); }
-            else if (controlFailure is not null || !pipe.IsConnected) { await pipe.DisposeAsync().ConfigureAwait(false); }
-            await owner.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-            await WaitForScopeEmptyAsync(owner.Id, job, timeout.Token).ConfigureAwait(false);
+            if (_startMayHaveBeenSent)
+            {
+                if (job is not null) { job.Stop(); }
+                else if (controlFailure is not null || !pipe.IsConnected) { await pipe.DisposeAsync().ConfigureAwait(false); }
+                await owner.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+                await WaitForScopeEmptyAsync(owner.Id, job, timeout.Token).ConfigureAwait(false);
+            }
         }
         catch (Exception problem) when (Record(problem, null))
         {

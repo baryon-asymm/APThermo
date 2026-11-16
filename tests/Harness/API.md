@@ -155,6 +155,9 @@ checked. Linux checks the original session, including a process that changed gro
 live member prevents successful cleanup but termination of an escaped group is not
 promised. Interrupted cleanup uses at most `CleanupTimeout`; primary failures and raw
 output are retained, with secondary failures in `Data["CleanupException"]`.
+If interrupted before START may be sent, the retained bootstrap is closed and reaped
+even when it has not joined its job or connected; a possibly partial START uses the
+owned-scope cleanup path instead. No additional deadline is introduced.
 
 The arguments are passed one to one, never re-parsed. Standard output and standard error are read as bytes from
 the process's base streams, so a caller sees the encoding the process wrote on the platform it ran on and

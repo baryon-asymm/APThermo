@@ -26,6 +26,9 @@ its contract points upward: it is what the parent may consider proven about `Fix
 Process infrastructure is checked with the owned finite ProcessProbe executable
 (`DotnetProcessGuardTests` and `OwnedProcessGuardTests`, Category=EndToEnd): exact bytes/arguments/environment,
 nonzero exits, validation, cancellation, deadline and inherited-pipe/tree cleanup.
+`OwnerPreStartTests` also controls a real pre-connect bootstrap, cancellation, public
+timeout and a potentially partial START; its substituted unconnected process exposes
+raw-byte retention without claiming to be the bootstrap executable.
 
 ⚠ 2026-11-14: the old introduction said nobody referenced a test project; the protocol
 inventory does reference this assembly. This is verification, not a consumer API.

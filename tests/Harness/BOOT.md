@@ -201,6 +201,17 @@ until the parent releases or cleans it up; separately communicate
 its target's real exit status, close the bootstrap's own copies of stdout/stderr after
 target launch, and use its own group for termination. An unexpected parent-channel
 EOF triggers cleanup. Failure to establish ownership is not a successful launch.
+Before any START write can begin, no target can exist: close the channel and kill and
+reap the retained bootstrap process itself, even if it never connected or joined its
+job. Set the conservative START-may-have-been-sent state before beginning the write;
+a partial or failed write must use owned-scope cleanup and its postcondition. The
+same independent five-second cleanup window and primary error/data rules apply.
+Per-operation host-only seams control owner launch and the write boundary in tests;
+they have no global state and are unset by ordinary callers.
+
+⚠ 2026-11-16: a Linux one-millisecond timeout could close the server before the
+bootstrap connected; unbounded client ConnectAsync then survived the five-second
+cleanup. An independently observed live owner and the pre-start controls exposed it.
 See the planned [ProcessOwner](ProcessOwner/BOOT.md) for the boundary.
 
 This controls descendants that remain in the owned job/group; processes deliberately
