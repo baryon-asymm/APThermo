@@ -182,10 +182,12 @@ Marker publication failure fails closed before START.
 
 Optional private argv pairs `--test-before-parent-open <gate>`,
 `--test-connect-pending <gate>`, and `--test-connected <gate>` occur in that order
-after the opened-marker option and before `--`. Only test launches specify them; they
+after the opened-marker option and before `--`; a `--test-deadline-utc-ticks <ticks>`
+pair follows the gate pairs and supplies their shared absolute test preparation deadline.
+Only test launches specify them; they
 are not environment variables or target arguments. Each atomically creates
-`<gate>.ready`, waits asynchronously for `<gate>.release` up to twenty seconds, and
-fails closed on timeout or I/O failure. Before-parent-open runs before identity open;
+`<gate>.ready`, waits asynchronously for `<gate>.release` only until that deadline, and
+fails closed on timeout or I/O failure. Test teardown releases every requested gate. Before-parent-open runs before identity open;
 connect-pending runs after starting connect and death tasks; connected runs after
 connection completes and before the final parent-live check. No test gate changes the
 normal path, its cancellation/deadlines, or the requirement for valid START.

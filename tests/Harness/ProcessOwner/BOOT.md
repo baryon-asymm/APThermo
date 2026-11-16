@@ -90,7 +90,8 @@ own finite exit; observation is not a substitute for that parent-child relations
 Per-call private test argv may request finite gates before parent Open, after connect
 and death observation start, or after connect completion before the final live check.
 Each atomically publishes `<gate>.ready`, asynchronously waits for `<gate>.release`
-up to twenty seconds, then continues; timeout and I/O errors fail closed. These gates
+only until the shared absolute test-preparation deadline supplied in argv, then
+continues; timeout and I/O errors fail closed. Test teardown releases every gate. These gates
 are absent from ordinary launches, do not reach target and introduce no normal deadline.
 
 ## Acceptance criteria

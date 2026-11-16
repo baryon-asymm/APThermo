@@ -38,6 +38,8 @@ ready-marker and its child PID atomically, then exits upon ready-marker.release 
 after the existing twenty-second finite bound. On Windows it names the caller's job
 with the channel. This mode never starts a numerical workload.
 
-Owner-parent additionally accepts an optional `<gate-option> <gate-path>` pair after
-the normal six arguments, forwarded only into bootstrap argv before `--`. The parent
+Owner-parent additionally accepts an optional `<gate-option> <gate-path> <deadline-utc-ticks>` triple after
+the normal six arguments, forwarded only into bootstrap argv before `--`, with the deadline as `--test-deadline-utc-ticks`. For a connected gate
+the real parent creates and retains the private control server and, on Windows, job.
+Its exit closes both. The parent
 still launches the real bootstrap using its own OS identity and controlled lifetime.
