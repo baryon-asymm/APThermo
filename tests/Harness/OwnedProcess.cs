@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.Net.Sockets;
 using APThermo.Harness.ProcessOwner;
 
 namespace APThermo.Harness;
@@ -39,6 +40,8 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
     internal Action<Process>? OwnerLaunched { get; set; }
     internal Func<bool>? CapabilityOverride { get; set; }
     internal Action<Process>? SetupProbe { get; set; }
+    internal Func<CancellationToken, Task>? SetupConnectionOverride { get; set; }
+    internal Action? SetupPipeClosed { get; set; }
 
     internal async Task<DotnetProcessResult> RunAsync(CancellationToken interruption)
     {
@@ -140,7 +143,7 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         }
     }
 
-    private static async Task<(byte[] Output, byte[] Error)> RecoverAcquisitionAsync(NamedPipeServerStream pipe,
+    private async Task<(byte[] Output, byte[] Error)> RecoverAcquisitionAsync(NamedPipeServerStream pipe,
         Process owner, ProcessOutput? output, ProcessOutput? error, List<Exception> secondary)
     {
         using var timeout = new CancellationTokenSource(DotnetProcess.CleanupTimeout);
@@ -164,20 +167,22 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         catch (Exception problem) when (Record(problem, secondary)) { return null; }
     }
 
-    private static async Task RecoverSetupAsync(NamedPipeServerStream pipe, Process owner, ProcessOutput? output,
+    private async Task RecoverSetupAsync(NamedPipeServerStream pipe, Process owner, ProcessOutput? output,
         ProcessOutput? error, List<Exception> secondary, CancellationToken cleanupToken)
     {
         try
         {
-            var connection = pipe.WaitForConnectionAsync(cleanupToken);
+            var connection = SetupConnectionOverride?.Invoke(cleanupToken) ?? pipe.WaitForConnectionAsync(cleanupToken);
             var exited = owner.WaitForExitAsync(cleanupToken);
             var first = await Task.WhenAny(connection, exited).ConfigureAwait(false);
             if (first == connection) { await connection.ConfigureAwait(false); }
             if (first != connection && connection.IsCompleted) { await connection.ConfigureAwait(false); }
             await pipe.DisposeAsync().ConfigureAwait(false);
+            SetupPipeClosed?.Invoke();
             if (first != connection && !connection.IsCompletedSuccessfully)
             {
                 try { await connection.ConfigureAwait(false); }
+                catch (SocketException problem) when (problem.SocketErrorCode == SocketError.OperationAborted) { }
                 catch (Exception problem) when (problem is ObjectDisposedException or OperationCanceledException or IOException) { }
             }
             await exited.ConfigureAwait(false);
