@@ -284,9 +284,9 @@ returns `Task<DotnetProcessResult>`. Instance properties `OwnerStartOverride`
 (`Func<ProcessStartInfo, ProcessStartInfo>?`), `OwnerLaunched` (`Action<Process>?`),
 `StartWriteOverride` (`Func<Stream, CancellationToken, Task>?`),
 `CapabilityOverride` (`Func<bool>?`), `SetupProbe` (`Action<Process>?`),
-`SetupConnectionOverride` (`Func<CancellationToken, Task>?`) and
-`SetupPipeClosed` (`Action?`) are per-operation controls, default null. The last two
-provide synthetic connection outcomes immediately around intentional server closure.
+`SetupConnectionOverride` (`Func<CancellationToken, Task>?`), `SetupBeforePipeClose`
+(`Action?`) and `SetupPipeClosed` (`Action?`) are per-operation controls, default null.
+The last three provide synthetic connection outcomes around intentional server closure.
 `CapabilityOverride` can deny Linux capability before launch; it cannot bypass the real
 capability probe. `OwnerLaunched` runs immediately after `Process.Start` and inside
 setup-failure cleanup. The write override executes after conservative START state is set.
@@ -298,3 +298,9 @@ If identity is unverified, it sends no process signal. An externally suspended o
 that cannot connect or be verified produces a secondary infrastructure failure.
 The Linux safe-signal adapter is supported on Linux x64 and requires the documented
 capability; it makes no assertion about Linux Arm64.
+
+Setup recovery samples whether the connection task has completed after owner exit and
+before closing the server. A later `SocketError.OperationAborted` is accepted in that
+branch; the sample and disposal are not atomic, so completion in between is also
+accepted and cannot be attributed conclusively to disposal. An error observed complete
+at the sample, or any different socket error, remains secondary.
