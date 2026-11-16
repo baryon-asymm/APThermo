@@ -125,11 +125,8 @@ public sealed class DotnetProcessGuardTests(ITestOutputHelper output) : IDisposa
         var method = type.GetMethod("RunAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
         var pending = (Task<DotnetProcessResult>)method.Invoke(instance, [cancellation.Token])!;
         var watch = Stopwatch.StartNew();
-        while (!File.Exists(Path.Combine(_session.DirectoryPath, "ready.pid")) && watch.Elapsed < TimeSpan.FromSeconds(5))
-        {
-            await Task.Delay(10).ConfigureAwait(true);
-        }
-        Assert.True(File.Exists(Path.Combine(_session.DirectoryPath, "ready.pid")));
+        await DotnetProcessGuardSession.WaitForMarkerOrFailureAsync(
+            Path.Combine(_session.DirectoryPath, "ready.pid"), pending, watch).ConfigureAwait(true);
         await cancellation.CancelAsync().ConfigureAwait(true);
         var problem = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await pending.ConfigureAwait(true)).ConfigureAwait(true);
         Assert.Equal(cancellation.Token, problem.CancellationToken);

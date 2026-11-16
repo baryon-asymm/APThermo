@@ -73,6 +73,17 @@ internal sealed class DotnetProcessGuardSession(ITestOutputHelper output) : IDis
         Assert.True(DotnetProcessObservation.Read(marker).IsLive, "the owned probe did not become ready");
     }
 
+    internal static async Task WaitForMarkerOrFailureAsync(string marker, Task pending, Stopwatch watch)
+    {
+        while (!File.Exists(marker) && watch.Elapsed < TimeSpan.FromSeconds(5))
+        {
+            if (pending.IsCompleted) { await pending.ConfigureAwait(false); throw new InvalidOperationException("owner exited before readiness"); }
+            await Task.Delay(10).ConfigureAwait(false);
+        }
+        if (!File.Exists(marker) && pending.IsCompleted) { await pending.ConfigureAwait(false); }
+        Assert.True(File.Exists(marker), "probe did not reach its ready marker");
+    }
+
     internal Task<DotnetProcessResult> RunWithClock(IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment,
         TimeProvider clock)
     {
