@@ -3,6 +3,7 @@
 ## Purpose
 
 Discover the release GPU selection from the SDK test adapter and verify both fresh TRX phases.
+The discovered CUDA marker contract is described by [Execution.Tests](../Execution.Tests/API.md); this tool reads evidence, not its types.
 
 ## Invariants
 
@@ -10,7 +11,7 @@ An error callback or absent or repeated completion callback fails the inventory 
 
 ## Dependencies
 
-- [Execution.Tests](../Execution.Tests/API.md) — CUDA evidence markers.
+None
 
 Outside the tree: the SDK test-platform translation layer and object model selected by global.json, and the solution's xUnit adapter.
 

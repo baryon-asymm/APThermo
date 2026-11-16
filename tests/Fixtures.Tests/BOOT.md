@@ -25,6 +25,9 @@ provenance and coverage, never their values (AGENTS.md §1).
   product calculation. Every process-starting guard is Category=EndToEnd. The probe
   has its own finite self-stop, and tests clean up only the PID written by their own
   probe. Ordinary byte/argument/environment/nonzero-exit cases remain exact.
+  `DotnetProcessGuardTests` covers runner deadlines and observations;
+  `OwnedProcessGuardTests` covers scope, channel and cleanup. Both use one owned
+  `DotnetProcessGuardSession` for the same probe and teardown policy.
 
 - A Linux probe is live unless its owned PID is absent or `/proc/<pid>/stat`
   reports zombie/dead state (`Z`, `X`, `x`). Sleeping, stopped and uninterruptible

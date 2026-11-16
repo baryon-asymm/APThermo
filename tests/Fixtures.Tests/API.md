@@ -24,7 +24,7 @@ its contract points upward: it is what the parent may consider proven about `Fix
   when the test class is disposed.
 
 Process infrastructure is checked with the owned finite ProcessProbe executable
-(`DotnetProcessGuardTests`, Category=EndToEnd): exact bytes/arguments/environment,
+(`DotnetProcessGuardTests` and `OwnedProcessGuardTests`, Category=EndToEnd): exact bytes/arguments/environment,
 nonzero exits, validation, cancellation, deadline and inherited-pipe/tree cleanup.
 
 ⚠ 2026-11-14: the old introduction said nobody referenced a test project; the protocol

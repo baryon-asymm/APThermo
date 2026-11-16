@@ -977,8 +977,8 @@ class SummaryTests(unittest.TestCase):
     def test_the_default_command_table_is_the_one_of_api_md(self) -> None:
         """Names, CUDA gating, the linter's strictness and the CPU-only environment of the fast suite."""
         table = {command.name: command for command in guard.default_commands()}
-        self.assertEqual(["lint", "build", "fast suite", "cuda build", "cuda proofs", "execution"], list(table))
-        self.assertEqual(["cuda"] * 3, [table[name].requires for name in ("cuda build", "cuda proofs", "execution")])
+        self.assertEqual(["lint", "build", "fast suite", "cuda build", "cuda proofs", "cuda sweep", "execution"], list(table))
+        self.assertEqual(["cuda"] * 4, [table[name].requires for name in ("cuda build", "cuda proofs", "cuda sweep", "execution")])
         self.assertEqual([None] * 3, [table[name].requires for name in ("lint", "build", "fast suite")])
         self.assertEqual("--strict", table["lint"].argv[-1])
         self.assertEqual({"APTHERMO_NO_CUDA": "1"}, table["fast suite"].env)

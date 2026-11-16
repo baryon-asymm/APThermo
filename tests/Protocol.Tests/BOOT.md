@@ -77,6 +77,7 @@ dependencies against the real ones.
 [Data](../../src/Data/API.md)
 [Execution](../../src/Execution/API.md)
 [Fixtures](../Fixtures/API.md)
+[Harness](../Harness/API.md)
 [Performance](../../src/Performance/API.md)
 [Problems](../../src/Problems/API.md)
 [Thermo](../../src/Thermo/API.md)
