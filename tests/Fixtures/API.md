@@ -154,8 +154,13 @@ JSON directly; there is no new loader API or change to CEA case generation.
 `AuditApplicabilityCases.json` is separate from `cases/`, CEA regeneration and bit
 snapshots. It records the exact A37 graphite, ice and frozen-alumina inputs, units,
 raw NASA fit bounds, generated table bounds and separate equilibrium admission
-observations. Frozen inputs name the unchanged source fixture and its SHA-256;
-provenance pins both NASA files and locates the original audit witnesses by archive
-path and SHA-256. The archive is not needed at test time. Public-policy consumers
-and the provenance/bound refusal controls live in `Problems.Tests`.
-These are applicability witnesses, not independent scientific reference outputs.
+observations. Frozen inputs name the source fixture and its current byte SHA-256.
+Metadata-only fixture regeneration changes this hash without changing the frozen
+inputs or independently repeating the historical observation. Provenance pins both
+NASA files and locates the original audit witnesses by archive path and SHA-256. The
+archive is not needed at test time. Public-policy consumers and the provenance/bound
+refusal controls live in `Problems.Tests`. These are applicability witnesses, not
+independent scientific reference outputs.
+
+⚠ 2026-11-16: was an unchanged source fixture and its SHA-256; regeneration changed
+the fixture's provenance bytes, not its inputs.

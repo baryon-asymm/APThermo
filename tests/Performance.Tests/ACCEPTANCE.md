@@ -316,6 +316,13 @@ temperature, pressure, characteristic velocity and composition remain compared.
   three-field guard supplements the full fixture/KKT/bit evidence; it replaces none.
   Data and input SHA-256 provenance live in `IndependentBeOThroat.json`.
 
+- [x] 2026-11-16 — The BeO oracle's input SHA follows the regenerated fixture's
+  bytes. The prior and current fixture differ only in generator date and SHA; the
+  independent 80-digit known answer, data provenance and tolerances are unchanged.
+  Its four controls were red on the stale input SHA and pass 4/4 after the link
+  update. The owner-held `fix-evidence/fixture-hash-links/` preserves both TRX runs
+  and the before/after byte-level comparison.
+
 ⚠ 2026-11-16: the A01 source change was committed as `25b95f55`, while the intended
 BeO bit-row approval followed separately in `effc89f2`. This did not satisfy the root's
 same-commit rule. The historical commits and independent numerical review remain as

@@ -55,7 +55,7 @@
     "admissionLower": null,
     "elements": ["AL", "O"],
     "inputFixture": "tests/Fixtures/cases/rocket/ap-htpb-al_pc7MPa_shiftingEquilibrium.json",
-    "inputFixtureSha256": "85ff06c12ebeec6be7fcfc2cfef55e8709ee7c8ca18d5618bd7fb6ee807c001d",
+    "inputFixtureSha256": "fcc93783d5ad519d2861143abbb2f41023dc0cdd27490b28b1d2ca876a25d06d",
     "inputDerivation": "Copy the fixture's exact reactant inputs, then apply only the explicit flow and exit overrides below, as in audit PT-01; no reference outputs are imported.",
     "flow": "frozenAtChamber",
     "chamberPressure": 7000000,

@@ -7,6 +7,13 @@ cited below is held in [generate/BOOT.md](generate/BOOT.md), which its scripts a
 
 ## Acceptance criteria
 
+- [x] 2026-11-16 — The A37 sidecar's input fixture SHA follows the regenerated
+  fixture bytes; the prior and current fixture differ only in generator date and
+  SHA. The frozen witness inputs and observed numbers are unchanged. Before the
+  link update `ApplicabilityMetadataTests` failed its positive hash control; after,
+  metadata and policy controls pass 17/17. The owner-held archive's
+  `fix-evidence/fixture-hash-links/` contains red/green TRX and byte-level diffs.
+
 - [x] 2026-11-16 — After the document comparator changed, the actual full
   `generate/regenerate.py` run with pinned CEA 3.3.4 and NumPy 2.5.3 regenerated all
   379 fixtures. An independent JSON leaf comparison against `108fa6b15baef` found
