@@ -155,3 +155,15 @@ internal sealed class WindowsJob : IDisposable
     public void Dispose();
 }
 ```
+
+## Internal identity test contract ✅
+
+The fixtures node uses reflection for `APThermo.Harness.ProcessOwner.ParentLifetime`:
+`SelfBirth()` returns `ulong`; `Open(int pid, ulong birth)` returns an `IDisposable`
+retained observation; `IsLive()` returns `bool` and `WaitForExitAsync(CancellationToken)`
+returns `Task`. `APThermo.Harness.ProcessOwner.Program.ConnectWhileParentLivesAsync`
+accepts `(NamedPipeClientStream pipe, ParentLifetime lifetime)` and returns `Task`.
+Linux-only `APThermo.Harness.ProcessOwner.LinuxProcessIdentity.Open(int pid)` returns
+a retained `IDisposable` identity; `RequireChannel(string channel)` validates the
+nonce and `Send(int signal)` returns whether the identity still exists. These internal
+test contracts are not public package interfaces.

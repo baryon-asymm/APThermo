@@ -34,7 +34,7 @@ public sealed class OwnerPreStartTests(ITestOutputHelper output) : IDisposable
         var type = typeof(OwnedProcess).Assembly.GetType("APThermo.Harness.OwnedProcessOperation", throwOnError: true)!;
         var constructor = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Single();
         var operation = constructor.Invoke([target, null, null, null, null, null]);
-        Func<ProcessStartInfo, ProcessStartInfo> substitute = _ => ProbeStart(arguments, environment);
+        Func<ProcessStartInfo, ProcessStartInfo> substitute = original => ProbeStart(arguments, environment, original.ArgumentList[2]);
         type.GetProperty("OwnerStartOverride", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, substitute);
         var method = type.GetMethod("RunAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
         using var interruption = new CancellationTokenSource();
@@ -124,38 +124,44 @@ public sealed class OwnerPreStartTests(ITestOutputHelper output) : IDisposable
         Assert.False(File.Exists(Path.Combine(_session.DirectoryPath, "ready.pid")));
     }
 
-    /// <summary>A write that may be partial takes the post-START scope cleanup path.</summary>
+    /// <summary>A START that reached a real target and child uses scope cleanup if writing then fails.</summary>
     [Fact]
     public async Task AmbiguousStartWritePreservesScopeCleanup()
     {
-        _ = Directory.CreateDirectory(_session.DirectoryPath);
-        var marker = Path.Combine(_session.DirectoryPath, "target-ran");
-        var target = new ProcessStartInfo("python")
-        {
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            WorkingDirectory = _session.DirectoryPath,
-        };
-        target.ArgumentList.Add("-c");
-        target.ArgumentList.Add("import sys;open(sys.argv[1],'w').close()");
-        target.ArgumentList.Add(marker);
+        var (arguments, environment) = _session.Input("tree");
+        var marker = Path.Combine(_session.DirectoryPath, "ready.pid");
+        var target = ProbeStart(arguments, environment, null);
         var type = typeof(OwnedProcess).Assembly.GetType("APThermo.Harness.OwnedProcessOperation", throwOnError: true)!;
         var constructor = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Single();
-        object? operation = null;
-        bool? observed = null;
-        Action<Stream> observe = _ => observed = (bool)type.GetField("_startMayHaveBeenSent", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(operation)!;
-        operation = constructor.Invoke([target, null, null, observe, null, null]);
-        Action failWrite = () => throw new InvalidOperationException("controlled ambiguous START write");
-        type.GetProperty("BeforeStartWrite", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, failWrite);
+        var operation = constructor.Invoke([target, null, null, null, null, null]);
+        Func<Stream, CancellationToken, Task> write = async (stream, token) =>
+        {
+            byte[] frame = [(byte)'A', (byte)'P', (byte)'T', (byte)'O', 1, 2, 0, 0, 0, 0];
+            await stream.WriteAsync(frame, token).ConfigureAwait(false);
+            await stream.FlushAsync(token).ConfigureAwait(false);
+            var header = new byte[10];
+            await stream.ReadExactlyAsync(header, token).ConfigureAwait(false);
+            Assert.Equal(8, header[5]);
+            Assert.Equal(4U, System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(6)));
+            var payload = new byte[4];
+            await stream.ReadExactlyAsync(payload, token).ConfigureAwait(false);
+            await DotnetProcessGuardSession.WaitForOwnedReadyAsync(marker).ConfigureAwait(false);
+            await DotnetProcessGuardSession.WaitForOwnedReadyAsync(marker + ".parent").ConfigureAwait(false);
+            throw new InvalidOperationException("controlled ambiguous START write");
+        };
+        type.GetProperty("StartWriteOverride", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, write);
         var method = type.GetMethod("RunAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var pending = (Task<DotnetProcessResult>)method.Invoke(operation, [timeout.Token])!;
         var problem = await Assert.ThrowsAsync<InvalidOperationException>(async () => await pending.ConfigureAwait(true)).ConfigureAwait(true);
         Assert.Equal("controlled ambiguous START write", problem.Message);
-        Assert.True(observed, "the conservative post-START state was not set before the write began");
         Assert.Null(problem.Data["CleanupException"]);
-        Assert.False(File.Exists(marker));
+        Assert.False(DotnetProcessObservation.Read(marker).IsLive, "the target's child survived scope cleanup");
+        Assert.False(DotnetProcessObservation.Read(marker + ".parent").IsLive, "the target survived scope cleanup");
+        var stdout = await File.ReadAllBytesAsync(Path.Combine(_session.DataPath, "stdout.bin")).ConfigureAwait(true);
+        var stderr = await File.ReadAllBytesAsync(Path.Combine(_session.DataPath, "stderr.bin")).ConfigureAwait(true);
+        Assert.Equal(stdout.Concat(stdout), Assert.IsType<byte[]>(problem.Data["StandardOutput"]));
+        Assert.Equal(stderr.Concat(stderr), Assert.IsType<byte[]>(problem.Data["StandardError"]));
     }
 
     /// <summary>Stops any retained finite probe and removes its private directory.</summary>
@@ -176,7 +182,7 @@ public sealed class OwnerPreStartTests(ITestOutputHelper output) : IDisposable
         return target;
     }
 
-    private ProcessStartInfo ProbeStart(IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment)
+    private ProcessStartInfo ProbeStart(IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment, string? channel)
     {
         var start = new ProcessStartInfo("dotnet")
         {
@@ -187,6 +193,11 @@ public sealed class OwnerPreStartTests(ITestOutputHelper output) : IDisposable
         };
         start.ArgumentList.Add(_session.AssemblyPath);
         foreach (var argument in arguments) { start.ArgumentList.Add(argument); }
+        if (channel is not null)
+        {
+            start.ArgumentList.Add("--channel");
+            start.ArgumentList.Add(channel);
+        }
         foreach (var pair in environment) { start.Environment[pair.Key] = pair.Value; }
         return start;
     }

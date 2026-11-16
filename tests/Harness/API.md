@@ -273,3 +273,16 @@ signature, raw-byte, exception, timer or cancellation contract changes.
 
 ⚠ 2026-11-16: the supported schema subset now includes `not`, audited recursively
 and evaluated independently alongside sibling constraints.
+
+## Internal process-owner test contract ✅
+
+The fixtures node accesses `APThermo.Harness.OwnedProcessOperation` through reflection,
+not as public package API. Its instance constructor takes `(ProcessStartInfo target,
+Action<int>? started, Action? cleanupProbe, Action<Stream>? controlProbe,
+Func<Task>? captureGate, Action? drainWaiting)`. `RunAsync(CancellationToken interruption)`
+returns `Task<DotnetProcessResult>`. Instance properties `OwnerStartOverride`
+(`Func<ProcessStartInfo, ProcessStartInfo>?`), `OwnerLaunched` (`Action<Process>?`),
+`StartWriteOverride` (`Func<Stream, CancellationToken, Task>?`) and
+`CapabilityOverride` (`Func<bool>?`) are per-operation controls, default null. The
+last override can deny Linux capability before launch; it cannot bypass the real
+capability probe. The write override executes after conservative START state is set.

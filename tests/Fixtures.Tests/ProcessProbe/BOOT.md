@@ -27,7 +27,8 @@ only, allowing its parent test to stop it after bounded-runner assertions.
 Identity sidecars precede atomically published PID markers. Each records PID, parent
 from PROBE_PARENT_ID, UTC start ticks and Linux kernel start ticks. A spawned child
 receives its actual fixture parent's PID. Controlled mode stays live until the caller
-creates `<ready-file>.release`, with the unchanged twenty-second self-stop. The caller
+creates `<ready-file>.release`, with the unchanged twenty-second self-stop. Controlled
+mode may append `--channel <nonce>` for its pre-start owner-substitute control. The caller
 releases it only after a LIVE observation, so transition controls do not guess timing.
 
 ⚠ 2026-11-15: PID-only readiness and fixed blocking were insufficient for the

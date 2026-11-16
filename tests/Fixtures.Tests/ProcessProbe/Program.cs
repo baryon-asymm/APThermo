@@ -10,7 +10,9 @@ internal static class Program
 {
     public static int Main(string[] args)
     {
-        if (args.Length != 6 || Environment.GetEnvironmentVariable("PROBE_VALUE") != args[3])
+        var normal = args.Length == 6;
+        var ownerSubstitute = args.Length == 8 && args[0] == "controlled" && args[6] == "--channel" && args[7].Length != 0;
+        if ((!normal && !ownerSubstitute) || Environment.GetEnvironmentVariable("PROBE_VALUE") != args[3])
         {
             return 79;
         }

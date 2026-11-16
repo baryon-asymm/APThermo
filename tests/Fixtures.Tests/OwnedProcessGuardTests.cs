@@ -258,6 +258,7 @@ public sealed class OwnedProcessGuardTests(ITestOutputHelper output) : IDisposab
         start.ArgumentList.Add(DotnetProcess.BuiltAssemblyPath("APThermo.Harness.ProcessOwner", "tests", "Harness", "ProcessOwner"));
         start.ArgumentList.Add("--channel");
         start.ArgumentList.Add(channel);
+        OwnerChannelTests.AddParentIdentity(start);
         if (OperatingSystem.IsWindows()) { start.ArgumentList.Add("--job-name"); start.ArgumentList.Add("missing-" + channel); }
         start.ArgumentList.Add("--");
         start.ArgumentList.Add("python");

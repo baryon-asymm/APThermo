@@ -69,6 +69,7 @@ public sealed class OwnerChannelTests
         start.ArgumentList.Add(DotnetProcess.BuiltAssemblyPath("APThermo.Harness.ProcessOwner", "tests", "Harness", "ProcessOwner"));
         start.ArgumentList.Add("--channel");
         start.ArgumentList.Add(channel);
+        AddParentIdentity(start);
         if (OperatingSystem.IsWindows()) { start.ArgumentList.Add("--job-name"); start.ArgumentList.Add("missing-" + channel); }
         start.ArgumentList.Add("--");
         start.ArgumentList.Add("python");
@@ -165,6 +166,7 @@ public sealed class OwnerChannelTests
         start.ArgumentList.Add(DotnetProcess.BuiltAssemblyPath("APThermo.Harness.ProcessOwner", "tests", "Harness", "ProcessOwner"));
         start.ArgumentList.Add("--channel");
         start.ArgumentList.Add(channel);
+        AddParentIdentity(start);
         if (OperatingSystem.IsWindows()) { start.ArgumentList.Add("--job-name"); start.ArgumentList.Add(channel); }
         start.ArgumentList.Add("--");
         start.ArgumentList.Add("python");
@@ -172,6 +174,16 @@ public sealed class OwnerChannelTests
         start.ArgumentList.Add("import sys,time;open(sys.argv[1],'w').close();time.sleep(30)");
         start.ArgumentList.Add(marker);
         return Process.Start(start) ?? throw new InvalidOperationException("owner did not start");
+    }
+
+    internal static void AddParentIdentity(ProcessStartInfo start)
+    {
+        var type = Assembly.Load("APThermo.Harness.ProcessOwner").GetType("APThermo.Harness.ProcessOwner.ParentLifetime", throwOnError: true)!;
+        var birth = type.GetMethod("SelfBirth", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, null)!;
+        start.ArgumentList.Add("--parent-pid");
+        start.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        start.ArgumentList.Add("--parent-birth");
+        start.ArgumentList.Add(Convert.ToString(birth, System.Globalization.CultureInfo.InvariantCulture)!);
     }
 
     private static async Task<(byte Kind, byte[] Payload)> ReadFrameAsync(Stream pipe, CancellationToken token)

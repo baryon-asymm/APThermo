@@ -31,10 +31,12 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
     private readonly ProcessStartInfo _target = target;
     private readonly Action<int>? _started = started;
     private bool _startMayHaveBeenSent;
+    private LinuxProcessIdentity? _linuxOwner;
 
     internal Func<ProcessStartInfo, ProcessStartInfo>? OwnerStartOverride { get; set; }
-    internal Action? BeforeStartWrite { get; set; }
+    internal Func<Stream, CancellationToken, Task>? StartWriteOverride { get; set; }
     internal Action<Process>? OwnerLaunched { get; set; }
+    internal Func<bool>? CapabilityOverride { get; set; }
 
     internal async Task<DotnetProcessResult> RunAsync(CancellationToken interruption)
     {
@@ -57,11 +59,21 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         using var jobScope = new OwnedResource<WindowsJob>(() => OperatingSystem.IsWindows() ? WindowsJob.Create(_name) : null, secondary);
         using var pipeScope = new OwnedResource<NamedPipeServerStream>(() => new NamedPipeServerStream(_name, PipeDirection.InOut, 1,
             PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly), secondary);
-        using var ownerScope = new OwnedResource<Process>(() => Process.Start(SelectOwnerStart()) ??
+        if (OperatingSystem.IsLinux())
+        {
+            if (CapabilityOverride?.Invoke() == false) { throw new PlatformNotSupportedException("safe Linux signalling is unavailable"); }
+            LinuxProcessIdentity.Probe();
+        }
+        var parentBirth = ParentLifetime.SelfBirth();
+        interruption.ThrowIfCancellationRequested();
+        using var ownerScope = new OwnedResource<Process>(() => Process.Start(SelectOwnerStart(parentBirth)) ??
             throw new InvalidOperationException("process owner did not start"), secondary);
         var job = jobScope.Value;
         var pipe = pipeScope.Value!;
         var owner = ownerScope.Value!;
+        _ = owner.SafeHandle;
+        using var identityScope = new OwnedResource<LinuxProcessIdentity>(() => CaptureLinuxOwner(owner), secondary);
+        _linuxOwner = identityScope.Value;
         using var outputScope = new OwnedResource<ProcessOutput>(() => new ProcessOutput(owner.StandardOutput.BaseStream, captureGate), secondary);
         using var errorScope = new OwnedResource<ProcessOutput>(() => new ProcessOutput(owner.StandardError.BaseStream), secondary);
         var output = outputScope.Value!;
@@ -115,8 +127,8 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         _ = await ExpectAsync(pipe, Wire.Ready, 0, interruption).ConfigureAwait(false);
         interruption.ThrowIfCancellationRequested();
         _startMayHaveBeenSent = true;
-        BeforeStartWrite?.Invoke();
-        await Wire.SendAsync(pipe, Wire.Start, ReadOnlyMemory<byte>.Empty, interruption).ConfigureAwait(false);
+        if (StartWriteOverride is null) { await Wire.SendAsync(pipe, Wire.Start, ReadOnlyMemory<byte>.Empty, interruption).ConfigureAwait(false); }
+        else { await StartWriteOverride(pipe, interruption).ConfigureAwait(false); }
         var pidBytes = await ExpectAsync(pipe, Wire.Started, sizeof(int), interruption).ConfigureAwait(false);
         var pid = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(pidBytes);
         if (pid <= 0) { throw new InvalidDataException("invalid target PID"); }
@@ -145,13 +157,13 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
             ? throw new InvalidDataException($"expected process-owner message {expected}") : payload;
     }
 
-    private ProcessStartInfo SelectOwnerStart()
+    private ProcessStartInfo SelectOwnerStart(ulong parentBirth)
     {
-        var start = OwnerStart();
+        var start = OwnerStart(parentBirth);
         return OwnerStartOverride is null ? start : OwnerStartOverride(start);
     }
 
-    private ProcessStartInfo OwnerStart()
+    private ProcessStartInfo OwnerStart(ulong parentBirth)
     {
         var path = DotnetProcess.BuiltAssemblyPath("APThermo.Harness.ProcessOwner", "tests", "Harness", "ProcessOwner");
         var start = new ProcessStartInfo("dotnet")
@@ -166,11 +178,23 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         start.ArgumentList.Add(path);
         start.ArgumentList.Add("--channel");
         start.ArgumentList.Add(_name);
+        start.ArgumentList.Add("--parent-pid");
+        start.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        start.ArgumentList.Add("--parent-birth");
+        start.ArgumentList.Add(parentBirth.ToString(System.Globalization.CultureInfo.InvariantCulture));
         if (OperatingSystem.IsWindows()) { start.ArgumentList.Add("--job-name"); start.ArgumentList.Add(_name); }
         start.ArgumentList.Add("--");
         start.ArgumentList.Add(_target.FileName);
         foreach (var argument in _target.ArgumentList) { start.ArgumentList.Add(argument); }
         return start;
+    }
+
+    private LinuxProcessIdentity? CaptureLinuxOwner(Process owner)
+    {
+        if (!OperatingSystem.IsLinux()) { return null; }
+        var identity = LinuxProcessIdentity.Open(owner.Id);
+        try { identity.RequireChannel(_name); return identity; }
+        catch { identity.Dispose(); throw; }
     }
 
     private static async Task WaitForScopeEmptyAsync(int identity, WindowsJob? job, CancellationToken token)
@@ -181,14 +205,15 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         }
     }
 
-    private static async Task<Exception?> StopBeforeStartAsync(NamedPipeServerStream pipe, Process owner, WindowsJob? job, CancellationToken token)
+    private async Task<Exception?> StopBeforeStartAsync(NamedPipeServerStream pipe, Process owner, WindowsJob? job, CancellationToken token)
     {
         Exception? closeFailure = null;
         try { await pipe.DisposeAsync().ConfigureAwait(false); }
         catch (Exception problem) when (Record(problem, null)) { closeFailure = problem; }
         try
         {
-            if (!owner.HasExited) { owner.Kill(entireProcessTree: true); }
+            if (OperatingSystem.IsLinux()) { _ = _linuxOwner!.Send(9); }
+            else if (!owner.HasExited) { owner.Kill(); }
         }
         catch (InvalidOperationException) when (owner.HasExited) { }
         job?.Stop();

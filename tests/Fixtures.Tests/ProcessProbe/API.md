@@ -24,3 +24,7 @@ readiness still stays within five. Existing modes and their byte/exit contracts 
 
 ⚠ 2026-11-15: explicit identity and release replace PID-only timing assumptions in
 the owning test controls; they are not a production process-runner interface.
+
+Controlled mode also accepts `--channel <nonce>` after its six normal arguments.
+This controlled substitute carries the owning operation's exact nonce for Linux
+identity validation; it keeps the same bytes, readiness and bounded release behavior.

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Pipes;
 using System.Security.Principal;
 
@@ -10,10 +11,13 @@ internal static class Program
 {
     private static async Task<int> Main(string[] arguments)
     {
-        var (channel, job, command) = Parse(arguments);
+        var (channel, parent, birth, job, command) = Parse(arguments);
         using var pipe = new NamedPipeClientStream(".", channel, PipeDirection.InOut,
             PipeOptions.Asynchronous, TokenImpersonationLevel.None, HandleInheritability.None);
-        await pipe.ConnectAsync().ConfigureAwait(false);
+        using (var lifetime = ParentLifetime.Open(parent, birth))
+        {
+            await ConnectWhileParentLivesAsync(pipe, lifetime).ConfigureAwait(false);
+        }
         try
         {
             NativeOwner.Establish(job);
@@ -32,6 +36,35 @@ internal static class Program
             return 1;
         }
         return await StartTargetAsync(pipe, job, command).ConfigureAwait(false);
+    }
+
+    private static async Task ConnectWhileParentLivesAsync(NamedPipeClientStream pipe, ParentLifetime lifetime)
+    {
+        using var stop = new CancellationTokenSource();
+        var connect = pipe.ConnectAsync(stop.Token);
+        var death = lifetime.WaitForExitAsync(stop.Token);
+        try
+        {
+            if (await Task.WhenAny(connect, death).ConfigureAwait(false) == death)
+            {
+                await death.ConfigureAwait(false);
+                throw new InvalidOperationException("parent exited before owner connected");
+            }
+            await connect.ConfigureAwait(false);
+            if (!lifetime.IsLive()) { throw new InvalidOperationException("parent exited during connection"); }
+        }
+        finally
+        {
+            await stop.CancelAsync().ConfigureAwait(false);
+            try { await ObserveAsync(connect, stop.Token).ConfigureAwait(false); }
+            finally { await ObserveAsync(death, stop.Token).ConfigureAwait(false); }
+        }
+    }
+
+    private static async Task ObserveAsync(Task task, CancellationToken stop)
+    {
+        try { await task.ConfigureAwait(false); }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
     }
 
     private static async Task<int> StartTargetAsync(Stream pipe, string? job, string[] command)
@@ -89,19 +122,24 @@ internal static class Program
         await Wire.SendAsync(pipe, Wire.Error, data, CancellationToken.None).ConfigureAwait(false);
     }
 
-    private static (string Channel, string? Job, string[] Command) Parse(string[] arguments)
+    private static (string Channel, int Parent, ulong Birth, string? Job, string[] Command) Parse(string[] arguments)
     {
-        if (arguments.Length < 4 || arguments[0] != "--channel") { throw new ArgumentException("missing control channel", nameof(arguments)); }
-        var index = 2;
+        if (arguments.Length < 8 || arguments[0] != "--channel" || arguments[2] != "--parent-pid" ||
+            arguments[4] != "--parent-birth" || !int.TryParse(arguments[3], NumberStyles.None, CultureInfo.InvariantCulture, out var parent) ||
+            parent <= 0 || !ulong.TryParse(arguments[5], NumberStyles.None, CultureInfo.InvariantCulture, out var birth))
+        {
+            throw new ArgumentException("missing or invalid owner identity", nameof(arguments));
+        }
+        var index = 6;
         string? job = null;
         if (arguments[index] == "--job-name")
         {
-            if (arguments.Length < 6) { throw new ArgumentException("missing job name", nameof(arguments)); }
+            if (arguments.Length < 10) { throw new ArgumentException("missing job name", nameof(arguments)); }
             job = arguments[index + 1];
             index += 2;
         }
         return arguments[index] != "--" || index + 1 >= arguments.Length
             ? throw new ArgumentException("missing target", nameof(arguments))
-            : (arguments[1], job, arguments[(index + 1)..]);
+            : (arguments[1], parent, birth, job, arguments[(index + 1)..]);
     }
 }
