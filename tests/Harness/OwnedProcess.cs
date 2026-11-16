@@ -41,6 +41,7 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
     internal Func<bool>? CapabilityOverride { get; set; }
     internal Action<Process>? SetupProbe { get; set; }
     internal Func<CancellationToken, Task>? SetupConnectionOverride { get; set; }
+    internal Action? SetupBeforePipeClose { get; set; }
     internal Action? SetupPipeClosed { get; set; }
 
     internal async Task<DotnetProcessResult> RunAsync(CancellationToken interruption)
@@ -177,6 +178,7 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
             var first = await Task.WhenAny(connection, exited).ConfigureAwait(false);
             if (first == connection) { await connection.ConfigureAwait(false); }
             if (first != connection && connection.IsCompleted) { await connection.ConfigureAwait(false); }
+            SetupBeforePipeClose?.Invoke();
             await pipe.DisposeAsync().ConfigureAwait(false);
             SetupPipeClosed?.Invoke();
             if (first != connection && !connection.IsCompletedSuccessfully)

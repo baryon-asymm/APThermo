@@ -14,10 +14,11 @@ public sealed class OwnerSocketRecoveryTests(ITestOutputHelper output) : IDispos
 
     /// <summary>Only an aborted pending connection after intentional close is expected.</summary>
     [Theory]
-    [InlineData(true, SocketError.OperationAborted, false)]
-    [InlineData(false, SocketError.OperationAborted, true)]
-    [InlineData(false, SocketError.ConnectionRefused, false)]
-    public async Task SetupConnectionFailureKeepsItsOrdering(bool preexisting, SocketError code, bool expected)
+    [InlineData(true, false, SocketError.OperationAborted, false)]
+    [InlineData(false, false, SocketError.OperationAborted, true)]
+    [InlineData(false, true, SocketError.OperationAborted, true)]
+    [InlineData(false, false, SocketError.ConnectionRefused, false)]
+    public async Task SetupConnectionFailureKeepsItsOrdering(bool preexisting, bool between, SocketError code, bool expected)
     {
         var (arguments, environment) = _session.Input("echo");
         var target = new ProcessStartInfo("python") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
@@ -28,10 +29,12 @@ public sealed class OwnerSocketRecoveryTests(ITestOutputHelper output) : IDispos
         if (preexisting) { completion.SetException(failure); }
         Func<CancellationToken, Task> wait = _ => completion.Task;
         var closed = false;
+        Action beforeClose = () => { if (between) { completion.SetException(failure); } };
         Action afterClose = () => { closed = true; _ = completion.TrySetException(failure); };
         Action<Process> setup = owner => { Assert.True(owner.WaitForExit(5000)); throw new InvalidOperationException("controlled setup failure"); };
         Func<ProcessStartInfo, ProcessStartInfo> start = _ => ProbeStart(arguments, environment);
         Set(type, operation, "SetupConnectionOverride", wait);
+        Set(type, operation, "SetupBeforePipeClose", beforeClose);
         Set(type, operation, "SetupPipeClosed", afterClose);
         Set(type, operation, "SetupProbe", setup);
         Set(type, operation, "OwnerStartOverride", start);
