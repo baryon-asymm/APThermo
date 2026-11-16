@@ -94,6 +94,11 @@ only until the shared absolute test-preparation deadline supplied in argv, then
 continues; timeout and I/O errors fail closed. Test teardown releases every gate. These gates
 are absent from ordinary launches, do not reach target and introduce no normal deadline.
 
+An optional `--test-control-eof` gate makes post-START EOF wait under the same test
+preparation deadline before normal cleanup; actual TERMINATE stays on the ordinary path.
+This test-only seam exposes direct bootstrap killing while its target and child live.
+The owning control releases the gate and reaps its own identities in finally.
+
 ## Acceptance criteria
 - [ ] Real separate parent starts bootstrap; death before parent-open, after the opened
   marker and racing a private server connection cannot start target, on both platforms.

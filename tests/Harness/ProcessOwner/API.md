@@ -191,3 +191,10 @@ fails closed on timeout or I/O failure. Test teardown releases every requested g
 connect-pending runs after starting connect and death tasks; connected runs after
 connection completes and before the final parent-live check. No test gate changes the
 normal path, its cancellation/deadlines, or the requirement for valid START.
+
+For the compiling START-order control only, optional `--test-control-eof <gate>`
+precedes the shared test deadline. If control EOF occurs after actual target launch,
+bootstrap publishes `<gate>.ready` and waits within the same deadline before its
+normal scope cleanup; a valid TERMINATE still takes the ordinary direct path. This
+exposes a direct owner-only kill without suppressing the fixed scope-termination path.
+The control test releases the gate in its finally and reaps its own identified probes.
