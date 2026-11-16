@@ -5,7 +5,7 @@
 The standalone BCL bootstrap is started by the Harness owner with a structured argv:
 
 ```text
---channel <pipe-name> --parent-pid <positive decimal> --parent-birth <decimal> [--job-name <name>] -- <executable> <argument>...
+--channel <pipe-name> --parent-pid <positive decimal> --parent-birth <decimal> [--job-name <name>] [--test-parent-opened <private-marker-path>] -- <executable> <argument>...
 ```
 
 The executable and every argument are passed without shell interpolation, including
@@ -168,3 +168,12 @@ Linux-only `APThermo.Harness.ProcessOwner.LinuxProcessIdentity.Open(int pid)` re
 a retained `IDisposable` identity; `RequireChannel(string channel)` validates the
 nonce and `Send(int signal)` returns whether the identity still exists. These internal
 test contracts are not public package interfaces.
+
+## Bootstrap identity test marker ⏳
+
+The optional structured `--test-parent-opened <private-marker-path>` occurs after
+`--job-name` when present and before `--`. After the real parent lifetime identity
+has been opened and validated, and immediately before the ordinary connection race,
+bootstrap atomically publishes this marker. Normal owner launches omit the option.
+The marker is not passed to the target, and does not replace the normal control pipe.
+Marker publication failure fails closed before START.

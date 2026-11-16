@@ -28,3 +28,12 @@ the owning test controls; they are not a production process-runner interface.
 Controlled mode also accepts `--channel <nonce>` after its six normal arguments.
 This controlled substitute carries the owning operation's exact nonce for Linux
 identity validation; it keeps the same bytes, readiness and bounded release behavior.
+
+## Bootstrap parent test mode ⏳
+
+`owner-parent <owner-assembly> <channel> <opened-marker> <target-marker> <ready-marker>`
+starts the actual owner as this process's own child with the optional opened marker,
+its own PID and birth identity, and a target that creates target-marker. It publishes
+ready-marker and its child PID atomically, then exits upon ready-marker.release or
+after the existing twenty-second finite bound. On Windows it names the caller's job
+with the channel. This mode never starts a numerical workload.

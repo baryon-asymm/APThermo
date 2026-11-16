@@ -81,7 +81,15 @@ infrastructure failure. The safe-signal adapter supports Linux x64, the root pla
 ⚠ 2026-11-16: disposal alone did not stop an unconnected owner after identity or stream
 acquisition failure; bounded rendezvous closes that gap without a raw-PID fallback.
 
+A test-only optional `--test-parent-opened <private-marker-path>` bootstrap argument
+publishes an atomic marker after the actual parent identity has been validated, before
+the ordinary connect/death race. Normal launches omit it and it never reaches target.
+Marker failure is fail-closed. A separate real parent starts bootstrap and controls its
+own finite exit; observation is not a substitute for that parent-child relationship.
+
 ## Acceptance criteria
+- [ ] Real separate parent starts bootstrap; death before parent-open, after the opened
+  marker and racing a private server connection cannot start target, on both platforms.
 - [ ] A real bootstrap exits after injected post-spawn setup failure and no target runs;
   original exception and raw bytes survive, no unverified identity is signalled. A
   compiling no-rendezvous mutant fails, and inability to rendezvous is reported.
