@@ -1,6 +1,8 @@
 # HISTORY.md — Fixtures.Tests
 
-## 2026-11-15 — Invariants: Linux terminal state {#linux-terminal-state}
+<a id="linux-terminal-state"></a>
+
+## 2026-11-16 — from "## Invariants" — Linux terminal state
 
 ⚠ 2026-11-15: the former fresh `Process.GetProcessById(pid).HasExited` observation
 could label an already exited Linux zombie as running. Hosted release run
