@@ -76,9 +76,11 @@ opens a retained `/proc/self` directory handle and probes `pidfd_send_signal` wi
 signal 0 before `Process.Start`; unsupported, unavailable or refused capability is an
 explicit infrastructure failure before any bootstrap or target is spawned. After
 launch the parent opens one `O_DIRECTORY|O_CLOEXEC` `/proc/<childPID>` directory handle
-and, through that retained view, validates birth/stat and the exact per-operation
-random channel nonce in the structured command line before signalling. A mismatch or
-observation error fails closed without signalling. Once the child view is validated,
+and retains that view immediately. After bootstrap connects, validate birth/stat and
+the exact per-operation random channel nonce before START. Before pre-START signalling,
+validate the same retained view; if the nonce is unavailable or mismatched, never
+signal and use the existing bounded pre-START rendezvous. A mismatch or observation
+error at the START boundary fails closed without launching the target. Once the child view is validated,
 never reopen its numeric PID; use `pidfd_send_signal` on that retained handle alone,
 with ESRCH indicating that the original identity ended. Do not fall back to raw PID or
 descendant enumeration. The test surrogate must carry the exact nonce in its argv,
@@ -206,3 +208,7 @@ normal scope cleanup; a valid TERMINATE still takes the ordinary direct path. It
 activated only by `EndOfStreamException` while handling post-START control. This
 exposes a direct owner-only kill without suppressing the fixed scope-termination path.
 The control test releases the gate in its finally and reaps its own identified probes.
+
+⚠ 2026-11-16: the earlier eager argv check after Process.Start could see a transient
+pre-exec command line. Retention remains immediate; validation occurs before START or
+signal, with bounded rendezvous when pre-START identity cannot yet be verified.

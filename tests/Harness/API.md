@@ -304,3 +304,8 @@ before closing the server. A later `SocketError.OperationAborted` is accepted in
 branch; the sample and disposal are not atomic, so completion in between is also
 accepted and cannot be attributed conclusively to disposal. An error observed complete
 at the sample, or any different socket error, remains secondary.
+
+The Linux bootstrap proc identity is retained immediately after spawn, but its nonce
+is checked after connection before START or immediately before a pre-START signal.
+An unavailable pre-exec nonce never authorizes a signal; the existing bounded
+rendezvous applies instead. The original deadline and cleanup budget are unchanged.

@@ -55,8 +55,10 @@ and cleanup deadlines, output bytes, cancellation token and non-inheritance guar
 The parent separately requires safe pre-START force-reap: Windows addresses the
 retained actual bootstrap process handle; on Linux the harness probes
 `pidfd_send_signal` using its retained `/proc/self` directory handle before any spawn,
-then validates the spawned owner's retained proc-directory birth/stat and exact
-structured channel nonce before signalling that handle. Unavailable capability fails
+then immediately retains the spawned owner's proc-directory. Once the authenticated
+bootstrap connects, validate retained birth/stat and exact structured channel nonce
+before START. For cancellation before connection, validate before any signal; while
+the nonce is unavailable, use bounded rendezvous without signalling. Unavailable capability fails
 before spawn; identity mismatch or observation failure never signals. No raw PID or
 descendant enumeration fallback is permitted. This capability belongs only to the test
 harness; the product Linux package and the separate parent-liveness observation do not
@@ -114,6 +116,9 @@ connection completing between them is accepted without proof that disposal cause
 error, which the former ObjectDisposed/OperationCanceled-only filter misclassified.
 ⚠ 2026-11-16: the pending sample cannot prove causal ordering of completion vs disposal;
 the TOCTOU interval is explicitly admitted and covered by a deterministic control.
+
+⚠ 2026-11-16: an eager post-Process.Start argv check can observe a pre-exec process;
+retain the proc identity immediately, but check nonce only at the decision boundaries.
 
 ## Acceptance criteria
 - [ ] Real separate parent starts bootstrap; death before parent-open, after the opened
