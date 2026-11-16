@@ -157,7 +157,17 @@ promised. Interrupted cleanup uses at most `CleanupTimeout`; primary failures an
 output are retained, with secondary failures in `Data["CleanupException"]`.
 If interrupted before START may be sent, the retained bootstrap is closed and reaped
 even when it has not joined its job or connected; a possibly partial START uses the
-owned-scope cleanup path instead. No additional deadline is introduced.
+owned-scope cleanup path instead. On Windows termination addresses the retained process
+handle, not a process tree. On Linux the test harness requires `pidfd_send_signal` on a
+retained proc directory handle: availability is checked before launch, and the spawned
+bootstrap's retained view must match its birth/stat and exact structured channel nonce
+before signalling. An unavailable capability or identity mismatch fails closed without
+spawning or signalling as applicable; there is no raw-PID fallback. This test-harness
+requirement does not change the product Linux package. No additional deadline is introduced.
+
+⚠ 2026-11-16: previously pre-START reaping was described without a Linux safe-signal
+capability requirement. It now fails closed when that capability is unavailable; this
+narrows test infrastructure only, not the product's supported Linux environment.
 
 The arguments are passed one to one, never re-parsed. Standard output and standard error are read as bytes from
 the process's base streams, so a caller sees the encoding the process wrote on the platform it ran on and

@@ -64,8 +64,23 @@ Stages in ERROR are 1 ownership setup, 2 target launch and 3 control/protocol fa
 The server accepts one bootstrap connection under the original deadline; the bootstrap
 sets up ownership and connects before READY. A timeout before READY must stop/reap the
 bootstrap, which has not received START and cannot have launched the target. Before
-any START write begins, the parent closes control and directly kills and reaps its
-retained bootstrap process, even if it never connected or entered the job/session.
+any START write begins, the parent closes control and directly terminates and reaps
+only its retained bootstrap identity, even if it never connected or entered the
+job/session. Windows retains the actual non-inheritable process handle and terminates
+through that handle, without enumerating descendants. Linux test infrastructure first
+opens a retained `/proc/self` directory handle and probes `pidfd_send_signal` with
+signal 0 before `Process.Start`; unsupported, unavailable or refused capability is an
+explicit infrastructure failure before any bootstrap or target is spawned. After
+launch the parent opens one `O_DIRECTORY|O_CLOEXEC` `/proc/<childPID>` directory handle
+and, through that retained view, validates birth/stat and the exact per-operation
+random channel nonce in the structured command line before signalling. A mismatch or
+observation error fails closed without signalling. Once the child view is validated,
+never reopen its numeric PID; use `pidfd_send_signal` on that retained handle alone,
+with ESRCH indicating that the original identity ended. Do not fall back to raw PID or
+descendant enumeration. The test surrogate must carry the exact nonce in its argv,
+or the control must use the real bootstrap. This Linux capability is a test-harness
+requirement only, not a requirement of the product package. Parent-liveness monitoring
+is the separate proc-directory/openat observation described above.
 The parent sets START-may-have-been-sent before beginning the write; a possibly partial
 write uses owned-scope termination and verified postcondition, not that direct path.
 The parent

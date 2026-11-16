@@ -52,12 +52,35 @@ asynchronous liveness observation, without a dedicated thread or a new deadline;
 close every handle on successful connect and every early error. After connection the
 existing channel-EOF cleanup governs owner lifetime. Preserve the original caller
 and cleanup deadlines, output bytes, cancellation token and non-inheritance guarantees.
+The parent separately requires safe pre-START force-reap: Windows addresses the
+retained actual bootstrap process handle; on Linux the harness probes
+`pidfd_send_signal` using its retained `/proc/self` directory handle before any spawn,
+then validates the spawned owner's retained proc-directory birth/stat and exact
+structured channel nonce before signalling that handle. Unavailable capability fails
+before spawn; identity mismatch or observation failure never signals. No raw PID or
+descendant enumeration fallback is permitted. This capability belongs only to the test
+harness; the product Linux package and the separate parent-liveness observation do not
+acquire a new kernel requirement.
+
+⚠ 2026-11-16: the parent-liveness design previously stated no new kernel requirement.
+That remains true for observation itself, but safe graceful pre-START force-reap now
+requires the safe-signal capability in the Linux test harness, failing closed before
+launch when unavailable rather than signalling a reusable numeric PID.
 
 ⚠ 2026-11-16: pre-connect `ConnectAsync` previously waited without observing whether
 the launching parent still existed. A parent crash before connection could leave an
 owner indefinitely waiting even after graceful pre-START cleanup had been repaired.
 
 ## Acceptance criteria
+
+- [ ] Linux safe force-reap probes `pidfd_send_signal` on retained `/proc/self`
+  before spawning and refuses explicitly when unavailable; a capability-unavailable
+  per-call seam proves no bootstrap or target started. A real wrong-channel-nonce or
+  birth/stat mismatch fails without signalling. A matching retained child identity
+  receives the signal, and the same handle reports ESRCH after death; no raw PID or
+  descendant enumeration is used. Windows directly terminates the retained process
+  handle. Execute compiling negative controls and the real controls on both OSes;
+  native primitive probes alone do not prove forced PID reuse.
 
 - [ ] On Windows and Linux, real controls prove wrong birth identity and a parent dead
   before opening fail closed before target launch; a validated parent dying after open

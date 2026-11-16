@@ -9,6 +9,58 @@ used to stand.
 
 ---
 
+<a id="a16-a17-schema-audit-2026-11-14"></a>
+
+## 2026-11-16 — from "## Invariants" — A16/A17 schema audit
+
+⚠ 2026-11-14: snapshot naming silently assumed an `approved` substring and the
+schema checker followed a `$ref` with an early return, auditing only visited boxes.
+Audit A16/A17 found approved-file overwrite and skipped constraints. The distinct
+actual path and up-front finite-subset audit replace those assumptions.
+
+---
+
+<a id="t14-bounded-process-2026-11-14"></a>
+
+## 2026-11-16 — from "## Invariants" — T14 bounded processes
+
+⚠ 2026-11-14: the former process runner waited indefinitely for process/stream exit.
+T14 adds the deadline and cancellation contract while retaining raw-byte/argument/
+environment/nonzero-exit behavior and the original overload.
+
+---
+
+<a id="it01-finite-output-2026-11-14"></a>
+
+## 2026-11-16 — from "## Invariants" — IT01 finite output
+
+⚠ 2026-11-14: IT01 independently reproduced 1 versus 1e400 as an accepted result:
+Infinity <= Infinity arose after conversion. Whole-entry finite-domain controls
+replace that false equality; schema numeric semantics are a separate obligation.
+
+---
+
+<a id="it02-exact-decimals-2026-11-14"></a>
+
+## 2026-11-16 — from "## Invariants" — IT02 exact decimals
+
+⚠ 2026-11-14: IT02 found fractional values rounded into integers and distinct
+bounds rounded into equality, including underflow to zero. Exact token semantics
+replace GetDouble/GetInt32 in schema numeric decisions; output tolerance comparison
+continues to have its distinct finite-double contract.
+
+---
+
+<a id="it04-decoded-pointers-2026-11-14"></a>
+
+## 2026-11-16 — from "## Invariants" — IT04 decoded pointers
+
+⚠ 2026-11-14: IT04 selected literal %61 instead of decoded a and accepted ~2 when
+that literal property existed. Explicit URI/token decoding replaces raw slash-split
+and unchecked replacements; it neither adds remote references nor array traversal.
+
+---
+
 <a id="one-record-2026-10-05"></a>
 
 ## 2026-10-05 — from "## Invariants" — one approved file per platform

@@ -40,9 +40,7 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   encoded percent, Unicode, slash and tilde without normalization or double decoding.
   Object-only traversal and the finite/noncyclic schema subset remain unchanged (IT04).
 
-⚠ 2026-11-14: IT04 selected literal %61 instead of decoded a and accepted ~2 when
-that literal property existed. Explicit URI/token decoding replaces raw slash-split
-and unchecked replacements; it neither adds remote references nor array traversal.
+⚠ 2026-11-14: was raw/unchecked references, now strict decoded pointers → HISTORY.md#it04-decoded-pointers-2026-11-14
 
 - Schema numeric semantics use the mathematical JSON decimal value, not binary64
   conversion. Integrality, minimum/exclusiveMinimum, minItems and numeric enum/const
@@ -52,18 +50,13 @@ and unchecked replacements; it neither adds remote references nor array traversa
   Enum/const recurse through arrays and objects, keeping object-order independence.
   The numeric rules are unchanged (IT02; JSON Schema 2020-12 §4.2/§6).
 
-⚠ 2026-11-14: IT02 found fractional values rounded into integers and distinct
-bounds rounded into equality, including underflow to zero. Exact token semantics
-replace GetDouble/GetInt32 in schema numeric decisions; output tolerance comparison
-continues to have its distinct finite-double contract.
+⚠ 2026-11-14: was rounded binary64 schema numbers, now exact decimals → HISTORY.md#it02-exact-decimals-2026-11-14
 
 - JSON result comparisons accept only values converting to finite double output.
   Invalid/unrepresentable/nonfinite numeric output is a path-named mismatch, before
   relative-tolerance arithmetic. The existing relative budget is unchanged (IT01).
 
-⚠ 2026-11-14: IT01 independently reproduced 1 versus 1e400 as an accepted result:
-Infinity <= Infinity arose after conversion. Whole-entry finite-domain controls
-replace that false equality; schema numeric semantics are a separate obligation.
+⚠ 2026-11-14: was nonfinite comparison accepted, now finite-only output → HISTORY.md#it01-finite-output-2026-11-14
 
 - Process waits and stream drainage share a deadline. The existing four-argument
   `DotnetProcess.Run` delegates to a five-minute default; an additive six-argument
@@ -77,9 +70,7 @@ replace that false equality; schema numeric semantics are a separate obligation.
   in Data["StandardOutput"] and Data["StandardError"] (byte[]), plus bounded readable
   stdout/stderr excerpts. Capture and snapshot operations are synchronized.
 
-⚠ 2026-11-14: the former process runner waited indefinitely for process/stream exit.
-T14 adds the deadline and cancellation contract while retaining raw-byte/argument/
-environment/nonzero-exit behavior and the original overload.
+⚠ 2026-11-14: was unbounded process waiting, now deadline and bounded cleanup → HISTORY.md#t14-bounded-process-2026-11-14
 
 - **Audit A16/A17, 2026-11-14.** An actual snapshot path is distinct from its
   approved path even when the input name lacks the conventional `.approved.`
@@ -90,10 +81,7 @@ environment/nonzero-exit behavior and the original overload.
   unknown keywords, invalid local references and cyclic reference graphs. Boolean
   schemas are supported. Annotation and enum values are data, not child schemas.
 
-⚠ 2026-11-14: snapshot naming silently assumed an `approved` substring and the
-schema checker followed a `$ref` with an early return, auditing only visited boxes.
-Audit A16/A17 found approved-file overwrite and skipped constraints. The distinct
-actual path and up-front finite-subset audit replace those assumptions.
+⚠ 2026-11-14: was colliding actual path and skipped `$ref` siblings, now distinct path and full audit → HISTORY.md#a16-a17-schema-audit-2026-11-14
 
 - **Nothing above `Data` and `Fixtures`.** The node names types of `Data` (the
   database) and `Fixtures` (the repository paths, the cases, the tolerance table) and
@@ -201,9 +189,20 @@ until the parent releases or cleans it up; separately communicate
 its target's real exit status, close the bootstrap's own copies of stdout/stderr after
 target launch, and use its own group for termination. An unexpected parent-channel
 EOF triggers cleanup. Failure to establish ownership is not a successful launch.
-Before any START write can begin, no target can exist: close the channel and kill and
-reap the retained bootstrap process itself, even if it never connected or joined its
-job. Set the conservative START-may-have-been-sent state before beginning the write;
+Before any START write can begin, no target can exist: close the channel and terminate
+and reap only the retained bootstrap identity, even if it never connected or joined its
+job. On Windows retain the actual non-inheritable process handle and terminate through
+that handle, without enumerating a tree. On Linux, before `Process.Start`, open a
+retained `/proc/self` directory handle and probe `pidfd_send_signal` with signal 0;
+unavailable or refused capability is an infrastructure error before any bootstrap or
+target is spawned. After launch, open one `O_DIRECTORY|O_CLOEXEC` `/proc/<childPID>`
+directory handle. Before any signal, use that retained view to verify the child's
+birth/stat and the exact per-operation random channel nonce in its structured cmdline.
+A mismatch or observation error fails closed without signalling; never reopen the
+numeric PID path after validating the view. Terminate only through `pidfd_send_signal`
+on that retained child directory handle, never a raw PID or enumerated descendants;
+ESRCH means the original identity ended. This is a test-harness capability requirement,
+not a product package requirement. Set the conservative START-may-have-been-sent state before beginning the write;
 a partial or failed write must use owned-scope cleanup and its postcondition. The
 same independent five-second cleanup window and primary error/data rules apply.
 Per-operation host-only seams control owner launch and the write boundary in tests;
@@ -212,6 +211,12 @@ they have no global state and are unset by ordinary callers.
 ⚠ 2026-11-16: a Linux one-millisecond timeout could close the server before the
 bootstrap connected; unbounded client ConnectAsync then survived the five-second
 cleanup. An independently observed live owner and the pre-start controls exposed it.
+
+⚠ 2026-11-16: the earlier parent-liveness design required no new kernel capability.
+Parent observation still uses the proc directory/openat mechanism, but safe graceful
+pre-START force-reap now requires `pidfd_send_signal` on a retained proc directory
+handle in the Linux test harness. Failure is explicit before launch; no raw-PID
+fallback is allowed. This does not impose a new requirement on the product package.
 See the planned [ProcessOwner](ProcessOwner/BOOT.md) for the boundary.
 
 This controls descendants that remain in the owned job/group; processes deliberately
