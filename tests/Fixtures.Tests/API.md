@@ -34,7 +34,8 @@ inventory does reference this assembly. This is verification, not a consumer API
 
 After the owned process is stopped, the session deletes only its private temporary
 root. Windows sharing error 0x80070020 is retried within one separate five-second
-cleanup budget; exhaustion retains the I/O failure, and unrelated errors fail
+cleanup budget; no retry starts after it expires. A synchronous OS deletion or test
+callback cannot be interrupted by that budget. Exhaustion retains the I/O failure, and unrelated errors fail
 immediately. An absent directory is idempotent only after confirming that the
 actual root is absent, not merely a vanished descendant. The hosted failure did
 not reveal who held the directory; real child-CWD controls reproduce the error.

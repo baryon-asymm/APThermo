@@ -25,7 +25,8 @@ provenance and coverage, never their values (AGENTS.md §1).
   the session's private temporary directory. On Windows only, a sharing-violation
   IOException (0x80070020) means the directory is still in use: retry that exact
   operation while the separate existing five-second cleanup policy remains. A
-  Stopwatch bounds the whole deletion, not a fresh budget per retry. At the boundary
+  Stopwatch bounds the start of each retry, not a fresh budget per attempt; it cannot
+  interrupt a synchronous OS deletion or the test callback. At the boundary
   rethrow the original I/O error; other I/O and access errors propagate immediately.
   No process identity, product deadline or GPU budget changes. Real child-CWD
   controls prove the first attempt is blocked and a controlled release succeeds;
@@ -33,6 +34,9 @@ provenance and coverage, never their values (AGENTS.md §1).
   succeed while the child holds its old working directory; that outcome is observed
   explicitly rather than treated as evidence of Windows sharing semantics.
 
+⚠ 2026-11-16: the initial cleanup wording said the stopwatch bounded the whole
+synchronous deletion; it bounds retry starts and cannot interrupt an OS call or test
+callback. A controlled release after the deadline exposed an extra retry and success.
 ⚠ 2026-11-16: session teardown previously attempted recursive deletion once; hosted
 Windows CI reported three sharing violations after otherwise successful tests. A
 real owned child holding the session as CWD reproduces the same error code, but
@@ -158,8 +162,9 @@ about PF_EXITING or the historical failed instant is inferred from a later pass.
   private directory as CWD, controlled release after the actual Windows sharing
   error, refusal while held through a bounded test deadline, a non-sharing I/O
   error, and fail-closed missing-root classification. Windows Release process
-  controls 37/37; compiling sharing-code and absent-root mutations fail their
-  respective controls. Linux execution remains separate acceptance evidence.
+  controls 37/37, then 39/39 including late-release and zero-budget. The prior
+  implementation failed late-release while zero passed; sharing-code and absent-root
+  mutations fail their controls. Linux remains separate acceptance evidence.
 
 - [x] R18 local cleanup controls preserve primary timeout/cancellation and raw
   evidence under documented partial tree-kill failures. (2026-11-15:

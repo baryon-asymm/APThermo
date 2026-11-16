@@ -47,6 +47,7 @@ internal sealed class DotnetProcessGuardSession(ITestOutputHelper output) : IDis
                 {
                     Thread.Sleep(remaining < TimeSpan.FromMilliseconds(10) ? remaining : TimeSpan.FromMilliseconds(10));
                 }
+                if (watch.Elapsed >= budget) { throw; }
             }
         }
     }

@@ -60,6 +60,43 @@ public sealed class DotnetProcessDirectoryTests(ITestOutputHelper output) : IDis
         Assert.True(Directory.Exists(_session.DirectoryPath));
     }
 
+    /// <summary>Release after the original budget cannot make a later deletion pass.</summary>
+    [Fact]
+    public async Task LateOwnedChildReleaseDoesNotTurnTimeoutIntoSuccess()
+    {
+        var marker = StartControlledChild();
+        await DotnetProcessGuardSession.WaitForOwnedReadyAsync(marker).ConfigureAwait(true);
+        Assert.False(_child!.HasExited);
+        if (!OperatingSystem.IsWindows())
+        {
+            DotnetProcessGuardSession.DeleteOwnedDirectory(_session.DirectoryPath, DotnetProcess.CleanupTimeout);
+            Assert.False(Directory.Exists(_session.DirectoryPath));
+            Assert.False(_child.HasExited);
+            return;
+        }
+        var budget = TimeSpan.FromSeconds(1);
+        var observations = 0;
+        var error = Assert.Throws<IOException>(() => DotnetProcessGuardSession.DeleteOwnedDirectory(_session.DirectoryPath, budget, () =>
+        {
+            observations++;
+            Thread.Sleep(budget);
+            File.WriteAllText(marker + ".release", "release");
+            Assert.True(_child.WaitForExit(5000), "the late-released child did not exit");
+        }));
+        Assert.Equal(1, observations);
+        Assert.Equal(unchecked((int)0x80070020), error.HResult);
+        Assert.True(_child.HasExited);
+        Assert.True(Directory.Exists(_session.DirectoryPath));
+    }
+
+    /// <summary>A zero budget still permits the first deletion attempt.</summary>
+    [Fact]
+    public void ZeroBudgetStillAttemptsDeletionOnce()
+    {
+        _ = _session.Input("echo");
+        DotnetProcessGuardSession.DeleteOwnedDirectory(_session.DirectoryPath, TimeSpan.Zero);
+        Assert.False(Directory.Exists(_session.DirectoryPath));
+    }
     /// <summary>A non-sharing I/O error is propagated without invoking the retry observation.</summary>
     [Fact]
     public void NonSharingIoErrorIsNotRetriedOrIgnored()
