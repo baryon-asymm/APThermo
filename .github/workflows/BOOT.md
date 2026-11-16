@@ -51,7 +51,31 @@ facts still exist; actual fresh reports must prove both executed and all case id
 ⚠ 2026-11-15 (R10): the former one-command R16 policy is superseded by the exact
 two-process selection in the ancestor, preserving both shared-sweep facts together.
 
+## Re-audit delivery guards planned 2026-11-16
+
+Both CUDA phases must together execute exactly the independently discovered original
+CUDA-or-bit population once, identified by the same `(testId, testName)` pairs in
+actual TRX reports. Require a nonempty aggregate remainder and the original sweep pair;
+individual projects with no selected remainder tests remain valid. Reject missing,
+duplicate, truncated or extra identities and missing actual-device markers for facts
+that execute on CUDA. Driver-only injected-failure facts retain their honest scope. Keep both TRX artifact paths and preserve failure even when the later phase runs.
+Discovery must be demonstrated against the SDK and TRX identities on each runner;
+no Python or other new dependency may be assumed on the self-hosted machines.
+⚠ 2026-11-16: the first draft required an actual-device marker for every CUDA-category
+fact, but driver-only injected-failure facts do not execute a CUDA kernel.
+
+Add executable negative guards for the release event predicates and Pack dependencies:
+manual dispatch must not publish or create a GitHub release; tag publication must
+remain dependent on both CUDA jobs and Pack. Align the loader and merge guard commands
+with strict lint and both GPU phases, retaining all original numerical gates. Version
+values passed to shell commands use environment data and literal comparisons.
+
 ## Acceptance criteria
+
+- [ ] The discovery and two-phase TRX comparison is proven on both reference runners;
+  empty, missing, duplicate and truncated-result mutations fail with actual-device
+  evidence required. Release event/dependency mutations and version wiring fail local
+  guards, followed by actual GitHub workflow evidence at the integrated source.
 
 - [x] 2026-11-15 — R10 local wiring proof: delivery guards pass 25 tests, including
   both commands under native PowerShell 5.1/Bash. Frozen current/source1a8 wiring

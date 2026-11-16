@@ -146,6 +146,14 @@
   distinct-set, ordinary-throat and frozen-failure controls; NoGasPhase's T,p
   exception is checked separately at the finalization boundary. Exact identities
   include every scratch slot and the largest species-table keys.
+- [x] 2026-11-16 — `UpstreamExhaustionTests.VerifyRefusesAnUnresolvedFinalBoundary`
+  reaches the real `Verify` and physical locator from a controlled seventh-boundary
+  starting count, synthetic endpoint fingerprints and chamber enthalpy. Its original
+  dispatch returns `ThroatNotFound`; the compiling
+  mutation returning `Ok` fails that assertion while the already-resolved control
+  passes. The production call starts at zero with its cap unchanged. The combined
+  verifier, walk and bit snapshot selection passes 105/105; no approved bits moved.
+  This is not a claim of an eight-boundary physical input.
 - [x] 2026-11-14 — The phase-boundary cap uses PhaseBoundaryWalk in Verify;
   PhaseBoundaryWalkTests rejects the unresolved stream at the cap. Replacing its
   refusal with Ok makes the negative control fail; reaching the candidate is green.

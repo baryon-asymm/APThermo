@@ -70,6 +70,14 @@ them from the files they read.
 
 ## Acceptance criteria
 
+- [x] Exercise the real thermo parser with blank/comment-only tails and with non-comment
+  content after `END REACTANTS`, asserting the exception's source line. A compiling
+  mutation removing trailer validation must fail the negative control.
+  (2026-11-16: `CorruptionTests.ABlankOrCommentTrailerIsAccepted` and
+  `UnexpectedTrailerContentIsRejectedAtItsSourceLine` passed 6/6 on restored source;
+  the compiling trailer-bypass mutant failed all three rejection cases while all
+  three acceptance cases passed. Full Data.Tests: 60/60.)
+
 - [x] 2026-09-12 — L0 green: `FortranNumberTests.ParsesEveryFormOfTheFiles`,
       `FortranNumberTests.RejectsText`.
 - [x] 2026-09-12 — L1 green: `ThermoLoadTests` (`EveryRecordOfTheFileIsParsed`,

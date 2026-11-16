@@ -11,6 +11,12 @@ environment, while the parent holds data files and a .NET loader.
 
 ## Invariants
 
+- Sampled document comparison refuses nonfinite or negative tolerance rows and
+  reports nonfinite numeric operands, including decimal tokens inside strings.
+
+⚠ 2026-11-16: nonfinite values could pass relative arithmetic silently; finite
+  domain checks precede comparison without changing either tolerance.
+
 - **Deterministic output.** The same scripts, package and data files produce
   byte-identical fixtures: the writer compares before writing and never rewrites a
   document whose regenerated content differs only in the date, so `generatedOn` is the
@@ -357,6 +363,10 @@ families):
     generated with transport on.
 
 ## Acceptance criteria
+
+- [x] 2026-11-16 — `test_document_comparison.py` passes 3/3. The pre-fix
+  comparator produced eight failing nonfinite or invalid-tolerance subtests and
+  passed the finite comparison control.
 
 - [x] 2026-09-12 — `regenerate.py` produces the seven kinds of the case matrix and
       `regenerate.py --check` exits 0 immediately afterwards; a fixture altered by hand

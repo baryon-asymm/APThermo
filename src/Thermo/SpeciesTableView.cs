@@ -29,20 +29,20 @@ internal sealed class SpeciesTableBuffers : IDisposable
     private const int BufferColumns = 8;
     private readonly SpeciesBufferOwnership _ownership = new(BufferColumns);
 
-    private SpeciesTableBuffers(Accelerator accelerator, SpeciesTable table)
+    private SpeciesTableBuffers(Accelerator accelerator, SpeciesTable table, Func<int, AcceleratorStream>? streamForColumn)
     {
         Table = table;
         var arrays = table.Arrays;
         try
         {
-            var molarMass = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.MolarMass);
-            var formationEnthalpy = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.FormationEnthalpy);
-            var stoichiometry = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.Stoichiometry);
-            var intervalStart = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.IntervalStart);
-            var intervalCount = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.IntervalCount);
-            var intervalBounds = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.IntervalBounds);
-            var exponents = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.Exponents);
-            var coefficients = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.Coefficients);
+            var molarMass = UploadColumn(_ownership, accelerator, StreamForColumn(accelerator, streamForColumn, 0), arrays.MolarMass);
+            var formationEnthalpy = UploadColumn(_ownership, accelerator, StreamForColumn(accelerator, streamForColumn, 1), arrays.FormationEnthalpy);
+            var stoichiometry = UploadColumn(_ownership, accelerator, StreamForColumn(accelerator, streamForColumn, 2), arrays.Stoichiometry);
+            var intervalStart = UploadColumn(_ownership, accelerator, StreamForColumn(accelerator, streamForColumn, 3), arrays.IntervalStart);
+            var intervalCount = UploadColumn(_ownership, accelerator, StreamForColumn(accelerator, streamForColumn, 4), arrays.IntervalCount);
+            var intervalBounds = UploadColumn(_ownership, accelerator, StreamForColumn(accelerator, streamForColumn, 5), arrays.IntervalBounds);
+            var exponents = UploadColumn(_ownership, accelerator, StreamForColumn(accelerator, streamForColumn, 6), arrays.Exponents);
+            var coefficients = UploadColumn(_ownership, accelerator, StreamForColumn(accelerator, streamForColumn, 7), arrays.Coefficients);
             View = new SpeciesTableView(
                 speciesCount: table.SpeciesCount, gasCount: table.GasCount, elementCount: table.ElementCount,
                 molarMass: molarMass.View, formationEnthalpy: formationEnthalpy.View, stoichiometry: stoichiometry.View,
@@ -65,10 +65,14 @@ internal sealed class SpeciesTableBuffers : IDisposable
     {
         ArgumentNullException.ThrowIfNull(accelerator);
         ArgumentNullException.ThrowIfNull(table);
-        return new SpeciesTableBuffers(accelerator, table);
+        return new SpeciesTableBuffers(accelerator, table, null);
     }
 
     public void Dispose() => _ownership.Dispose();
+
+    /// <summary>The private constructor seam permits an isolated copy fault while production uses the default stream.</summary>
+    private static AcceleratorStream StreamForColumn(Accelerator accelerator, Func<int, AcceleratorStream>? streamForColumn, int index) =>
+        streamForColumn is null ? accelerator.DefaultStream : streamForColumn(index);
 
     /// <summary>Owns the allocation before a host copy can fail; the surrounding transaction handles rollback.</summary>
     private static MemoryBuffer1D<T, Stride1D.Dense> UploadColumn<T>(

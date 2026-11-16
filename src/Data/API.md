@@ -88,6 +88,11 @@ public enum SpeciesSection { Products, Reactants }
 are lowercase hexadecimal SHA-256. Names, comments and references are stored exactly
 as in the file with the outer blanks trimmed.
 
+After `END REACTANTS`, a thermo input may contain blank lines and `!` comments only.
+Any other trailing content is rejected with `DatabaseFormatException` naming its
+source line. ⚠ 2026-11-16: this existing validation was omitted from the contract;
+the independent re-audit identified that omission.
+
 ⚠ 2026-09-12: the `Intervals` comment stood "file order, ascending temperature".
 Eleven condensed records of the committed file carry a first interval written with an
 upper bound not above the lower one (`Br2(cr)` 300..265.9); the node stores such

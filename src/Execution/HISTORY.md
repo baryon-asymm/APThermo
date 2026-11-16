@@ -1,5 +1,72 @@
 # HISTORY.md — Execution
 
+
+
+<a id="stride-2026-09-14"></a>
+
+## 2026-11-16 — from Structure — original stride correction
+
+> ⚠ 2026-09-14: was `FunctionCount` the kernel's stride, now the const `StrideCount` →
+> HISTORY.md#probe-stride-count-2026-09-14
+
+<a id="batch-2026-09-12"></a>
+
+## 2026-11-16 — from Constraints — original batch correction
+
+>   ⚠ 2026-09-12: was no species-function batch, now the `Functions` entry point →
+>   HISTORY.md#kernels-species-function-batch-2026-09-12
+
+<a id="shape-2026-11-16"></a>
+
+## 2026-11-16 — from Shape exceptions — correction history
+
+Original table rows in full; each prior correction remains individually discoverable in BOOT:
+
+> | `Engine` | efferent coupling | 36 | ⚠ 2026-11-15 R10: was 35, now measured 36 for the internal immutable calibration-observation value-copy accessor; ShapeTests/DiagnosticsTests measured 16 passing and two exact stale-row failures before this correction. Composition/lifecycle orchestration only; no formula.  ⚠ 2026-11-14 R10: was 33, now measured 35 with the session calibration cache and transaction on the existing batch-loop seam; lifecycle orchestration only.  ⚠ 2026-11-14: was 31, now 33 after adding the explicit ExecutionResourceOwner and TableUpload lifecycle collaborators; full ShapeTests measured it. No formula was added.  the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2), `MarkLost` and `DropsAfterLoss(CudaError)` (2026-09-29, review: test-only seams that let the tests node drive the third audit pass's finding 2 without a driver-touching `CudaException`), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
+> | `Kernels` | efferent coupling | 26 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
+> | `RocketPipeline` | efferent coupling | 27 | ⚠ 2026-11-14 R10: was 25, now measured 27 after adding calibration cache/transaction lifecycle; no formula.  the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
+> | `TransportPipeline` | efferent coupling | 26 | ⚠ 2026-11-14 R10: was 23, now measured 26 for calibration lifecycle and explicit selected-backend gating; no formula.  the same case as `RocketPipeline` above |
+> | `EquilibriumPipeline` | efferent coupling | 25 | ⚠ 2026-11-14 R10: was 22, now measured 25 for the same calibration lifecycle/backend gating.  the same case as `RocketPipeline` above |
+> | `SpeciesFunctionPipeline` | efferent coupling | 21 | ⚠ 2026-11-14 R10: was 18, now measured 21 for the same calibration lifecycle/backend gating.  the same case as `RocketPipeline` above |
+> | `RocketBatchViews.RocketBatchViews` | parameters | 18 | ⚠ 2026-11-14 R10: was 17, now 18 after appending one typed recovery-state view per case; field projection only. A kernel parameter descriptor (internal since 2026-09-15, the ⚠ under "The views structs keep their constructors"); grouping its views would re-emit the kernels and move the contract; every creation names its arguments |
+> | `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 14 | ⚠ 2026-11-14 R10: was 13, now 14 for the same appended typed recovery-state projection as `RocketBatchViews` above |
+
+<a id="child-node-decision-retelling-2026-11-16"></a>
+
+## 2026-11-16 — from Structure — earlier child-node decision
+
+> Decision of 2026-09-15 (the child-nodes phase, root `BOOT.md`, 0aa7e60): a cluster earns
+> a child directory when the rest of the node reaches it through a contract narrower than
+> its code, it has a reason of its own to change and it holds about five types or more →
+> HISTORY.md#child-nodes-decision-2026-09-15
+
+<a id="all-cores-measurement-2026-11-16"></a>
+
+## 2026-11-16 — from Constraints — historical all-cores measurement
+
+>     choice is documented where it is made. On the reference
+>     machine the count is 16, the layout is today's, and no throughput record moves.
+>     Results do not depend on the thread count (Invariants: deterministic batches).
+
+<a id="post-link-parent-retelling-2026-11-16"></a>
+
+## 2026-11-16 — from Invariants — post-link retelling
+
+The live implementation rules remain in the child node. Original wording:
+
+> - **Every CUDA kernel goes through the post-link, which makes its arithmetic the CPU's**
+>   (2026-10-05). The kernels call no libdevice function: the tree's own `Exp`, `Log` and
+>   `Pow` are C#, the context is built without `LibDevice()`, and `Sqrt`, `Floor`,
+>   `Ceiling` and `Abs` compile to single IEEE instructions. Two things of ILGPU's
+>   arithmetic remain. `Math.FusedMultiplyAdd` is an undefined external function: the
+>   post-link inlines each call as `fma.rn.f64`. A PTX compiler may contract a `mul.f64`
+>   and an `add.f64` into an fma the C# never wrote: the post-link marks every `mul`, `add`
+>   and `sub` of `.f64` `.rn`, which PTX defines as never contracted. It then refuses a
+>   kernel whose PTX holds a fused or `mad` instruction it did not write, an `.approx`
+>   `f64` instruction or an external function, and loads it once as a trial. The stages:
+>   [Ptx/BOOT.md](Ptx/BOOT.md). The architecture fact shows the same program on every
+>   target from `compute_75` (Acceptance criteria).
+
 <a id="primary-aware-cleanup-2026-11-14"></a>
 
 ## primary-aware-cleanup-2026-11-14

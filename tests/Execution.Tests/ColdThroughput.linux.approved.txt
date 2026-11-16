@@ -1,0 +1,10 @@
+configuration: Release
+platform: Linux
+source_commit: f21ac451c286bcbea88703b7bf4b6e90af35709e
+source_run: 43742272942
+source_test_id: d3304e46-687c-2987-831d-0f6fc67e0fa8
+source_trx_sha256: ef3cc29f1ba5bcd9caf346bd9d57ab2666a73f46c8823a1e2e666e6cefa55459
+cold_samples: 1
+reported_significant_digits: 4
+cuda_kernel_seconds_per_iteration: 2.736e-07
+date: 2026-11-15

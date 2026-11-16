@@ -4,15 +4,17 @@ namespace APThermo.Harness;
 internal sealed class ProcessOutput : IDisposable
 {
     private readonly Stream _stream;
+    private readonly Func<Task>? _captureGate;
     private readonly List<byte> _buffer = [];
     private readonly Lock _gate = new();
     private int _stopped;
 
     public Task Completion { get; }
 
-    public ProcessOutput(Stream stream)
+    public ProcessOutput(Stream stream, Func<Task>? captureGate = null)
     {
         _stream = stream;
+        _captureGate = captureGate;
         Completion = ReadAsync();
     }
 
@@ -42,6 +44,7 @@ internal sealed class ProcessOutput : IDisposable
             int length;
             while ((length = await _stream.ReadAsync(chunk).ConfigureAwait(false)) != 0)
             {
+                if (_captureGate is not null) { await _captureGate().ConfigureAwait(false); }
                 lock (_gate)
                 {
                     _buffer.AddRange(chunk.AsSpan(0, length));

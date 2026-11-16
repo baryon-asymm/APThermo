@@ -119,10 +119,18 @@ compile/cache observations replace them while the root's upper budget stays.
   criterion below that names `BitEquality.cs` as one of the F-TF-06 split's four files
   now names a file this node no longer has.
 - **CUDA tests are marked** `Category=Cuda` and the sweep and the benchmark also
-  `Category=LongRunning`; when `APTHERMO_NO_CUDA=1` is set a CUDA-category test
-  verifies the refusal of an explicit CUDA request and returns, so the full suite
-  passes in that process; on a machine without CUDA and without the variable the
-  CUDA tests fail with the accelerator message, they do not skip.
+  `Category=LongRunning`. With `APTHERMO_NO_CUDA=1`, facts using `RequireCuda`
+  verify the explicit-request refusal and return; directly gated facts record that
+  their scenario did not run. Hardware facts requiring an unavailable CUDA device
+  fail without the variable; no permanent skip is introduced.
+  ⚠ 2026-11-16: the old wording said every CUDA-category fact verified refusal;
+  driver-only injected-failure facts and the WSL multi-engine fact returned directly.
+  GPU-execution facts record `actualCuda=false` and `refusalVerified=true` when
+  they verify the forbidden request, and `actualCuda=true` with the selected device
+  when they run on it. Driver-only injected-failure facts identify their narrower
+  scope rather than claiming a device execution. GPU evidence checks distinguish
+  these cases. ⚠ 2026-11-16: CUDA-named facts did not consistently identify which
+  path ran; some driver-gated CPU-injection facts never launch a CUDA kernel.
 - **The all-cores layout fact is end-to-end** (2026-10-03, root `BOOT.md`, Test time budgets):
   `AllCoresLayoutTests.TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`
   starts a `dotnet test` process per processor count, so it carries `Category=EndToEnd` and runs in the
@@ -134,7 +142,8 @@ compile/cache observations replace them while the root's upper budget stays.
   station of every case; `iterations_per_case` records that workload) exceeds 115 % of the
   approved figure (2026-10-04, `ThroughputRecord`). The figure is the median of the three
   timed runs' kernel times over the steps (`CudaTiming`, 2026-10-05), the same statistic as
-  `cuda_seconds`; the median of five such runs varies by 0.2 % (Windows) and 0.3 % (WSL2). A
+  `cuda_seconds`; on the 2026-10-05 baseline, the median of five such runs varied by 0.2 %
+  (Windows) and 0.3 % (WSL2). A
   record without a valid per-iteration line fails with a message naming the file, never
   skips: a platform's file is re-approved from a run on that platform.
   Both approved `ratio` and per-iteration figures must be finite and strictly positive. The measured per-iteration figure
@@ -181,6 +190,11 @@ compile/cache observations replace them while the root's upper budget stays.
   usable margin against the 115 % limit. The CUDA warm-up of five launches is kept; the
   outlier is the first timed run only, which the median absorbs. The records were re-approved
   from these runs (`ACCEPTANCE.md`).
+
+  ⚠ 2026-11-16: the earlier wording treated that old variability and first-sample outlier as
+  current. Calibration created a distinct cold mode; the independent re-audit found that the
+  existing median gate mainly measures repeated inputs and does not bound that cold mode.
+  The historical paragraph above describes its old measurements, not a current guarantee.
 
   ⚠ 2026-10-04: was the ratio alone, now the kernel time per Newton step too; a ratio
   moves with the CPU's load and the transfer overhead and let +25 % on the kernel (0.2.1
@@ -233,6 +247,34 @@ compile/cache observations replace them while the root's upper budget stays.
 Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with its driver for the CUDA category
 (no CUDA Toolkit, 2026-10-05).
 
+## Cold throughput guard planned 2026-11-16
+
+Preserve the original shared sweep, 100,000 cases, five 64-case CUDA warm-ups, three
+ordered timed calls, timing boundaries, medians, existing approved files and all 5×,
+80 % and 115 % gates. Add a separate guard within the existing throughput fact for
+its first timed CUDA call. Verify the observation really describes a cold first
+physical launch of one case with complete case coverage; do not substitute a repeat
+or infer the mode from timing. Compare that call's kernel seconds per Newton step
+against a separate platform record using the inclusive 115 % upper bound.
+
+The reference is frozen before new measurements from native `f21ac451` runs dated
+2026-11-15: Windows `2.679e-7`, Linux `2.736e-7` seconds per Newton step, as reported
+to four significant digits. Each is one cold observation, not a median or a stability
+claim. The separate records must identify source and sample count; existing warm
+records are unchanged. The owner-held `cold-reference-frozen-f21a-v1.json` identifies
+both TRX files, values and hashes. This does not establish performance on new code.
+Synthetic controls must reject a slowed cold sample while the warm median still
+passes, and reject a false cold-mode claim. Actual hardware acceptance stays open.
+
+After all three measurements and the actual-file write, but before the existing
+throughput comparisons, require the observed composition cold/hit/hit. Check exactly
+three timing and calibration observations: sample one is a real cold one-case launch;
+samples two and three actually reuse the prefix. On a mismatch fail explicitly with the
+sample ordinal and available calibration reason/age. No retry, skip, TTL change, or
+sample omission is allowed. This is a condition of the benchmark, not a promise that
+arbitrary user workloads hit the cache. Positive cold/hit/hit and negative cold/hit/cold
+and cold/cold/hit controls must exercise this guard.
+
 ## Constraints
 
 R10 observational diagnosis records the actual calibration decision for each of the
@@ -247,11 +289,13 @@ unsupported/partial/over-target/abandoned/nonpublished outcomes. Current work/re
 and observations must remain fresh. Existing weak-lifecycle and full-field controls
 stay; do not use real sleeps or a fixed adaptive host partition as their oracle.
 Deliberate missing/wrong-stage observations and false publication must be red.
-CPU bypass freshness controls seed a nonzero Published observation in the actual
-Engine session cache first, then assert the real CPU Run invalidates that older
-transaction. Retain the fresh-engine NotApplicable/zero control separately. Follow
+CPU bypass freshness controls compile the real kernel before seeding a nonzero
+Published observation in the actual Engine session cache, then assert the subsequent
+real CPU Run invalidates that older transaction. Retain the fresh-engine NotApplicable/zero control separately. Follow
 the API's Invalidated/same-transaction semantics; the scenario's separate fake cache
 cannot establish this precondition. A missed-invalidation mutation must be red.
+⚠ 2026-11-16: seeding before compilation allowed kernel setup to invalidate the
+entry; the direct bypass-invalidation mutant survived. Compilation must precede the seed.
 An actual bounded Linux original-throughput diagnostic follows only after local
 controls; one predeclared execution, unchanged selection/work/gates, all outcomes
 retained. A clean diagnostic run cannot reconstruct an unsampled historical miss.

@@ -1,5 +1,24 @@
 # API.md — Execution.Tests
 
+## CUDA execution evidence ✅
+
+Every `Category=Cuda` test method has one `CudaEvidence` trait with value `hardware`
+or `driver-only`, exposed by normal test discovery. `CudaEvidenceTests` generates
+its sorted method inventory as `CUDA_EVIDENCE_INVENTORY:` followed by a JSON array of
+`name` and `scope`. Theory rows retain their own discovered test identities.
+
+Each selected case writes exactly one `CUDA_EVIDENCE:` JSON object. Its fields are
+`scope`, `actualCuda`, `refusalVerified`, `scenarioExecuted` and `device`. A selected
+CUDA engine emits `scope=hardware`, `actualCuda=true` and a nonempty device name;
+`scenarioExecuted=null` means only device selection is asserted by the marker, and a
+passing test result establishes the rest of that fact. The forbidden path emits
+`refusalVerified=true` only after checking the explicit CUDA request really failed.
+Directly gated paths instead mark `scenarioExecuted=false` and `refusalVerified=false`.
+Driver-only injected tests never claim GPU execution: completed checks emit
+`scope=driver-only`, `actualCuda=false`, `scenarioExecuted=true`. JSON is escaped so
+names cannot alter its fields. Hardware evidence additionally requires a passing test
+and a real device run; a forbidden-CPU result is not GPU verification.
+
 ## Calibration decision diagnosis ✅
 
 The original throughput path retains three post-return internal value observations
@@ -117,7 +136,10 @@ from a numerical result failure; it removes no controlled observable check.
 The fixed three timed CPU/CUDA runs retain their R09 scalar summaries in run order:
 launch count, covered cases, longest synchronized-launch duration and its case
 count/ordinal, alongside cumulative Kernel. Output occurs only after all timing
-samples are captured. Workload, warm-ups, elapsed capture points, independent
+samples are captured. After writing the actual record and before the original gates,
+`SweepMode` requires the observed cold/hit/hit sequence, reporting the affected
+sample and actual calibration reason/age on failure. Host controls do not establish
+hardware execution. Workload, warm-ups, elapsed capture points, independent
 medians, original record lines and numerical acceptance gates are unchanged.
 `CachedKernelDiagnostics` uses ILGPU 1.5.3's public `KernelUtil.TryGetKernel` on the
 already cached launcher. Where available it reports cached PTX UTF-8 bytes/SHA-256,

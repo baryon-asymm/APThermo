@@ -79,8 +79,9 @@ internal readonly struct RecoverySlices
     public readonly ArrayView<double> BestMoles;
     public readonly ArrayView<double> BestMultipliers;
     public readonly ArrayView<MixtureState> BestState; // one isolated typed element per case
-    public RecoverySlices(ArrayView<double> bracketEnds, ArrayView<double> bestMoles, ArrayView<double> bestMultipliers, ArrayView<MixtureState> bestState);
-    public static RecoverySlices Slice(ArrayView<double> doubles, long offset, int speciesCount, int elementCount, ArrayView<MixtureState> bestState);
+    public readonly ArrayView<int> BestCondensedSet; // [MaxCondensedInSolution]
+    public RecoverySlices(ArrayView<double> bracketEnds, ArrayView<double> bestMoles, ArrayView<double> bestMultipliers, ArrayView<MixtureState> bestState, ArrayView<int> bestCondensedSet);
+    public static RecoverySlices Slice(ArrayView<double> doubles, long offset, int speciesCount, int elementCount, ArrayView<MixtureState> bestState, ArrayView<int> bestCondensedSet);
 }
 internal readonly struct TieSlices                       // rule A's release snapshot, grouped 2026-10-03 (Newton/BOOT.md, "Release")
 {
@@ -132,7 +133,7 @@ internal static class ScratchLayout
     public static int MaxUnknowns(int elementCount);                          // elementCount + MaxCondensedInSolution + 2
     public static int DoublesPerCase(int speciesCount, int elementCount);     // 10 · species + MaxCondensedInSolution + 4 · elements + MaxUnknowns² + 2 · MaxUnknowns
     public static int BytesPerCase(int speciesCount, int elementCount);        // 8 · DoublesPerCase + 4 · IntsPerCase + Interop.SizeOf<MixtureState>()
-    public static int IntsPerCase(int speciesCount, int elementCount);        // species + elements + 2 · MaxCondensedInSolution
+    public static int IntsPerCase(int speciesCount, int elementCount);        // species + elements + 3 · MaxCondensedInSolution
 }
 
 internal static class DenseSolver                        // kernel-compatible; shared with Transport
@@ -270,6 +271,23 @@ once), scales rows instead of recording pivots, and masks species and elements p
 case, so the ints per case depend on the species count too. `Slice` was added so that
 callers cut a case's scratch the same way everywhere.
 
+## Condensed-record range policy ✅
+
+Condensed records are eligible according to effective temperature ranges. Where two
+records of the same formula share a bound and have real latent heat, the solver uses
+its linearized Gibbs-curve crossing when that crossing is within 1 K of the bound;
+otherwise the printed bound stands. Range comparisons have relative tolerance 1e-9.
+A condensed record whose lowest lower bound equals the 200 K gas-data floor is open
+below that bound unless a same-formula record adjoins it below. It can therefore be
+eligible at a solver-allowed temperature below its printed range. At an `Ok` exit,
+otherwise eligible condensed records outside the solution are checked for positive
+per-mole gain above 1e-9; a violation produces `NotConverged`. The detailed rules,
+including pairing and stand-down, are in [Condensed/BOOT.md](Condensed/BOOT.md).
+
+⚠ 2026-11-16: the consumer contract omitted the effective-range and open-below
+policy, although consumers were directed here for condensed limits. The re-audit
+found the rules only in the implementation node; they are now stated here.
+
 ## Errors
 
 An element with zero abundance is allowed: the species containing it are inactive
@@ -349,3 +367,7 @@ BytesPerCase includes its generated size (152 bytes in the current layout), beyo
 8*(speciesCount+elementCount) already paid by the A35 candidate composition bank.
 A flat double SubView.Cast experiment failed the compiled CPU leading-sentinel
 control; the dedicated typed allocation avoids its offset conversion issue.
+⚠ 2026-11-16: `IntsPerCase` was species + elements + 2 · MaxCondensedInSolution;
+it now includes a third such slice after the existing regions. Recovery banks the exact
+condensed slots with the selected candidate so a later attempt cannot leave stale slots.
+Callers must size their integer scratch via `IntsPerCase` and slice each case accordingly.

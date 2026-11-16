@@ -18,6 +18,16 @@ consider proven about `Problems` and, through it, about the system.
 | a state record with exits solves as its rocket case; the rules of the record's shape refuse by index; a batch mixing transport and none equals each problem alone; a ratio and pressure product as one batch equals its cases one by one; every method of a disposed solver refuses | L2 (`RocketTests`, `RejectionTests`, the contract facts of 2026-09-14) | ✅ 2026-09-14 |
 | the front door's result of every fixture is bit for bit what it was before the front door's decomposition | Bits (`BitSnapshotTests`, `Bits.approved.txt`) | ✅ 2026-09-14 |
 
+The generated public instance-property and field inventory checks failed-station
+publication, including `NoGasPhase`, and rejects unsupported members explicitly.
+`StationFieldInventoryTests` separately detects stale state and performance fields.
+
+⚠ 2026-11-16: the first inventory filtered to numeric properties and could miss a
+new nonnumeric member. It now enumerates the whole public instance shape first.
+`StationFieldInventoryTests.InventoryRejectsNewUnsupportedMembers` proves a supported
+shape and detects added nonnumeric properties and fields; with `StationBoundaryTests`
+the focused set passes 5/5. Mutations reinstating each omission fail (2026-11-16).
+
 ## What the tests rely on
 
 - The fixtures node's loader and tolerance table, and the caveats of the reference's

@@ -136,9 +136,9 @@ above read files only until the NASA files were embedded the same day.
 Child nodes compile into their parent's assembly or belong to its test node, and each
 holds a pair of documents of its own:
 
-- `Execution`: [Chunks](./src/Execution/Chunks/API.md) (the chunk plan and the device
-  buffers of a batch run) and [Ptx](./src/Execution/Ptx/API.md) (the post-link of the CUDA
-  kernels' PTX and the WSL workaround).
+- `Execution`: [Chunks](./src/Execution/Chunks/API.md) (the chunk plan and device
+  buffers), [Calibration](./src/Execution/Calibration/API.md) (bounded repeat planning)
+  and [Ptx](./src/Execution/Ptx/API.md) (the CUDA post-link and WSL workaround).
 - `Thermo`: [Elementary](./src/Thermo/Elementary/API.md) (the correctly rounded `exp`, `log`
   and `pow` behind `KernelMath`, internal), proven by the tests node's child
   [Elementary](./tests/Thermo.Tests/Elementary/API.md).
@@ -146,9 +146,10 @@ holds a pair of documents of its own:
   [Listings](./src/Cli/Listings/API.md), [Output](./src/Cli/Output/API.md) and
   [Syntax](./src/Cli/Syntax/API.md), all internal to the tool.
 - `Equilibrium`: [Newton](./src/Equilibrium/Newton/API.md) (converges one condensed set),
-  [Condensed](./src/Equilibrium/Condensed/API.md) (changes the condensed set, the exit
-  guard) and [StateRecord](./src/Equilibrium/StateRecord/API.md) (the mixture state of a
-  converged or frozen composition), all internal.
+  [Condensed](./src/Equilibrium/Condensed/API.md) (changes the condensed set),
+  [GasPhase](./src/Equilibrium/GasPhase/API.md), [Recovery](./src/Equilibrium/Recovery/API.md),
+  [TraceGas](./src/Equilibrium/TraceGas/API.md) and [StateRecord](./src/Equilibrium/StateRecord/API.md),
+  all internal.
 - `Benchmarks`: [Runner](./tests/Benchmarks/Runner/API.md), the executable that runs the
   benchmarks.
 - `Fixtures`: [generate](./tests/Fixtures/generate/API.md), the Python generator of the

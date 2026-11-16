@@ -9,17 +9,19 @@ public sealed class CalibrationCudaTests(ITestOutputHelper output)
     /// <summary>Every run uses the real cached CUDA launcher and current telemetry; changed input restores cold sampling.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void ActualCudaReportsColdHitAndChangedInputWithExactResults()
     {
         if (Engine.CudaForbidden)
         {
-            _ = EngineFixture.Shared.RequireCuda();
+            _ = EngineFixture.Shared.RequireCuda(output);
             output.WriteLine("actualCuda=false; CUDA forbidden: no hardware calibration evidence");
             return;
         }
 
         using var cuda = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cuda, ChunkSize = 16 });
         Assert.Equal(AcceleratorKind.Cuda, cuda.Accelerator.Kind);
+        CudaEvidence.Hardware(output, cuda.Accelerator.DeviceName);
         using var tables = cuda.Upload(FixtureBatches.RocketFamilies(EngineFixture.SharedDatabase)[0].Table);
         var batch = new SpeciesFunctionBatch(31);
         for (var index = 0; index < batch.Count; index++)

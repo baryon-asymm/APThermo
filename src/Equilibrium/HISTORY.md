@@ -7,6 +7,29 @@ start procedure (`AGENTS.md`, §10) does not read this file; it is reached only 
 following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
+
+<a id="loop-live-plan-2026-11-16"></a>
+
+## 2026-11-16 — from Constraints — recovery loop-live plan
+
+The rule above already required copies, but `EquilibriumSolver.Solve` passed its
+loop-live `plan` by `ref` to the `NoInlining` `AttemptPlan.Next`. The independent
+re-audit of source `08bf26c3` found the mismatch; that call also predates the audit
+baseline. A fresh per-iteration copy now goes by reference, and its updated value is
+assigned back before either the next iteration or the result is returned. The rule
+continues to permit by-reference parameters on such fresh copies. `LoopLiveBoundaryTests`
+is red on the old call and green on the corrected call; its safe-copy control passes.
+
+<a id="output-retelling-2026-11-16"></a>
+
+## 2026-11-16 — from Constraints — output retelling
+
+Output names and units remain in this node's API. The previous retelling was:
+
+> - Outputs: mole numbers per species (kmol per kg of mixture), the mixture state
+>   (`MixtureState`: T, p, ρ, h, u, s, g, M, MW, frozen and equilibrium Cp and Cv, the two
+>   derivatives, γ_s, sound speed), the Lagrange multipliers (needed by `Transport` for
+>   the reacting conductivity), the iteration count and the status.
 <a id="audit-counts"></a>
 ## 2026-11-14 — Constraints: copied condensed-slot count
 

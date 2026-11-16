@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using APThermo.Fixtures;
 
@@ -82,17 +81,6 @@ public sealed class FullWorstCaseListsTests
     private static async Task<(int ExitCode, string Output)> Run(IReadOnlyList<string> arguments)
     {
         var script = Path.Combine(RepositoryPaths.Resolve("tests", "Thermo.Tests", "Elementary"), "check_worst_cases.py");
-        var start = new ProcessStartInfo("python") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
-        foreach (var argument in (string[])["-X", "utf8", script, .. arguments])
-        {
-            start.ArgumentList.Add(argument);
-        }
-
-        using var process = Process.Start(start);
-        Assert.NotNull(process);
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().ConfigureAwait(true);
-        return (process.ExitCode, await output.ConfigureAwait(true) + await error.ConfigureAwait(true));
+        return await PythonCorpusProcess.RunAsync(script, arguments, TimeSpan.FromMinutes(5)).ConfigureAwait(true);
     }
 }

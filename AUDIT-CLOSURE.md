@@ -5,6 +5,23 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
+## Re-audit and current status — 2026-11-16
+
+The independent re-audit of `08bf26c3` confirmed further gaps. The aggregate is
+reopened while those gaps are corrected and reverified. Earlier headings and
+claims below describe their dated source and stage, including the f21ac451
+acceptance; they do not assert acceptance of later changes. The detailed re-audit
+and source-bound receipts are retained in the owner-held external archive rooted at
+`C:/Users/edwar/.codex/visualizations/2026/11/13/01a1d4c2-d403-7472-a5aa-1139466cb9c9/claude-reaudit-20261116/`:
+`REAUDIT-REPORT-08bf26c3.md` and `fix-evidence/`. The prior audit archive is its
+sibling `full-audit-20261113/fix-evidence/`; the f21a index cited below is inside it.
+These paths are not in the clone, and a historical `SCRATCH` name alone is not a
+stable location: use the owner-held archive index or the named test and source.
+Historical f21a run pages are [CI](https://github.com/baryon-asymm/APThermo/actions/runs/43742270400),
+[Trace](https://github.com/baryon-asymm/APThermo/actions/runs/43742270272), and
+[Release](https://github.com/baryon-asymm/APThermo/actions/runs/43742272942).
+These identify their original runs; available GitHub artifacts may expire independently.
+
 ## Accepted implementation and runtime verification — 2026-11-15
 
 The A01–A41, R01–R19 and T01–T16 obligations have reviewed fixes and current

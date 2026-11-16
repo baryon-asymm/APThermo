@@ -10,6 +10,22 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["pressure", "composition"],
+      "oneOf": [
+        { "required": ["enthalpy"] },
+        { "required": ["temperature"] },
+        { "required": ["entropy"] }
+      ],
+      "anyOf": [
+        { "not": { "anyOf": [
+          { "required": ["areaRatios"], "properties": { "areaRatios": { "minItems": 1 } } },
+          { "required": ["pressureRatios"], "properties": { "pressureRatios": { "minItems": 1 } } },
+          { "required": ["flow"] }
+        ] } },
+        { "required": ["enthalpy"], "anyOf": [
+          { "required": ["areaRatios"], "properties": { "areaRatios": { "minItems": 1 } } },
+          { "required": ["pressureRatios"], "properties": { "pressureRatios": { "minItems": 1 } } }
+        ] }
+      ],
       "properties": {
         "pressure": { "type": "number", "exclusiveMinimum": 0 },
         "composition": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },

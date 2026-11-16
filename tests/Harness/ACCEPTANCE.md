@@ -2,6 +2,22 @@
 
 ## Acceptance criteria
 
+- [ ] The shared owned-process mechanism passes real exited-target/live-descendant,
+  timeout, cancellation, assignment failure, output and exit-code controls on Windows
+  and Linux. All three runners use it; red mutations fail, cleanup stays bounded, and
+  supported ownership limits are documented with source-bound evidence.
+
+- [x] 2026-11-16 — `StateSchemaGuardTests.NegationHasIndependentControls` and
+  `NegationBranchIsAudited` exercise boolean negation, instance-kind distinctions
+  and upfront child audit; the state matrix gives negative and positive uses.
+  Removing the runtime `not` check compiled and made two of four negation
+  controls red while two remained green; the source was restored.
+
+- [x] 2026-11-16 — `JsonSchemaTypeAuditTests` passes 4/4; against the
+  pre-fix audit the two unvisited unknown-type controls compiled and failed
+  with no exception, while ordinary schema types remain accepted by the
+  state-schema positive controls.
+
 - [x] R19 local immutable-policy consumers match the actual runner configuration.
   (2026-11-15: `ColdCliDiagnosticTests.LimitsMatchTheActualRunnerPolicy`, isolated
   17-second/3-second policy variants on Windows and Linux make frozen duplicated

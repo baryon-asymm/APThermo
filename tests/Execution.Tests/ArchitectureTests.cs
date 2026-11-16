@@ -1,3 +1,4 @@
+using Xunit.Abstractions;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using APThermo.Execution.Ptx;
@@ -17,7 +18,7 @@ namespace APThermo.Execution.Tests;
 /// CUDA Toolkit is involved (2026-10-05): the post-link is a text rewrite of the PTX ILGPU emits for the target.
 /// </summary>
 [Collection(EngineFixture.CollectionName)]
-public sealed partial class ArchitectureTests
+public sealed partial class ArchitectureTests(ITestOutputHelper output)
 {
     [GeneratedRegex(@"_[0-9]{3,}\b")]
     private static partial Regex GeneratedSuffix();
@@ -41,10 +42,11 @@ public sealed partial class ArchitectureTests
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     [Trait("Category", "LongRunning")]
     public void EveryArchitectureFromSm75UpPassesThePostLinkAndMatchesTheDevice()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;

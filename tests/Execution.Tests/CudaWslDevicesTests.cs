@@ -1,3 +1,4 @@
+using Xunit.Abstractions;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using APThermo.Execution.Ptx;
@@ -11,7 +12,7 @@ namespace APThermo.Execution.Tests;
 /// since ILGPU's own resolver install never throws outside WSL.
 /// </summary>
 [Collection(EngineFixture.CollectionName)]
-public sealed class CudaWslDevicesTests
+public sealed class CudaWslDevicesTests(ITestOutputHelper output)
 {
     /// <summary>
     /// Three CUDA engines, created one after another in this one process, each bind and each run the probe. Before the fix,
@@ -22,20 +23,25 @@ public sealed class CudaWslDevicesTests
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void EveryCudaEngineOfTheProcessBindsAndProbes()
     {
         if (Engine.CudaForbidden)
         {
+            CudaEvidence.NotRun(output, "hardware");
             return;
         }
 
+        var deviceName = string.Empty;
         for (var i = 0; i < 3; i++)
         {
             using var engine = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cuda });
             Assert.Equal(AcceleratorKind.Cuda, engine.Accelerator.Kind);
+            deviceName = engine.Accelerator.DeviceName;
             var probe = engine.ProbeMath([1.0]);
             Assert.Equal(MathProbe.FunctionCount, probe.Length);
         }
+        CudaEvidence.Hardware(output, deviceName);
     }
 
     /// <summary>

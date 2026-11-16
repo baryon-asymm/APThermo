@@ -16,6 +16,9 @@ produced kinds are removed, and the exit code is 0. With `--check`: nothing is
 written, every difference is printed (`changed`, `missing`, `stale`) and the exit code
 is 1 when there is any. Kinds given as arguments restrict what is produced and swept.
 
+Sampled comparison rejects nonfinite or negative tolerance rows and reports
+nonfinite numeric operands as differences, including decimal string tokens.
+
 Two comparison modes (the parent's "The binding step runs on the fixtures' own
 platform and compares with a tolerance", 2026-09-30):
 

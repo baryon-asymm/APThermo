@@ -43,6 +43,17 @@ Outside the tree: xunit; Python 3.8+ with mpmath 1.3.0 for the generators and th
 
 ## Constraints
 
+The CORE-MATH Python subprocess has a five-minute deadline covering process exit and
+both output streams, followed by at most five seconds of attempted cleanup. On timeout,
+partial stdout and stderr remain in the exception data. The shared owned runner
+establishes scope before launch and cleans ordinary descendants even after target exit;
+its limits are in the Harness API. The optional full-corpus campaign retains its
+EndToEnd classification.
+
+⚠ 2026-11-16: the old runner could not identify descendants after parent exit and
+could leave them alive. The owned-scope runner replaces that failure with bounded
+cleanup and a verified scope postcondition.
+
 - The full optional corpus is exactly the upstream revision and raw-byte hashes in
   `fixtures/PROVENANCE.txt`. Reject missing, truncated or modified lists before both
   input generation and result verification; a selected sample is not a full campaign.
@@ -63,6 +74,13 @@ Outside the tree: xunit; Python 3.8+ with mpmath 1.3.0 for the generators and th
   (https://gitlab.inria.fr/core-math/core-math, commit 284b3b0e198042c38f5c30316f696786b10816b0) and rewrites `fixtures/`.
 
 ## Acceptance criteria
+
+- [x] 2026-11-16 — `PythonCorpusProcessTests` and
+  `FullCorpusIntegrityHasPortableNegativeControls`: four pass on Windows; the real
+  live-tree and inherited-pipe cases are interrupted after readiness. Removing the
+  deadline fails both cases; waiting only for the parent fails the inherited-pipe case.
+  Evidence: `z11-python-isolated-clock-final.trx`, `z11-python-clock-no-deadline.trx`, and
+  `z11-python-clock-parent-only.trx` in this task's external evidence archive.
 
 - [x] 2026-11-14 — Audit A12: `FullCorpusIntegrityHasPortableNegativeControls` runs seven
   standard-library controls; old source failed seven assertions. The pinned complete corpus

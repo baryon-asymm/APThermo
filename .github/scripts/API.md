@@ -84,3 +84,7 @@ only a zero exit plus verified fresh nonempty completed TRX can become passed.
 Failed projects retain raw logs and report errors and do not prevent the next
 selected project from running. Logs are replayed to the workflow console at each
 project's completion. This adds no test-process deadline or retry.
+
+## GPU evidence inventory ✅
+
+[GpuEvidence](../../tests/GpuEvidence/API.md) discovers the existing CUDA/bit-snapshot selection without execution and verifies both release TRX phases, scope markers and exact identities. `test_gpu_evidence.py` supplies local synthetic positive and refusal controls; it requires the Release build of that tool. Native Linux parity and actual hardware execution remain separate acceptance evidence.

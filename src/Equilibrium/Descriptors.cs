@@ -65,9 +65,9 @@ internal static class ScratchLayout
 
     /// <summary>
     /// Ints per case: the species mask, the element mask, the condensed set, and rule A's tie snapshot of the condensed
-    /// set (BOOT.md, the third pass of 2026-09-28, finding F1).
+    /// set (BOOT.md, the third pass of 2026-09-28, finding F1), followed by recovery's banked condensed set.
     /// </summary>
-    public static int IntsPerCase(int speciesCount, int elementCount) => speciesCount + elementCount + 2 * MaxCondensedInSolution;
+    public static int IntsPerCase(int speciesCount, int elementCount) => speciesCount + elementCount + 3 * MaxCondensedInSolution;
 
     /// <summary>Total per-case scratch bytes, including one independently allocated typed recovery state.</summary>
     public static int BytesPerCase(int speciesCount, int elementCount) =>
@@ -161,7 +161,8 @@ internal readonly struct EquilibriumScratch(
         offset += unknowns;
 
         // Recovery owns the appended ends and bank; its slicer keeps an empty view default at a buffer end.
-        var recovery = RecoverySlices.Slice(doubles, offset, speciesCount, elementCount, bestState);
+        var bestCondensedSet = ints.SubView(speciesCount + elementCount + 2 * ScratchLayout.MaxCondensedInSolution, ScratchLayout.MaxCondensedInSolution);
+        var recovery = RecoverySlices.Slice(doubles, offset, speciesCount, elementCount, bestState, bestCondensedSet);
 
         var speciesActive = ints.SubView(0, speciesCount);
         var elementActive = ints.SubView(speciesCount, elementCount);

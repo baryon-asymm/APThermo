@@ -80,6 +80,13 @@ jobs:
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
 
+      - name: GPU evidence guard tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build tests/GpuEvidence/APThermo.GpuEvidence.csproj --configuration Release
+          python -X utf8 .github/scripts/test_gpu_evidence.py
+
       # The bit snapshots run here too (2026-10-05, root BOOT.md's platform constraint): the tree's own Exp, Log and
       # Pow read nothing of the runner's C runtime, so the one record per node holds on every CPU.
       - name: Hosted test lane
@@ -125,6 +132,8 @@ jobs:
 
       - name: Samples run against the packaged library
         if: matrix.lane == 'core'
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -140,7 +149,7 @@ jobs:
             scenario_count=$((scenario_count + 1))
             echo "-- $scenario --"
             dotnet run --project samples/Samples --configuration Release \
-              -p:APThermoPackageVersion="${{ steps.version.outputs.version }}" \
+              -p:APThermoPackageVersion="$PACKAGE_VERSION" \
               -p:RestoreAdditionalProjectSources="${{ github.workspace }}/artifacts/packages" \
               -- "$scenario" | tr -d '\r' > actual-sample.txt
             diff actual-sample.txt "tests/Docs.Tests/approved/samples/$approved"
@@ -153,9 +162,11 @@ jobs:
 
       - name: Install the packed tool and run an approved example
         if: matrix.lane == 'core'
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
-          dotnet tool install APThermo.Cli --tool-path .tool --add-source artifacts/packages --version "${{ steps.version.outputs.version }}"
+          dotnet tool install APThermo.Cli --tool-path .tool --add-source artifacts/packages --version "$PACKAGE_VERSION"
 
           # The scratch program inherits the root's Directory.Build.props, so it builds under the Diagnostics
           # constraint (root BOOT.md): it references the Harness library instead of compiling RunPropertyCut.cs and

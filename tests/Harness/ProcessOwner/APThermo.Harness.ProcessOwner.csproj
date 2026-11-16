@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>false</IsTestProject>
+    <AssemblyName>APThermo.Harness.ProcessOwner</AssemblyName>
+    <RootNamespace>APThermo.Harness.ProcessOwner</RootNamespace>
+  </PropertyGroup>
+</Project>

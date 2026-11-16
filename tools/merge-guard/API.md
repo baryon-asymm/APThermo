@@ -91,7 +91,8 @@ verbatim moved-text preservation.
 | build | `dotnet build APThermo.sln` | exit 0 and `0 Warning(s)` |
 | fast suite | `dotnet test APThermo.sln --no-build --filter "Category!=LongRunning"` with `APTHERMO_NO_CUDA=1` | exit 0 |
 | cuda build (`--cuda`) | `dotnet build APThermo.sln -c Release` | exit 0 and `0 Warning(s)` |
-| cuda proofs (`--cuda`) | `dotnet test APThermo.sln -c Release --no-build --filter "Category=Cuda\|Category=BitSnapshot"` | exit 0 |
+| cuda proofs (`--cuda`) | Release solution, serialized, with the release remainder filter excluding both named sweep facts | exit 0 |
+| cuda sweep (`--cuda`) | Release Execution.Tests, serialized, with the two named sweep facts and `TreatNoTestsAsError=true` | exit 0 |
 | execution (`--cuda`) | `dotnet test tests/Execution.Tests -c Release --no-build` | exit 0 |
 
 The `--commands` file is a JSON array of objects `{"name", "argv", "env", "requires":

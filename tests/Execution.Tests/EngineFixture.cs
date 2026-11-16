@@ -1,3 +1,4 @@
+using Xunit.Abstractions;
 using APThermo.Data;
 using APThermo.Fixtures;
 
@@ -63,15 +64,21 @@ internal sealed class EngineFixture : IDisposable
     /// The CUDA engine for a CUDA-category test. When CUDA is forbidden by the environment the test verifies the refusal instead and
     /// returns null, so that the full suite passes under APTHERMO_NO_CUDA=1; on a machine without CUDA the creation fails loudly.
     /// </summary>
-    internal Engine? RequireCuda()
+    internal Engine? RequireCuda(ITestOutputHelper output)
     {
         if (!Engine.CudaForbidden)
         {
-            return Cuda!;
+            var engine = Cuda!;
+            Assert.Equal(AcceleratorKind.Cuda, engine.Accelerator.Kind);
+            CudaEvidence.Hardware(output, engine.Accelerator.DeviceName);
+            return engine;
         }
 
-        var refused = Assert.Throws<AcceleratorUnavailableException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cuda }));
-        Assert.Contains(EngineOptions.NoCudaVariable, refused.Message, StringComparison.Ordinal);
+        CudaEvidence.Refusal(output, () =>
+        {
+            var refused = Assert.Throws<AcceleratorUnavailableException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cuda }));
+            Assert.Contains(EngineOptions.NoCudaVariable, refused.Message, StringComparison.Ordinal);
+        });
         return null;
     }
 

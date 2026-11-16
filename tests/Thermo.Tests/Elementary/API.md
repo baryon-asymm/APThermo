@@ -23,3 +23,9 @@ The node exposes nothing outward. Its contract points upward: what the parent ma
   halves verify the pinned raw SHA-256 identities, strict format and usable counts from
   `fixtures/PROVENANCE.txt` before producing inputs or reading numerical outputs.
   `identity` checks those prerequisites alone; it does not establish correct rounding.
+
+⚠ 2026-11-16: the Python process used by the full-list and integrity facts previously
+had no deadline covering its exit and inherited streams. It now has a five-minute
+run deadline and at most five seconds of cleanup; on timeout, partial streams are
+attached to the exception. If the direct parent has exited, its descendants are not
+identified by its process handle and may survive; the diagnostic states that limit.

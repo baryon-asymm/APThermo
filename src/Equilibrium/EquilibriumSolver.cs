@@ -111,7 +111,10 @@ internal static class EquilibriumSolver
             var nextProblem = problem;
             var nextScratch = scratch;
             var nextResult = result;
-            if (AttemptPlan.Next(nextTable, nextProblem, nextScratch, nextResult, status, ref plan))
+            var nextPlan = plan;
+            var repeat = AttemptPlan.Next(nextTable, nextProblem, nextScratch, nextResult, status, ref nextPlan);
+            plan = nextPlan;
+            if (repeat)
             {
                 continue;
             }

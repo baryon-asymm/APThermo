@@ -95,6 +95,13 @@ jobs:
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
 
+      - name: GPU evidence guard tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build tests/GpuEvidence/APThermo.GpuEvidence.csproj --configuration Release
+          python -X utf8 .github/scripts/test_gpu_evidence.py
+
       - name: Hosted test lane
         env:
           APTHERMO_NO_CUDA: '1'
@@ -151,6 +158,12 @@ jobs:
         shell: powershell
         run: dotnet build APThermo.sln --configuration Release
 
+      - name: Discover GPU evidence inventory
+        shell: powershell
+        run: |
+          $env:GPU_EVIDENCE_SDK = dotnet --version
+          dotnet run --project tests/GpuEvidence --configuration Release -- discover artifacts/gpu-evidence/inventory.json
+
       - name: CUDA tests
         shell: powershell
         run: dotnet test APThermo.sln --configuration Release --no-build -m:1 --filter "(Category=Cuda|Category=BitSnapshot)&FullyQualifiedName!=APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic&FullyQualifiedName!=APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio" --logger "trx;LogFileName=$env:GPU_TEST_TRX"
@@ -159,6 +172,11 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: powershell
         run: dotnet test tests/Execution.Tests/APThermo.Execution.Tests.csproj --configuration Release --no-build -m:1 --filter "FullyQualifiedName=APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic|FullyQualifiedName=APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio" --logger "trx;LogFileName=$env:GPU_SWEEP_TRX" -- RunConfiguration.TreatNoTestsAsError=true
+
+      - name: Verify GPU evidence inventory
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        shell: powershell
+        run: dotnet run --project tests/GpuEvidence --configuration Release --no-build -- verify artifacts/gpu-evidence/inventory.json $env:GPU_TEST_TRX $env:GPU_SWEEP_TRX
 
       - name: Upload GPU test evidence
         if: always()
@@ -169,6 +187,7 @@ jobs:
             tests/**/TestResults/${{ env.GPU_TEST_TRX }}
             tests/Execution.Tests/TestResults/${{ env.GPU_SWEEP_TRX }}
             tests/Execution.Tests/Throughput*.actual.txt
+            artifacts/gpu-evidence/inventory.json
           if-no-files-found: error
 
   cuda-linux:
@@ -203,6 +222,12 @@ jobs:
         shell: bash
         run: dotnet build APThermo.sln --configuration Release
 
+      - name: Discover GPU evidence inventory
+        shell: bash
+        run: |
+          export GPU_EVIDENCE_SDK="$(dotnet --version)"
+          dotnet run --project tests/GpuEvidence --configuration Release -- discover artifacts/gpu-evidence/inventory.json
+
       - name: CUDA tests
         shell: bash
         run: dotnet test APThermo.sln --configuration Release --no-build -m:1 --filter "(Category=Cuda|Category=BitSnapshot)&FullyQualifiedName!=APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic&FullyQualifiedName!=APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio" --logger "trx;LogFileName=$GPU_TEST_TRX"
@@ -211,6 +236,11 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: bash
         run: dotnet test tests/Execution.Tests/APThermo.Execution.Tests.csproj --configuration Release --no-build -m:1 --filter "FullyQualifiedName=APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic|FullyQualifiedName=APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio" --logger "trx;LogFileName=$GPU_SWEEP_TRX" -- RunConfiguration.TreatNoTestsAsError=true
+
+      - name: Verify GPU evidence inventory
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        shell: bash
+        run: dotnet run --project tests/GpuEvidence --configuration Release --no-build -- verify artifacts/gpu-evidence/inventory.json "$GPU_TEST_TRX" "$GPU_SWEEP_TRX"
 
       - name: Upload GPU test evidence
         if: always()
@@ -221,6 +251,7 @@ jobs:
             tests/**/TestResults/${{ env.GPU_TEST_TRX }}
             tests/Execution.Tests/TestResults/${{ env.GPU_SWEEP_TRX }}
             tests/Execution.Tests/Throughput*.actual.txt
+            artifacts/gpu-evidence/inventory.json
           if-no-files-found: error
 
   pack:

@@ -93,10 +93,45 @@ public sealed class RecoveryStorageTests(ITestOutputHelper output)
             var expected = JsonSerializer.Deserialize<Layout>(item.GetRawText())!;
             var actual = Capture(expected.Species, expected.Elements);
             Assert.Equal(expected.Doubles, actual.Doubles);
-            Assert.Equal(expected.Ints, actual.Ints);
+            Assert.Equal(expected.Ints + ScratchLayout.MaxCondensedInSolution, actual.Ints);
             Assert.Equal(expected.Regions, actual.Regions);
-            Assert.Equal(sizeof(double) * expected.Doubles + sizeof(int) * expected.Ints + Interop.SizeOf<MixtureState>(),
+            Assert.Equal(sizeof(double) * expected.Doubles + sizeof(int) * actual.Ints + Interop.SizeOf<MixtureState>(),
                 ScratchLayout.BytesPerCase(expected.Species, expected.Elements));
+        }
+    }
+
+    /// <summary>The new integer bank is appended after every C0 region and is isolated across adjacent cases.</summary>
+    [Fact]
+    public void CondensedBanksStayWithinTheirCasesAndLeaveEarlierRegionsUnchanged()
+    {
+        const int species = 3;
+        const int elements = 2;
+        const int guard = -1234;
+        var intCount = ScratchLayout.IntsPerCase(species, elements);
+        var oldCount = intCount - ScratchLayout.MaxCondensedInSolution;
+        using var ints = CpuFixture.Shared.Accelerator.Allocate1D(Enumerable.Repeat(guard, 2 * intCount + 2).ToArray());
+        using var doubles = CpuFixture.Shared.Accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(species, elements));
+        using var states = CpuFixture.Shared.Accelerator.Allocate1D<MixtureState>(1);
+        for (var index = 0; index < 2; index++)
+        {
+            var scratch = EquilibriumScratch.Slice(doubles.View, ints.View.SubView(1 + index * intCount, intCount), species, elements, states.View);
+            for (var slot = 0; slot < ScratchLayout.MaxCondensedInSolution; slot++)
+            {
+                scratch.Recovery.BestCondensedSet[slot] = index * ScratchLayout.MaxCondensedInSolution + slot;
+            }
+        }
+
+        var values = ints.GetAsArray1D();
+        Assert.Equal(guard, values[0]);
+        Assert.Equal(guard, values[^1]);
+        for (var index = 0; index < 2; index++)
+        {
+            var start = 1 + index * intCount;
+            Assert.All(values.Skip(start).Take(oldCount), value => Assert.Equal(guard, value));
+            for (var slot = 0; slot < ScratchLayout.MaxCondensedInSolution; slot++)
+            {
+                Assert.Equal(index * ScratchLayout.MaxCondensedInSolution + slot, values[start + oldCount + slot]);
+            }
         }
     }
 

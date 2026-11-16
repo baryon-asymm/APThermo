@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="ILGPU" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
 
   <!-- ILGPU 1.5.3 needs only InternalsVisibleTo("ILGPURuntime") on this assembly to reach the internal

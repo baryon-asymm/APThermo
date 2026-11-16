@@ -125,3 +125,7 @@ implemented API block directly with compiled metadata; snapshots remain tripwire
 The matcher now validates each written class base against the compiled direct base
 and each written interface against the compiled interface closure, including resolved
 generic/nullability arguments. Omitted bases remain deliberately unspecified (IT03).
+
+## GPU discovery callback controls ✅
+
+`GpuEvidenceDiscoveryTests` checks that a successful empty adapter result remains neutral and an error callback or absent or repeated completion callback makes that result incomplete.

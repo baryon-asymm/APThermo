@@ -1,0 +1,10 @@
+configuration: Release
+platform: Windows
+source_commit: f21ac451c286bcbea88703b7bf4b6e90af35709e
+source_run: 43742272942
+source_test_id: d3304e46-687c-2987-831d-0f6fc67e0fa8
+source_trx_sha256: 7682db416a506ba3285d85212869154ca059e611b2a33ec19995b7b816cf81e5
+cold_samples: 1
+reported_significant_digits: 4
+cuda_kernel_seconds_per_iteration: 2.679e-07
+date: 2026-11-15

@@ -10,6 +10,7 @@ points upward: it is what the parent may consider proven about `Data`.
 | every record of the committed NASA files is parsed, and the fixture records parse to the transcribed values exactly | L1: `ThermoLoadTests.EveryRecordOfTheFileIsParsed`, `ThermoLoadTests.FixtureRecordsParseToTheTranscribedValues`, `TransLoadTests.EveryBlockOfTheFileIsParsed`, `TransLoadTests.FixtureBlocksParseToTheTranscribedValues` | ✅ 2026-09-12 |
 | the column parser handles every numeric form present in the files | L0: `FortranNumberTests.ParsesEveryFormOfTheFiles` | ✅ 2026-09-12 |
 | a corrupted record fails the load with the line number of the bad field | L1: `CorruptionTests` | ✅ 2026-09-12 |
+| only blank lines and comments may follow `END REACTANTS`; other lines are rejected at their exact source location | `CorruptionTests.ABlankOrCommentTrailerIsAccepted`, `UnexpectedTrailerContentIsRejectedAtItsSourceLine` | ✅ 2026-11-16 |
 | atomic weights come from the monatomic species records | L1: `ThermoLoadTests.AtomicWeightsComeFromTheMonatomicSpecies` | ✅ 2026-09-12 |
 | interval bounds are stored as written, and the records whose first interval is not ascending are exactly those on the approved anomaly list | L1: `ThermoLoadTests.IntervalAnomaliesEqualTheApprovedList` | ✅ 2026-09-12 |
 | every record of a repeated name is reachable in file order through `Records`, and the indexer returns the first | L1: `ThermoLoadTests.EveryRecordOfARepeatedNameIsReturnedInFileOrder` | ✅ 2026-09-14 |

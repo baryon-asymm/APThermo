@@ -1,5 +1,46 @@
 # ACCEPTANCE.md — tests/Execution.Tests
 
+- [ ] The throughput fact explicitly verifies cold/hit/hit after writing its actual
+  record, and rejects cold/hit/cold and cold/cold/hit with the affected sample and
+  calibration reason/age before applying the unchanged original comparisons.
+
+- [x] The CPU bypass test compiles its kernel before seeding the real session cache;
+  omitting bypass invalidation fails that test while the intact implementation passes.
+  (2026-11-16: `CalibrationObservationTests.CpuRunInvalidatesAnOlderTransactionInItsActualSessionCache`.)
+  ⚠ 2026-11-16: the previous control compiled after seeding and did not isolate the
+  actual bypass. The corrected fact asserts the first compilation, a published entry in the same engine session, zero
+  warm-up on the next run and invalidation of that transaction. The fresh-engine
+  `CpuRunDoesNotMasqueradeAsACudaTransaction` remains separate. With only
+  `BatchRun.Execute`'s bypass `Clear` removed, the corrected test failed (expected
+  `Invalidated`, actual `Published`) and 12 other observation controls passed. After
+  byte-exact restoration and rebuilding, 61 calibration host controls passed, no skips.
+  Evidence: test names and `fix-evidence/cache-z5/z5-mutant.trx`, `fix-evidence/cache-z5/z5-final.trx`
+  in the external audit archive; this is CPU evidence, not a CUDA run.
+- [ ] CUDA refusal and actual-device paths carry explicit evidence, and the GPU job
+  rejects refusal-only results; no permanently skipped test is introduced.
+
+### CUDA evidence CPU controls — 2026-11-16
+
+`CudaEvidenceTests` and the CUDA category with CUDA forbidden pass 94/94. TRX contains
+one structured marker per CUDA case: 86 verified refusals, four driver-only cases and
+one hardware case explicitly not run. The test's sorted method inventory is generated
+from discovery traits. Compiling premature-refusal and false-GPU driver mutations fail.
+External `fix-evidence/cuda-z12/index.json`. Actual CUDA and GPU-gate validation remain open.
+
+- [x] 2026-11-16 — `ColdThroughputTests` and `ThroughputRecordTests` pass 55/55 on
+  CPU. Frozen control commit `e7112d46` compiles; with its no-guard stub, six
+  cold-mode or missing-evidence cases fail while the known-answer positive passes.
+  `cold-red.trx` SHA-256 D10C0EF01A558AF3A57835BA2B496AB90D0BBC19D641DB9604B38A7904868E73;
+  `cold-green.trx` SHA-256 07506B8DB53BB83DD684F63651F7FC40F62892E04CB09858162D139C18743882.
+  These host controls are not CUDA evidence; hardware acceptance remains open below.
+
+- [ ] 2026-11-16 — The separate first-call cold throughput guard and its positive and
+  compiling negative controls pass, and the unmodified original throughput, numerical
+  and bit gates pass on the actual Windows and Linux reference CUDA runners at the
+  integrated source. Source-bound receipts must identify the hardware and run.
+
+- [ ] Recovery condensed-slot actual-CUDA evidence: `RecoverySlotsCudaTests.PhysicalRecoverySlotsOnActualCudaMatchCpuForColdAndSeededSolves` requires the actual-device marker and compares slots, moles, multipliers, every state field, status and iterations against the CPU kernel. The hardware run remains pending. The CPU companion `PhysicalRecoverySlotsOnCpuKernelAgreeWithTheWinningComposition` passed 2026-11-16; removing the bank-to-live slot restore compiled and failed that companion with positive species [38, 40] but live slots [38].
+
 - [x] R10 decision observability: controlled histories and deliberate mutations
   prove accurate identity/presence, before/after-upload age/reason, generation and
   post-result publication outcomes without altered work, choices or cached timings.
@@ -15,6 +56,12 @@
   `a93074210a6c02646c2197b764334a83e221cefd/root-diagnostic-summary-v1.json`
   retains source/binary hashes, raw TRX/stdout, fresh actual bytes and all outcomes.
   Full current Release acceptance remains pending. The old miss was not reproduced.)
+  ⚠ 2026-11-16: the pending statement above describes source `a9307421`; the later
+  original Release run at `f21ac451` passed on both reference GPUs for that source.
+  Its 2026-11-15 predecessor `1a8aca20` failed the Windows sweep: 449/450 facts,
+  ratio 10.37 against the 14.816 minimum; an entry was observed expired after
+  1.0437997 s. The cause of that interval is unknown. Re-audit fixes have since
+  changed code; their own hardware acceptance remains open.
 
 - [x] 2026-11-15 — CPU bypass with an older actual-session transaction:
   `CpuRunInvalidatesAnOlderTransactionInItsActualSessionCache` first establishes
@@ -378,3 +425,10 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
         → HISTORY.md#throughput-per-iteration-2026-10-04
       - Windows, Release, `dotnet test APThermo.sln -c Release --filter "Category=Cuda|Category=BitSnapshot"`: green in every
         project, `Execution.Tests` 84 of 84 (the bits unchanged: no `Bits*.approved.txt` moved, `ByteVectorTests` included).
+
+### Sweep-mode host controls — 2026-11-16
+
+`SweepModeTests` known-answer cold/hit/hit passed; a no-op mode-check stub compiled
+and failed 8/9 controls, including cold/hit/cold and cold/cold/hit. `SweepModeTests`,
+`ColdThroughputTests` and `ThroughputRecordTests` passed 64/64 on the CPU host.
+Actual CUDA verification remains pending.

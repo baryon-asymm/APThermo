@@ -172,6 +172,21 @@ raw documents for the existing optional `Problem` fields parameter.
 
 ## Acceptance criteria
 
+- [x] 2026-11-16 — `FailedStationOutputTests.InventoryRejectsNewUnsupportedMembers`
+  detects omitted nonnumeric properties and fields; both omission mutants are red.
+
+- [x] 2026-11-16 — `FailedStationOutputTests.FrozenExitFailureReportsZeroStateAndPerformance`
+  passes through the real in-process command. It checks the generated numeric-property
+  inventory in JSON and retains earlier successful stations.
+
+- [x] 2026-11-16 — `StateSchemaGuardTests` checks independent state-shape
+  expectations against the published schema and real `states` command, including
+  empty arrays, nonempty exits, multiple targets and flow. Before repair eight
+  invalid rows failed the schema assertion while seven valid rows passed.
+
+- [x] 2026-11-16 — `JsonSchemaTypeAuditTests` passes 4/4; the two unvisited
+  unknown-type controls were red against the pre-fix parser.
+
 - [x] 2026-11-14 — `BitSnapshotTests` preserves JSON and CSV approved digests on both paths;
   separate actual JSON and CSV value mutations produce named raw-document dumps.
 

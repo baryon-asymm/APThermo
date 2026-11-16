@@ -165,13 +165,11 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   state guard of the equilibrium path applies too. → HISTORY.md#cea-refs-2026-10-02
   ⚠ 2026-09-28: was moles only, now temperature too → HISTORY.md#frozen-temperature
   ⚠ 2026-09-26: was gaseous moles only, now condensed too → HISTORY.md#frozen-moles
-- Outputs: mole numbers per species (kmol per kg of mixture), the mixture state
-  (`MixtureState`: T, p, ρ, h, u, s, g, M, MW, frozen and equilibrium Cp and Cv, the two
-  derivatives, γ_s, sound speed), the Lagrange multipliers (needed by `Transport` for
-  the reacting conductivity), the iteration count and the status.
+- Output quantities and units: [API.md](API.md) → HISTORY.md#output-retelling-2026-11-16
 - The state guard, the figures of an `Ok` frozen state, the property definitions of RP-1311 and the
   pinned pair's convention: [StateRecord/BOOT.md](StateRecord/BOOT.md), `## Constraints`.
 - Compile size (2026-10-04, the root's Compile size constraint): `Solve` calls its `NoInlining` stages (`TraceGasPass.Run` through `RunTraceGas`, `AttemptPlan.Next`) with copies of its loop-live locals, never `ref` or `in` to them; no bit moves.
+  ⚠ 2026-11-16: the plan went by ref, now a copy goes and returns → HISTORY.md#loop-live-plan-2026-11-16
 
 ## Structure
 

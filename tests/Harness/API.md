@@ -89,7 +89,7 @@ from `Cli.Tests` in the distribution phase (2026-09-16), where their second cons
 the docs tests node, belongs.
 
 ```csharp
-public sealed class JsonSchema        // the part of JSON Schema the tree's schema files use: type, enum, const, properties, required, additionalProperties, items, minItems, minimum, exclusiveMinimum, oneOf, anyOf and local $ref into $defs
+public sealed class JsonSchema        // the part of JSON Schema the tree's schema files use: type, enum, const, properties, required, additionalProperties, items, minItems, minimum, exclusiveMinimum, oneOf, anyOf, not and local $ref into $defs
 {
     public static JsonSchema Parse(string text);                      // from the schema's JSON text, as `apthermo schema` prints it (2026-09-16)
     public IReadOnlyList<string> Validate(JsonElement instance);      // every violation with its JSON path; empty when the instance conforms
@@ -133,6 +133,11 @@ of `Cli.Tests`, moved here so that `Docs.Tests` runs the command line as a proce
 ```csharp
 public sealed record DotnetProcessResult(int ExitCode, ReadOnlyMemory<byte> Output, ReadOnlyMemory<byte> Error);   // the raw bytes of both standard streams, in no encoding
 
+public static class OwnedProcess
+{
+    public static Task<DotnetProcessResult> RunAsync(ProcessStartInfo target, CancellationToken interruption, Action<int>? started = null);
+}
+
 public static class DotnetProcess
 {
     public static DotnetProcessResult Run(string assemblyPath, IReadOnlyList<string> arguments, string workingDirectory, TimeSpan timeout, IReadOnlyDictionary<string, string>? environment = null, CancellationToken cancellationToken = default);
@@ -140,6 +145,16 @@ public static class DotnetProcess
     public static string BuiltAssemblyPath(string assemblyName, params string[] projectDirectory);   // the .dll next to the running test assembly when its runtime configuration was copied there, else the project's build output (projectDirectory below the repository root, e.g. "src", "Cli") in the running configuration
 }
 ```
+
+The Harness public surface exposes `OwnedProcess` for the shared runner.
+`OwnedProcess.RunAsync` accepts structured arguments, inherited stdin, and redirected
+stdout/stderr; the supplied cancellation token includes the complete original deadline.
+The optional callback receives the target PID for diagnostics only. An owned Windows job
+or Linux session is established before launch; after completion a scope postcondition is
+checked. Linux checks the original session, including a process that changed group; a
+live member prevents successful cleanup but termination of an escaped group is not
+promised. Interrupted cleanup uses at most `CleanupTimeout`; primary failures and raw
+output are retained, with secondary failures in `Data["CleanupException"]`.
 
 The arguments are passed one to one, never re-parsed. Standard output and standard error are read as bytes from
 the process's base streams, so a caller sees the encoding the process wrote on the platform it ran on and
@@ -222,11 +237,13 @@ JSON field comparison requires finite converted double output values. An invalid
 nonfinite numeric result is a path-named mismatch before tolerance arithmetic; the
 relative number tolerance is unchanged (IT01, 2026-11-14).
 
+Schema parse rejects malformed or unknown `type` values, including in unused branches.
+
 Schema numeric validation is exact mathematical JSON decimal validation: integer,
 minimum/exclusiveMinimum, minItems and numeric enum/const equality do not round to
 double/decimal or expand enormous exponent-sized powers. Supported valid numeric
 forms include fractional spellings of integers and exponents outside machine ranges.
-The keyword subset is unchanged (IT02, 2026-11-14).
+The numeric rules remain unchanged (IT02, 2026-11-14).
 
 Local schema references percent-decode exactly once as strict UTF-8 before pointer
 token splitting and ~0/~1 decoding. Raw fragment characters follow RFC 3986; literal
@@ -240,3 +257,6 @@ not a synchronous guarantee that every descendant already has terminal kernel
 state. The interrupted-call cleanup budget remains five seconds; any external
 state observation must use its remaining time, not a new grace period. No Run
 signature, raw-byte, exception, timer or cancellation contract changes.
+
+⚠ 2026-11-16: the supported schema subset now includes `not`, audited recursively
+and evaluated independently alongside sibling constraints.

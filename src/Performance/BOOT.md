@@ -324,9 +324,15 @@ and dispatch types; a stale count is not permission to raise the general limit.
   retains only temperature and pressure. Earlier successful stations and
   diagnostic composition remain available.
 - A bounded phase-boundary walk accepts no candidate after unresolved exhaustion.
-  The boundary classification and the cap are exercised through PhaseBoundaryWalk,
-  the same state machine Verify uses. A final area residual guard independently
+  Production `Verify` always begins with zero visited boundaries and the unchanged
+  cap; an internal overload admits a controlled initial count to exercise its
+  actual exhaustion dispatch with the real locator; `PhaseBoundaryWalk` also has a
+  separate full-cap control. This is not evidence of eight physically distinct
+  boundaries. A final area residual guard independently
   enforces the invariant above before any area station is accepted.
+
+  ⚠ 2026-11-16: the previous test drove only `PhaseBoundaryWalk`, so an incorrect
+  acceptance in `Verify` survived. Its exhaustion dispatch is now tested directly.
 
 
 ## Acceptance criteria

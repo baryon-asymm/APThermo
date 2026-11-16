@@ -1,3 +1,4 @@
+using Xunit.Abstractions;
 using System.Diagnostics;
 using APThermo.Execution.Chunks;
 using APThermo.Execution.Ptx;
@@ -9,7 +10,7 @@ namespace APThermo.Execution.Tests;
 
 /// <summary>L0: accelerator choice, the environment variable, the reasons of a fallback, the ILGPU assertion, batch validation.</summary>
 [Collection(EngineFixture.CollectionName)]
-public sealed class AcceleratorChoiceTests
+public sealed class AcceleratorChoiceTests(ITestOutputHelper output)
 {
     /// <summary>The cpu engine names itself and the ilgpu version.</summary>
     [Fact]
@@ -118,9 +119,10 @@ public sealed class AcceleratorChoiceTests
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void ACudaEngineLoadsNoLibraryOfTheCudaToolkit()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -389,11 +391,12 @@ public sealed class AcceleratorChoiceTests
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void TheCpuAcceleratorsBudgetIsUnboundedAndTheReferenceDevicesIsBounded()
     {
         Assert.False(EngineFixture.Shared.Cpu.Budget.IsBounded);
 
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;

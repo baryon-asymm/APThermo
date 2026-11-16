@@ -7,6 +7,7 @@ consider proven about `Thermo`.
 
 | Claim | Confirmed by | State |
 |---|---|---|
+| constructor upload faults roll back actual acquired CPU buffers without hiding the primary error | `SpeciesConstructorRollbackTests.ConstructorRollsBackActualBuffersWhenAColumnCopyFails` | ✅ 2026-11-16 |
 | the species functions reproduce the NASA polynomials of the committed data to 1e-12 | L0: `FunctionFixtureTests.FunctionsEqualTheIndependentEvaluation` | ✅ 2026-09-12 |
 | the functions agree with NIST-JANAF for the spot species within the per-species tolerance recorded in `janaf.json` (plausibility, not fit accuracy) | L0: `JanafTests` | ✅ 2026-09-12 |
 | interval selection and extrapolation follow the documented rule | L0: `IntervalRuleTests`, the out-of-range fixture points | ✅ 2026-09-12 |

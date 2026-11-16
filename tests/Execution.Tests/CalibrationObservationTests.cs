@@ -170,6 +170,13 @@ public sealed class CalibrationObservationTests
     public void CpuRunInvalidatesAnOlderTransactionInItsActualSessionCache()
     {
         using var scenario = new CalibrationScenario();
+        var batch = new SpeciesFunctionBatch(1);
+        batch.Temperature[0] = 1000;
+        Assert.Equal(0, scenario.Cpu.Launchers.Count);
+        var warmup = scenario.Cpu.Run(scenario.Tables, batch);
+        Assert.True(warmup.Timings.WarmUp > TimeSpan.Zero);
+        Assert.Equal(1, scenario.Cpu.Launchers.Count);
+
         var cache = scenario.Session.Calibration;
         using (var training = cache.Begin(scenario.Launcher, scenario.Tables, scenario.Plan, "input-A", scenario.Views))
         {
@@ -182,10 +189,10 @@ public sealed class CalibrationObservationTests
         Assert.Equal(CalibrationOutcome.Published, published.Outcome);
         Assert.NotEqual(0, published.TransactionId);
         Assert.Equal(published.TransactionId, published.PublicationId);
-        var batch = new SpeciesFunctionBatch(1);
-        batch.Temperature[0] = 1000;
         var result = scenario.Cpu.Run(scenario.Tables, batch);
         Assert.Equal(AcceleratorKind.Cpu, result.Accelerator.Kind);
+        Assert.Equal(TimeSpan.Zero, result.Timings.WarmUp);
+        Assert.Equal(1, scenario.Cpu.Launchers.Count);
         var invalidated = scenario.Cpu.CalibrationObservation;
         Assert.Equal(CalibrationOutcome.Invalidated, invalidated.Outcome);
         Assert.Equal(published.TransactionId, invalidated.TransactionId);

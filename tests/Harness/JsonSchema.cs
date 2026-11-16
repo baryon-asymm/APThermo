@@ -4,7 +4,7 @@ namespace APThermo.Harness;
 
 /// <summary>
 /// The part of JSON Schema the command line's schema files use: type, enum, const, properties, required, additionalProperties,
-/// items, minItems, minimum, exclusiveMinimum, oneOf, anyOf and local $ref into $defs. Enough to hold the documented shapes
+/// items, minItems, minimum, exclusiveMinimum, oneOf, anyOf, not and local $ref into $defs. Enough to hold the documented shapes
 /// without a dependency; a keyword outside this list is an error, so a schema cannot silently ask for more than is checked.
 /// </summary>
 public sealed class JsonSchema
@@ -12,7 +12,7 @@ public sealed class JsonSchema
     private static readonly HashSet<string> Known =
     [
         "$schema", "$id", "title", "description", "$defs", "$ref", "type", "enum", "const", "properties", "required",
-        "additionalProperties", "items", "minItems", "minimum", "exclusiveMinimum", "oneOf", "anyOf",
+        "additionalProperties", "items", "minItems", "minimum", "exclusiveMinimum", "oneOf", "anyOf", "not",
     ];
 
     private readonly JsonElement _root;
@@ -81,6 +81,7 @@ public sealed class JsonSchema
         }
         CheckKeywords(schema);
         CheckNumericKeywords(schema);
+        AuditType(schema);
         if (schema.TryGetProperty("$ref", out var reference))
         {
             var pointer = reference.ValueKind == JsonValueKind.String ? reference.GetString() : null;
@@ -99,6 +100,7 @@ public sealed class JsonSchema
         AuditMap(schema, "properties", references);
         AuditSingle(schema, "additionalProperties", references);
         AuditSingle(schema, "items", references);
+        AuditSingle(schema, "not", references);
         AuditAlternatives(schema, "oneOf", references);
         AuditAlternatives(schema, "anyOf", references);
     }
@@ -168,6 +170,21 @@ public sealed class JsonSchema
             {
                 throw new InvalidOperationException("schema minItems must be a nonnegative integer");
             }
+        }
+    }
+
+    private static void AuditType(JsonElement schema)
+    {
+        if (!schema.TryGetProperty("type", out var type))
+        {
+            return;
+        }
+        var types = type.ValueKind == JsonValueKind.Array ? type.EnumerateArray().ToArray() : [type];
+        if (types.Length == 0 || types.Any(t => t.ValueKind != JsonValueKind.String ||
+            t.GetString() is not ("object" or "array" or "string" or "number" or "integer" or "boolean" or "null")) ||
+            types.Select(t => t.GetString()).Distinct(StringComparer.Ordinal).Count() != types.Length)
+        {
+            throw new InvalidOperationException("schema type must name distinct supported types");
         }
     }
 
@@ -299,6 +316,11 @@ public sealed class JsonSchema
             {
                 errors.Add($"{path}: {matching} of the oneOf alternatives match, not exactly one");
             }
+        }
+
+        if (schema.TryGetProperty("not", out var excluded) && Conforms(excluded, instance))
+        {
+            errors.Add($"{path}: matches the excluded schema");
         }
 
         if (schema.TryGetProperty("anyOf", out var anyOf) && !anyOf.EnumerateArray().Any(alternative => Conforms(alternative, instance)))

@@ -13,6 +13,7 @@ key is equal. Plain `regenerate.py --check` does not use this module: it compare
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 
@@ -41,7 +42,10 @@ SEARCH_STATE_KEYS = ("characteristicVelocity",)
 def _relative_of(row: str) -> float:
     """The relative tolerance of one row of `tolerances.json`, the only table of the tree."""
     with open(TOLERANCES_PATH, encoding="utf-8") as f:
-        return float(json.load(f)["fields"][row]["relative"])
+        relative = float(json.load(f)["fields"][row]["relative"])
+        if not math.isfinite(relative) or relative < 0:
+            raise ValueError(f"{row} relative tolerance must be finite and nonnegative")
+        return relative
 
 
 def _is_number(value) -> bool:
@@ -105,7 +109,9 @@ class DocumentComparison:
                 self._walk(path + (i,), e, a, kind, throat_stations, found)
         elif _is_number(expected) and _is_number(actual):
             relative = self._relative(path, kind, throat_stations)
-            if abs(expected - actual) > relative * abs(expected):
+            if (isinstance(expected, float) and not math.isfinite(expected)) or (isinstance(actual, float) and not math.isfinite(actual)):
+                found.append(f"{here}: nonfinite numeric operand: committed {expected!r}, regenerated {actual!r}")
+            elif abs(expected - actual) > relative * abs(expected):
                 found.append(f"{here}: committed {expected!r}, regenerated {actual!r}, relative difference "
                              f"{_relative_difference(expected, actual):.3g} above {relative:g}")
         elif isinstance(expected, str) and isinstance(actual, str) and NUMBER_TOKEN.search(expected):
@@ -123,6 +129,9 @@ class DocumentComparison:
             found.append(f"{here}: committed {expected!r}, regenerated {actual!r} (the words or the count of numbers differ)")
             return
         for old, new in zip(NUMBER_TOKEN.findall(expected), NUMBER_TOKEN.findall(actual)):
+            if "." in old and not math.isfinite(float(old)) or "." in new and not math.isfinite(float(new)):
+                found.append(f"{here}: nonfinite number {old} committed, {new} regenerated")
+                continue
             if old == new:
                 continue
             if "." not in old or "." not in new or abs(float(old) - float(new)) > relative * abs(float(old)):

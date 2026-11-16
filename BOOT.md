@@ -80,7 +80,7 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
 None.
 
 Outside the tree: .NET SDK 10.0 (C# 14), pinned by `global.json` to 10.0.112 with
-`rollForward: latestPatch` (2026-09-17, the CI audit), whose bundled SourceLink replaces
+`rollForward: latestPatch` (2026-09-17, the CI audit), whose bundled test platform supplies GPU discovery and SourceLink replaces
 the explicit package the tree briefly referenced; ILGPU 1.5.3 (NuGet; ILGPU.Algorithms is not
 used); for the GPU path an NVIDIA GPU of compute capability 7.5 or newer (2026-09-26,
 the range the execution node proves; an older device is not verified) and an NVIDIA driver
@@ -89,10 +89,12 @@ NASA CEA data `thermo.inp` and `trans.inp` from
 github.com/nasa/cea (Apache-2.0); the `cea` Python package 3.3.4 (NASA CEA,
 Apache-2.0) as the generator of the reference outputs; Python 3.8+ for the protocol
 linter; xunit for tests; Microsoft.CodeAnalysis.CSharp (Roslyn) for the protocol tests
-node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
+node's shape check (since 2026-09-14) and Equilibrium.Tests' loop-live guard; BenchmarkDotNet 0.15.8 for the benchmarks node
 (2026-09-15, the newest stable release on NuGet supporting net10.0 through
 `RuntimeMoniker.Net10`, since 0.15.0; pinned in `Directory.Packages.props`); GitHub Actions and nuget.org for
 delivery (2026-09-15, `## Delivery` below).
+
+⚠ 2026-11-16: Roslyn was listed for the protocol shape check only; Equilibrium.Tests also uses it for the loop-live guard introduced by `ade4d748`. The SDK test platform is bundled, not a new package.
 
 ⚠ 2026-10-05: was a CUDA Toolkit's libnvvm and libdevice too, now the driver alone → HISTORY.md#ilgpu-libdevice-retired
 
@@ -170,12 +172,12 @@ delivery (2026-09-15, `## Delivery` below).
 
   ⚠ 2026-09-16: was `src`, `tests` transparent, now `samples` too → HISTORY.md#ns-dirs
 
-  ⚠ 2026-09-15: was the root namespace `AerospacePropellantThermodynamics`, now
-  `APThermo` → HISTORY.md#ns-rename
-- Kernel-compatible C# in numerical nodes: static methods, blittable structs,
-  `ArrayView` inputs and scratch, no allocation, no exceptions, no virtual calls, no
-  LINQ, no strings, no recursion. Per-case scratch lives in batch-sized global buffers;
-  the case index is the thread index.
+  ⚠ 2026-09-15: was AerospacePropellantThermodynamics, now APThermo → HISTORY.md#ns-rename
+- Kernel-reachable numerical routines and views use static methods, blittable structs,
+  `ArrayView` inputs and scratch: no allocation, exceptions, virtual calls, LINQ,
+  strings or recursion. Case scratch is in batch-sized global buffers, indexed by thread.
+  Host-side table builders, upload and ownership use ordinary .NET.
+  ⚠ 2026-11-16: was all node code, now kernel-reachable → HISTORY.md#host-code
 - Math in numerical nodes: only the `double` overloads of `System.Math` from this list:
   `Sqrt`, `Abs`, `Floor`, `Ceiling` (exact in IEEE 754, so equal on both accelerators),
   plus the constant `Math.PI`, which the compiler inlines (the transport node's
@@ -219,6 +221,7 @@ delivery (2026-09-15, `## Delivery` below).
     that wrote nothing is refused. `Execution/Chunks` owns these rules, and protocol
     tests reject by-reference transfers in `src`.
     ⚠ 2026-11-14: was incident narrative, now rule → HISTORY.md#pinned-transfer-incident
+    ⚠ 2026-10-01: was detailed ILGPU hazards, now condensed → HISTORY.md#ilgpu-hazards-condensed
 
   ⚠ 2026-09-26: was the defect tied to libnvvm, now to the target → HISTORY.md#ilgpu-sm
 - Compile size (2026-09-30): ILGPU 1.5.3 inlines every function by default (`InliningMode.Default`), so each call
@@ -309,7 +312,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
   species lists: they bind results to choices nobody can review.
 - No `LibDevice.*`, `XMath` or ILGPU.Algorithms in numerical nodes: Algorithms replaces
   double math with CORDIC, and direct bindings bypass the tree's own correctly rounded math.
-- No exceptions, allocations or virtual calls in numerical nodes: kernels cannot run them.
+- No exceptions, allocations or virtual calls in kernel-reachable numerical routines or views.
 - No unit conversion inside numerical nodes: SI in, SI out.
 - No CUDA type outside the execution node: it would silently remove the CPU path.
 - No text in a language other than English anywhere in the tree.
@@ -366,9 +369,7 @@ those nodes' own invariants. → HISTORY.md#test-nodes-retelling
 
 ## Delivery
 
-Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first release. The work
-cycle the documents call 0.2.2 is released as 0.3.0, since it breaks the public surface
-(owner, 2026-10-05).
+Release-version history and owner decisions → HISTORY.md#release-version-history-2026-11-16
 
 - **Packages.** `APThermo` is packed from `src/Problems`, the front door, and carries
   every library assembly (`Data`, `Thermo`, `Equilibrium`, `Performance`, `Transport`,

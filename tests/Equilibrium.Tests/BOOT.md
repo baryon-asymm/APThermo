@@ -122,7 +122,7 @@ than keeping a stale copy. This correction records no new hardware measurement.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.
 - [Harness](../Harness/API.md) — the CPU host and the bit snapshot mechanics.
 
-Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
+Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only); Microsoft.CodeAnalysis.CSharp 5.0.0.
 
 ## Constraints
 
@@ -183,6 +183,13 @@ creation names its arguments; it passes them by position today (the criterion be
 | `BatchViews.BatchViews` | parameters | 13 | ⚠ 2026-11-14 R10: was 12, now 13 after appending the isolated typed recovery-state view; the descriptor only projects fields and its creation names its arguments |
 
 ## Acceptance criteria
+
+- [x] 2026-11-16 — `LoopLiveBoundaryTests` passes 5/5. Both the compiled original
+  direct `ref plan` and an alias mutant `ref var copy = ref plan` fail the actual-call
+  guard; four syntax controls pass, including a fresh copy passed by reference. The
+  syntax guard checks this specific call, not arbitrary NoInlining methods.
+
+- [x] 2026-11-16 — `RecoveryCandidateTests.PhysicalRecoveryReturnsCondensedSlotsConsistentWithItsWinningComposition` checks the Mg-H-O-S SP case on cold and seeded host solves; both fail when bank-to-live condensed-slot restoration is removed and pass with it. `RestoringAnEarlierWinnerRestoresItsCondensedSlots` isolates selection and transfer. `RecoveryStorageTests.CondensedBanksStayWithinTheirCasesAndLeaveEarlierRegionsUnchanged` checks two adjacent banks and guards; the original C0 fixture is unchanged. CUDA evidence remains pending.
 
 - [x] 2026-11-14 — R10: RecoveryStorageTests checks generated state size/alignment,
   the frozen RecoveryLayoutC0.json region inventory and isolated typed case banks in

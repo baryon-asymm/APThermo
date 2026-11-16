@@ -42,9 +42,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(Families))]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void ARocketFamilyOnCudaMatchesTheCpuAccelerator(string name)
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is not null)
         {
             AssertFamilyMatches(cuda, FixtureBatches.Family(EngineFixture.Shared.Database, name));
@@ -55,9 +56,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(ThroatFamilies))]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void AThroatFamilyOnCudaMatchesTheCpuAccelerator(string name)
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is not null)
         {
             AssertFamilyMatches(cuda, FixtureBatches.Family(EngineFixture.Shared.Database, name, FixtureBatches.ThroatKind));
@@ -82,9 +84,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     /// <summary>An equilibrium family on cuda matches the cpu accelerator.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void AnEquilibriumFamilyOnCudaMatchesTheCpuAccelerator()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -97,9 +100,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(NamedEquilibriumFamilies))]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void ANamedEquilibriumFamilyOnCudaMatchesTheCpuAccelerator(string name)
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -112,9 +116,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(EquilibriumTableFamilyNames))]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void AnEquilibriumTableFamilyOnCudaMatchesTheCpuAccelerator(string name)
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -131,9 +136,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(SeededFamilyNames))]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void ASeededFamilyOnCudaMatchesTheCpuAccelerator(string name)
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -152,9 +158,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(GasPlateauFamilyNames))]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void AGasPlateauFamilyOnCudaMatchesTheCpuAccelerator(string name)
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -174,9 +181,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(BracketedFamilyNames))]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void ABracketedFamilyOnCudaMatchesTheCpuAccelerator(string name)
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -196,9 +204,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(TraceGasFamilyNames))]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void ATraceGasFamilyOnCudaMatchesTheCpuAccelerator(string name)
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -216,9 +225,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -245,9 +255,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void AFamilyOfTraceGasStatesStaysWithinTheLaunchBudget()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -288,10 +299,11 @@ public sealed class CudaTests(ITestOutputHelper output)
     /// <summary>The sweep of 100000 cases on cuda equals the cpu accelerator bit for bit and is deterministic.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     [Trait("Category", "LongRunning")]
     public void TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -312,10 +324,11 @@ public sealed class CudaTests(ITestOutputHelper output)
     /// <summary>Throughput is recorded, the CUDA/CPU ratio is not below 80 % of the approved one and the kernel time per Newton step is not above 115 % of the approved figure.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     [Trait("Category", "LongRunning")]
     public void ThroughputIsRecordedAndNotBelowTheApprovedRatio()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -351,6 +364,9 @@ public sealed class CudaTests(ITestOutputHelper output)
         var actualPath = Path.Combine(directory, Path.GetFileName(approvedPath).Replace("approved", "actual", StringComparison.Ordinal));
         File.WriteAllLines(actualPath, actualLines);
 
+        var modeViolation = SweepMode.Violation(sweep.CudaTime);
+        Assert.True(modeViolation is null, modeViolation);
+
         Assert.True(File.Exists(approvedPath), $"no approved throughput file at {approvedPath}; the measured figures are in {actualPath}");
         var approved = ThroughputRecord.Parse(File.ReadAllLines(approvedPath));
         var approvedConfiguration = approved.GetValueOrDefault("configuration");
@@ -364,6 +380,13 @@ public sealed class CudaTests(ITestOutputHelper output)
         Assert.True(ratioViolation is null, $"{ratioViolation}; see {actualPath}");
         var violation = ThroughputRecord.Violation(approved, Path.GetFileName(approvedPath), perIteration);
         Assert.True(violation is null, violation);
+
+        var coldPath = ApprovedSnapshot.ApprovedPathFor(directory, "ColdThroughput");
+        Assert.True(File.Exists(coldPath), $"no cold throughput reference at {coldPath}");
+        var coldApproved = ThroughputRecord.Parse(File.ReadAllLines(coldPath));
+        var steps = sweep.Cuda!.Iterations.Sum(count => (long)count);
+        var coldViolation = ColdThroughput.Violation(sweep.CudaTime, sweep.Batch.Count, steps, coldApproved, Path.GetFileName(coldPath));
+        Assert.True(coldViolation is null, coldViolation);
     }
 
     private void PrintSweepDiagnostics(SweepRun sweep, Engine cuda)

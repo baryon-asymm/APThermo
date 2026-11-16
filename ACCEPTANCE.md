@@ -6,7 +6,7 @@ frame; this file holds the criteria that prove it, read only in the root node.
 
 ## Acceptance criteria
 
-- [x] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
+- [ ] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
       verification in [AUDIT-CLOSURE.md](AUDIT-CLOSURE.md) has dated evidence; the
       prior criteria and historical measurements remain discoverable.
   (2026-11-15: Exact-source `0f7ecb6f4fff` CI `43691428901`, hosted trace
@@ -22,12 +22,16 @@ frame; this file holds the criteria that prove it, read only in the root node.
   CI `43742270400`, Trace `43742270272`, Release `43742272942`.
   Source-bound reports, controls and artifact inventory:
   external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
-  ⚠ 2026-11-15: the formerly checked aggregate is reopened after the actual
+  ⚠ 2026-11-15 (earlier in the sequence, before the f21ac451 acceptance above):
+  the formerly checked aggregate is reopened after the actual
   final-head Linux tree assertion failed. Its requirement and earlier proof are
   retained, while its completion mark is withdrawn pending the corrected guard:
   “The owner-requested 2026-11-14 audit is closed: every obligation and integrated
   verification in [AUDIT-CLOSURE.md](AUDIT-CLOSURE.md) has dated evidence; the
   prior criteria and historical measurements remain discoverable.”
+  ⚠ 2026-11-16: the independent re-audit found further confirmed gaps at
+  `08bf26c3`; this aggregate is reopened pending their correction and new evidence.
+  The f21ac451 acceptance remains historical evidence for its actual source.
 
 - [x] 2026-09-12 — For LOX/LH2, LOX/RP-1, N2O4/UDMH and AP/HTPB/Al the chamber,
       throat and exit states and the performance figures, in equilibrium and in frozen

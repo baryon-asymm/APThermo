@@ -57,12 +57,11 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
         Bits.Same(expected, actual) || (double.IsNaN(expected) && double.IsNaN(actual));
 
     /// <summary>The kernels stride constant matches the function list.</summary>
+    // Kernels.Probe strides by MathProbe.StrideCount, a const so it inlines into the kernel (Functions is a string array, and
+    // kernel-compatible code allows no strings); this is what keeps that literal from drifting away from Functions silently
+    // if a function is ever added to the root's math list (F-EX-07).
     [Fact]
-    public void TheKernelsStrideConstantMatchesTheFunctionList() =>
-        // Kernels.Probe strides by MathProbe.StrideCount, a const so it inlines into the kernel (Functions is a string array, and
-        // kernel-compatible code allows no strings); this is what keeps that literal from drifting away from Functions silently
-        // if a function is ever added to the root's math list (F-EX-07).
-        Assert.Equal(MathProbe.StrideCount, MathProbe.FunctionCount);
+    public void TheKernelsStrideConstantMatchesTheFunctionList() => Assert.Equal(MathProbe.StrideCount, MathProbe.FunctionCount);
 
     /// <summary>The cpu accelerator reproduces the host's own functions exactly: the tree's <c>KernelMath</c> and the IEEE operations of .NET.</summary>
     [Fact]
@@ -93,9 +92,10 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
     /// <summary>Cuda equals the cpu accelerator bit for bit for every function, on the whole input domain.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void CudaEqualsTheCpuAcceleratorBitForBitForEveryFunction()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;
@@ -130,9 +130,10 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void TheSpecialInputsAreRecordedAgainstCuda()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;

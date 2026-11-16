@@ -74,10 +74,11 @@ process controls remain distinct from any thermodynamic reference calculation.
 
 A tree guard observes the fixture-owned PID identities until they are absent or
 non-executing, within the remaining original cleanup budget. For a two-second
-deadline this is the original invocation stopwatch capped at two plus five seconds;
-for ready-tree cancellation start a cleanup stopwatch immediately before requesting
+deadline a controlled clock advances only after fixture readiness and the observation
+stopwatch starts when that deadline fires; setup has a separate external watchdog.
+For ready-tree cancellation start a cleanup stopwatch immediately before requesting
 cancellation and cap it at five seconds. Do not restart the budget after Run returns.
-The original outer ten-second ceiling includes observation. Poll only while live
+The original outer ten-second ceiling includes cleanup and observation after expiry. Poll only while live
 and while time remains, checking terminal state once more at the boundary.
 Keep R14's absent/Z/X/x semantics; sleeping/stopped/uninterruptible and PF_EXITING
 alone remain live. PID/parent/start-time/state diagnostics concern only owned probe

@@ -99,6 +99,13 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 
 ## Constraints
 
+- Exercise rollback through the actual `SpeciesTableBuffers` construction path: force
+  an upload/copy failure after owned buffers exist, and observe their disposal without
+  calling the owner cleanup from the test. The original exception remains primary.
+  A compiling mutation that removes the constructor's cleanup must fail this control.
+  ⚠ 2026-11-16: the previous ownership tests called disposal themselves, so removing
+  the constructor's rollback still passed; they did not prove that transaction.
+
 - T16 diagnostics retain the established hash order and bytes, while passing actual
   named table fields to the harness: species/element identity, interval/piece and
   coefficient/exponent index. A deliberate hash mismatch must emit those values.
@@ -111,6 +118,15 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
   git-ignored (2026-09-14; until that day the node wrote nothing).
 
 ## Acceptance criteria
+
+- [x] Constructor-failure rollback and primary-error preservation pass on a real
+  `SpeciesTableBuffers` upload; a compiling omitted-cleanup mutation fails.
+  (2026-11-16: `SpeciesConstructorRollbackTests.ConstructorRollsBackActualBuffersWhenAColumnCopyFails`
+  exercises the real constructor and a null second-column copy after observing two
+  actual CPU buffer layers from the first column. Both layers are disposed and the
+  copy's original `NullReferenceException` is retained. Removing only the constructor's
+  `_ownership.Dispose()` compiled and failed this fact while 16 other ownership facts
+  passed; restored ownership and bit-snapshot controls passed 269/269.)
 
 - [x] 2026-11-14 — A04 copy window: `ColumnCopyOwnershipTests` releases both actual
   CPU buffer layers after an injected copy failure, preserves empty-column behavior,

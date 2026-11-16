@@ -2,6 +2,11 @@
 
 ## Acceptance criteria
 
+- [x] 2026-11-16 — `LoopLiveBoundaryTests` shows the original direct `ref plan` red
+  and an alias mutant red, with the per-iteration copy green (5/5); `BitSnapshotTests`,
+  `WarmStartTests` and recovery controls pass 350/350 on the CPU. CUDA and throughput verification remain
+  pending on the integrated source; no approved numerical record is changed.
+
 - [x] 2026-09-12 — tp problems: for the product mixtures of the four reference
       propellants and the RP-1311 examples in the fixtures node, the mole fractions of
       every species the reference prints agree within the fixtures node's tolerance

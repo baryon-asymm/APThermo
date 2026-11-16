@@ -135,6 +135,13 @@ Outside the tree: xunit.
 
 ## Constraints
 
+- Reflection inventories every public instance property and field of `MixtureState`
+  and `PerformanceFigures`. Unsupported members fail; supported members are filled
+  and checked for every status, preserving only temperature and pressure for
+  `NoGasPhase`. Include the CLI scenario and stale-publication mutation.
+  ⚠ 2026-11-16: the earlier boundary fact seeded only four state properties and one
+  figure, so its generated-status loop did not establish field-complete coverage.
+
 - Part of the default test command; no CUDA.
 - Paths from the repository root; the only writes into the working directory are the
   `Bits.actual.txt` of a failed bit comparison, next to the approved file and
@@ -160,6 +167,10 @@ It now names those same actual values and adds input context; hash and approval
 contracts are unchanged.
 
 ## Acceptance criteria
+
+- [x] 2026-11-16 — `StationFieldInventoryTests.EveryGeneratedFieldObeysThePublicFailureContract`
+  and `StationBoundaryTests` pass 4/4. Stale-state and stale-performance mutations
+  each fail, naming the affected field in the test output.
 
 - [x] 2026-11-14 — A37: `ApplicabilityMetadataTests` and `ApplicabilityPolicyTests`
   pass 17 CPU controls over `AuditApplicabilityCases.json`; missing provenance,

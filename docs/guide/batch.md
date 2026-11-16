@@ -13,10 +13,10 @@ in one solver invocation.
 - You need to sweep over the oxidizer-to-fuel ratio: build one mixture per ratio and
   solve them as one batch, rather than one solver call per ratio.
 - You want to compare several cases without a separate solver call per case: a batch
-  runs in as few launches as its case mix requires — cases are grouped by exit layout
-  and, within a layout, by whether transport was requested, and each group is chunked
-  into launches of at most `EngineOptions.ChunkSize` cases (16 384 by default) — which
-  is the point of batching at all.
+  groups cases by exit layout and, within a layout, by whether transport was requested.
+  Each group is split into launches of at most `EngineOptions.ChunkSize` cases
+  (16 384 by default); the adaptive launch budget and calibration can select smaller
+  launches, especially on a cold or changed workload.
 
 ## Steps
 

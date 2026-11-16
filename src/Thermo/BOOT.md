@@ -161,6 +161,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Math: only `KernelMath.Log` and `KernelMath.Pow` are needed (2026-10-05: not `System.Math`'s); `Pow`
   is used for the general exponents, the usual exponents −2 … 4 are evaluated by
   multiplication.
+- A private constructor stream-selection seam supports a real CPU copy-failure control;
+  normal uploads continue to use the accelerator's default stream for every column.
+  The constructor itself retains responsibility for rollback and primary exceptions.
 - The table view is a struct of `ArrayView<double>` and `ArrayView<int>` over buffers of
   an accelerator (`SpeciesTableBuffers.Upload`). The builder produces host arrays
   (`SpeciesTableArrays`) in the same layout and needs no accelerator; evaluating the

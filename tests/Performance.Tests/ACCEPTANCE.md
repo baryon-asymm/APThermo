@@ -289,6 +289,12 @@ temperature, pressure, characteristic velocity and composition remain compared.
   earlier smaller maximum exists; reversal of the ordering predicate is red.
   Existing first-maximum scans use that same position check at grid-cell resolution
   and still refine/check the peak flux (A10).
+- [x] 2026-11-16 — `UpstreamExhaustionTests` drives the actual verifier's exhaustion
+  dispatch with the physical locator, a controlled initial boundary count and
+  synthetic endpoint fingerprints and chamber enthalpy. The
+  `Exhausted`-to-`Ok` mutation compiles and yields 1 failed/1 passed; restored and
+  rebuilt verifier, walk and bit snapshot selection is 105/105. This tests dispatch,
+  not an eight-boundary physical witness; the original eight-boundary walk test stays.
 - [x] 2026-11-14 — The former cap test is now accurately named as a locator-end
   check. PhaseBoundaryWalkTests supplies the actual bounded state machine with an
   unresolved chain and with a resolving positive control (A09).
@@ -309,6 +315,11 @@ temperature, pressure, characteristic velocity and composition remain compared.
   the existing polish tolerance, and rejects corrupted measured fields. The bounded
   three-field guard supplements the full fixture/KKT/bit evidence; it replaces none.
   Data and input SHA-256 provenance live in `IndependentBeOThroat.json`.
+
+⚠ 2026-11-16: the A01 source change was committed as `25b95f55`, while the intended
+BeO bit-row approval followed separately in `effc89f2`. This did not satisfy the root's
+same-commit rule. The historical commits and independent numerical review remain as
+they occurred; future intended changes must still meet the rule.
 
 The root authorized exactly the rp1311-example13 Performance bit row after the
 independent numerical review of 2026-11-14. Root's pinned-source A01 reversal restores

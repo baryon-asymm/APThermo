@@ -8,6 +8,31 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="host-code"></a>
+
+## 2026-11-16 — from Constraints and Taboos — kernel versus host code
+
+The previous wording was broader than the code: host-side table construction, upload
+and ownership already used ordinary .NET allocations and exceptions. The kernel's
+numerical program and views retain the restriction. Original text:
+
+> - Kernel-compatible C# in numerical nodes: static methods, blittable structs,
+>   `ArrayView` inputs and scratch, no allocation, no exceptions, no virtual calls, no
+>   LINQ, no strings, no recursion. Per-case scratch lives in batch-sized global buffers;
+>   the case index is the thread index.
+
+> - No exceptions, allocations or virtual calls in numerical nodes: kernels cannot run them.
+
+<a id="release-version-history-2026-11-16"></a>
+
+## 2026-11-16 — from Delivery — release-version history
+
+The past release decisions are retained in full:
+
+> Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first release. The work
+> cycle the documents call 0.2.2 is released as 0.3.0, since it breaks the public surface
+> (owner, 2026-10-05).
+
 <a id="audit-scope-2026-11-14"></a>
 
 ## 2026-11-14 — from Invariants, Constraints, Taboos and Decomposition — audit scope

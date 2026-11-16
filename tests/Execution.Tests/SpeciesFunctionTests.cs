@@ -1,3 +1,4 @@
+using Xunit.Abstractions;
 using APThermo.Harness;
 using APThermo.Thermo;
 
@@ -5,7 +6,7 @@ namespace APThermo.Execution.Tests;
 
 /// <summary>L2 for the species-function batch: the CPU accelerator equals the host functions bit for bit, CUDA equals it bit for bit.</summary>
 [Collection(EngineFixture.CollectionName)]
-public sealed class SpeciesFunctionTests
+public sealed class SpeciesFunctionTests(ITestOutputHelper output)
 {
     /// <summary>Inside, at and beyond the interval bounds of the committed records.</summary>
     private static readonly double[] Temperatures = [150.0, 298.15, 1000.0, 1000.0007, 3500.0, 7000.0];
@@ -58,9 +59,10 @@ public sealed class SpeciesFunctionTests
     /// <summary>Cuda equals the cpu accelerator bit for bit: the three functions and the range flag of every species of every family at every temperature.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void CudaEqualsTheCpuAcceleratorBitForBit()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;

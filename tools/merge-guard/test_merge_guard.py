@@ -934,6 +934,20 @@ class MergeTests(GuardCase):
         self.assert_left_clean()
 
 
+class ReleaseGpuCommandTests(unittest.TestCase):
+    def test_two_serialized_commands_preserve_the_release_selection(self):
+        commands = {command.name: command for command in guard.default_commands()}
+        remainder = commands["cuda proofs"].argv
+        sweep = commands["cuda sweep"].argv
+        self.assertIn("-m:1", remainder)
+        self.assertIn("-m:1", sweep)
+        self.assertIn("Category=Cuda|Category=BitSnapshot", remainder[remainder.index("--filter") + 1])
+        for name in ["TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic", "ThroughputIsRecordedAndNotBelowTheApprovedRatio"]:
+            self.assertIn("FullyQualifiedName!=APThermo.Execution.Tests.CudaTests." + name, remainder[remainder.index("--filter") + 1])
+            self.assertIn("FullyQualifiedName=APThermo.Execution.Tests.CudaTests." + name, sweep[sweep.index("--filter") + 1])
+        self.assertIn("RunConfiguration.TreatNoTestsAsError=true", sweep)
+
+
 class SummaryTests(unittest.TestCase):
     """The one-line summaries of a command's output."""
 

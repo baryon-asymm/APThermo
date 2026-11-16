@@ -9,6 +9,71 @@ namespace APThermo.Equilibrium.Tests;
 [Collection(CpuFixture.CollectionName)]
 public sealed class RecoveryCandidateTests
 {
+    /// <summary>The earlier winning candidate retains its exact condensed slots after a later attempt.</summary>
+    [Fact]
+    public void RestoringAnEarlierWinnerRestoresItsCondensedSlots()
+    {
+        WithViews(ProblemKind.AssignedEntropyPressure, (table, input, scratch, result) =>
+        {
+            var plan = new AttemptPlan();
+            plan.Begin(input, useMolesAsEstimate: false);
+            plan.Status = CaseStatus.Ok;
+            WriteCandidate(table, result, State(input.Kind, 0), 1.0);
+            for (var i = 0; i < ScratchLayout.MaxCondensedInSolution; i++)
+            {
+                scratch.CondensedInSolution[i] = i == 0 ? table.GasCount : -1;
+            }
+
+            DeadEndCandidates.Begin(table, input, scratch, result, ref plan);
+            scratch.CondensedInSolution[0] = table.GasCount + 1;
+            DeadEndCandidates.Complete(table, input, scratch, result, ref plan);
+            Assert.Equal(table.GasCount, scratch.CondensedInSolution[0]);
+        });
+    }
+
+    /// <summary>The physical Mg-H-O-S witness returns the winner's condensed slots after cold or seeded recovery.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PhysicalRecoveryReturnsCondensedSlotsConsistentWithItsWinningComposition(bool seeded)
+    {
+        var witness = AuditPhaseBranchTests.Data().GetProperty("witnesses").GetProperty("SP_feasible_lower_H");
+        var physical = AuditPhaseBranchTests.Magnesium(ProblemKind.AssignedEntropyPressure, witness);
+        var seedWitness = AuditPhaseBranchTests.Data().GetProperty("witnesses").GetProperty("SP_returned_cold");
+        var temperature = double.Parse(seedWitness.GetProperty("T").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
+        var accelerator = CpuFixture.Shared.Accelerator;
+        double[]? estimate = null;
+        if (seeded)
+        {
+            var seed = HostSolver.Solve(accelerator, physical with { Kind = ProblemKind.AssignedTemperaturePressure, Temperature = temperature });
+            Assert.Equal(CaseStatus.Ok, seed.Status);
+            estimate = seed.Moles;
+        }
+
+        var table = physical.Table;
+        using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
+        using var elements = accelerator.Allocate1D(physical.ElementMoles);
+        using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(table.SpeciesCount, table.ElementCount));
+        using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(table.SpeciesCount, table.ElementCount));
+        using var moles = estimate is null ? accelerator.Allocate1D<double>(table.SpeciesCount) : accelerator.Allocate1D(estimate);
+        using var multipliers = accelerator.Allocate1D<double>(table.ElementCount);
+        using var states = accelerator.Allocate1D<MixtureState>(1);
+        using var status = accelerator.Allocate1D<int>(1);
+        using var iterations = accelerator.Allocate1D<int>(1);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var input = new EquilibriumProblem(physical.Kind, physical.Pressure, seeded ? temperature : 0.0, physical.Target, elements.View);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, table.SpeciesCount, table.ElementCount, recoveryStates.View);
+        var result = new EquilibriumResult(moles.View, multipliers.View, states.View, status.View, iterations.View);
+        var view = buffers.View;
+        EquilibriumSolver.Solve(in view, in input, in scratch, in result, seeded);
+        Assert.Equal(CaseStatus.Ok, (CaseStatus)result.Status[0]);
+        var active = Enumerable.Range(0, ScratchLayout.MaxCondensedInSolution)
+            .Select(index => scratch.CondensedInSolution[index]).Where(index => index >= 0).ToArray();
+        var positive = Enumerable.Range(table.GasCount, table.CondensedCount).Where(index => result.Moles[index] > 0.0).ToArray();
+        Assert.NotEmpty(positive);
+        Assert.Equal(positive.Order(), active.Order());
+    }
+
     /// <summary>Saving replaces every poisoned state bit; a later attempt cannot overwrite the isolated original bank.</summary>
     [Theory]
     [InlineData(ProblemKind.AssignedEnthalpyPressure)]

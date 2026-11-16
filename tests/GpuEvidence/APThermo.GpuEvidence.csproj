@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.TestPlatform.VsTestConsole.TranslationLayer" HintPath="$(MSBuildSDKsPath)/../Microsoft.TestPlatform.VsTestConsole.TranslationLayer.dll" />
+    <Reference Include="Microsoft.VisualStudio.TestPlatform.ObjectModel" HintPath="$(MSBuildSDKsPath)/../Microsoft.VisualStudio.TestPlatform.ObjectModel.dll" />
+  </ItemGroup>
+</Project>

@@ -88,12 +88,13 @@ static class APThermo.Equilibrium.EquilibriumSolver
     static Void SolveFrozen(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)
 
 readonly struct APThermo.Equilibrium.RecoverySlices
-    .ctor(ArrayView<Double> bracketEnds, ArrayView<Double> bestMoles, ArrayView<Double> bestMultipliers, ArrayView<MixtureState> bestState)
+    .ctor(ArrayView<Double> bracketEnds, ArrayView<Double> bestMoles, ArrayView<Double> bestMultipliers, ArrayView<MixtureState> bestState, ArrayView<Int32> bestCondensedSet)
     readonly ArrayView<Double> BestMoles
     readonly ArrayView<Double> BestMultipliers
     readonly ArrayView<Double> BracketEnds
+    readonly ArrayView<Int32> BestCondensedSet
     readonly ArrayView<MixtureState> BestState
-    static RecoverySlices Slice(ArrayView<Double> doubles, Int64 offset, Int32 speciesCount, Int32 elementCount, ArrayView<MixtureState> bestState)
+    static RecoverySlices Slice(ArrayView<Double> doubles, Int64 offset, Int32 speciesCount, Int32 elementCount, ArrayView<MixtureState> bestState, ArrayView<Int32> bestCondensedSet)
 
 static class APThermo.Equilibrium.ScratchLayout
     const Int32 MaxCondensedInSolution = 20
@@ -693,3 +694,26 @@ readonly struct APThermo.Transport.TransportTableView
     readonly ArrayView<Int32> ViscosityStart
     readonly Int32 PairTotal
     readonly Int32 SpeciesCount
+
+== tests/Harness/ProcessOwner
+
+sealed class APThermo.Harness.ProcessOwner.WindowsJob : IDisposable
+    Void Dispose()
+    internal Int32 ActiveProcesses()
+    internal Void Stop()
+    internal static Void Join(String name)
+    internal static Void StopNamed(String name)
+    internal static WindowsJob Create(String name)
+
+static class APThermo.Harness.ProcessOwner.Wire
+    internal const Byte Abort = 3
+    internal const Byte Error = 6
+    internal const Byte Exit = 4
+    internal const Byte Ready = 1
+    internal const Byte Release = 5
+    internal const Byte Start = 2
+    internal const Byte Started = 8
+    internal const Byte Terminate = 7
+    internal static Byte[] Code(Int32 value)
+    internal static Task SendAsync(Stream stream, Byte kind, ReadOnlyMemory<Byte> payload, CancellationToken token)
+    internal static Task<ValueTuple<Byte, Byte[]>> ReadAsync(Stream stream, CancellationToken token)

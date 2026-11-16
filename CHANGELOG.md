@@ -17,8 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   propellants on disposal, and preserve group normalization at subnormal scales.
 - Enforce failed-station state and performance postconditions at the public boundary,
   retaining temperature and pressure for `NoGasPhase` and diagnostic compositions.
-- Reject nonfinite mandatory database numbers and missing or out-of-order section
-  transitions. Reject nonfinite internal transport inputs and comparison values.
+- Reject nonfinite mandatory database numbers, missing or out-of-order section
+  transitions, and non-comment content after `END REACTANTS`. Reject nonfinite
+  internal transport inputs and comparison values.
 - Guard frozen-state thermodynamic inputs and intermediate results against nonfinite
   values without rejecting representable extreme states.
 - Roll back partially uploaded tables and probe inputs, including failures during the

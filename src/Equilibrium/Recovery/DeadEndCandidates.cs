@@ -49,6 +49,11 @@ internal static class DeadEndCandidates
             result.Multipliers[i] = scratch.Recovery.BestMultipliers[i];
         }
 
+        for (var c = 0; c < ScratchLayout.MaxCondensedInSolution; c++)
+        {
+            scratch.CondensedInSolution[c] = scratch.Recovery.BestCondensedSet[c];
+        }
+
         result.State[0] = plan.Recheck.Unresolved ? default : scratch.Recovery.BestState[0];
         plan.Status = plan.Recheck.Unresolved ? CaseStatus.NotConverged : plan.Recheck.BestStatus;
         plan.Current = PassOutcome.CaseAt(problem, scratch.Recovery.BestState[0].Temperature);
@@ -70,6 +75,11 @@ internal static class DeadEndCandidates
         for (var i = 0; i < table.ElementCount; i++)
         {
             scratch.Recovery.BestMultipliers[i] = result.Multipliers[i];
+        }
+
+        for (var c = 0; c < ScratchLayout.MaxCondensedInSolution; c++)
+        {
+            scratch.Recovery.BestCondensedSet[c] = scratch.CondensedInSolution[c];
         }
 
         scratch.Recovery.BestState[0] = result.State[0];

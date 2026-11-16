@@ -40,6 +40,16 @@ top-level `run` property cut out (`RunPropertyCut`, Cli.Tests BOOT.md, the Bits 
 so the claim holds as written; every line of `Bits.approved.txt` was re-approved once
 for the change of the hash alone (Cli.Tests BOOT.md, the criterion of 2026-09-15).
 
+`FailedStationOutputTests` inventories the complete public instance shape and checks
+supported fields of a failed frozen exit in the actual in-process JSON output.
+Unsupported members fail explicitly (2026-11-16).
+
+⚠ 2026-11-16: the first inventory filtered to numeric properties and could miss a
+new nonnumeric member. It now enumerates the whole public instance shape first.
+`FailedStationOutputTests.InventoryRejectsNewUnsupportedMembers` proves both rejection
+paths and the supported shape; the two focused facts pass, while either omission
+mutation fails (2026-11-16).
+
 ## What the tests rely on
 
 - The command line's embedded schemas (read through `SchemaResources`, under the grant

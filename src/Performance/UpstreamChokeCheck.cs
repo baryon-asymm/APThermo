@@ -23,7 +23,11 @@ internal static class UpstreamChokeCheck
     internal const int MaxPhaseBoundaries = 8;
 
     /// <summary>Verifies the candidate, replacing it only with an earlier choke.</summary>
-    public static CaseStatus Verify(in ThroatQuery query, CondensedSetIdentity chamberFingerprint, ref double pressureSolved)
+    public static CaseStatus Verify(in ThroatQuery query, CondensedSetIdentity chamberFingerprint, ref double pressureSolved) =>
+        Verify(in query, chamberFingerprint, ref pressureSolved, alreadyVisited: 0);
+
+    /// <summary>Controlled starting position for verifying the bounded walk without changing its production cap.</summary>
+    internal static CaseStatus Verify(in ThroatQuery query, CondensedSetIdentity chamberFingerprint, ref double pressureSolved, int alreadyVisited)
     {
         var context = query.Context;
         var chamber = query.Chamber;
@@ -38,7 +42,7 @@ internal static class UpstreamChokeCheck
         StationSolve.CopyComposition(in context, RocketSolver.Chamber, RocketSolver.Throat);
         var start = new PhaseBoundaryEnd(chamber.Pressure, context.Result.Stations[RocketSolver.Chamber].Temperature, 0.0, chamberFingerprint);
         var inner = new PhaseBoundaryEnd(candidatePressure, candidateTemperature, 1.0, candidateFingerprint);
-        var walk = new PhaseBoundaryWalk(start, candidateFingerprint);
+        var walk = new PhaseBoundaryWalk(start, candidateFingerprint, alreadyVisited);
         for (var boundaryIndex = 0; boundaryIndex < MaxPhaseBoundaries; boundaryIndex++)
         {
             var outer = walk.Outer;

@@ -84,6 +84,7 @@ constructors) are internal to this node.
 
 The scratch bank preserves the best feasible result while later floor probes run.
 Strict objective improvement wins; ties retain the earlier state, original first.
+The bank includes the exact condensed slots alongside moles, multipliers and state.
 All Newton steps remain counted. An unresolved branch returns `NotConverged` with
 zero state and the best known composition; a gasless winner keeps T,p only.
 
@@ -112,3 +113,6 @@ scope; it is not a universal global-optimum claim.
 value. R10 stores those exact bits in the required isolated RecoverySlices.BestState
 view instead. The local plan retains only the objective/status/cursor and unresolved
 flag; strict selection, tie retention, restoration and paid iteration counts are unchanged.
+⚠ 2026-11-16: the bank previously left condensed slots from the last probe, which
+could differ from the restored candidate. `RecoveryCandidateTests` demonstrates the
+discrepancy on a physical SP case and checks its cold and seeded starts.

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using APThermo.Harness;
 using Xunit.Sdk;
 
 namespace APThermo.Protocol.Tests;
@@ -46,7 +47,8 @@ internal sealed class PythonProcessProbe : IAsyncDisposable
     private string Acknowledgement => Path.Combine(_directory, "ack.json");
     private string Release => Path.Combine(_directory, "release.json");
 
-    public void Start(string mode, TimeSpan timeout, int exitCode = 0, bool systemClock = false)
+    public void Start(string mode, TimeSpan timeout, int exitCode = 0, bool systemClock = false,
+        Func<ProcessStartInfo, CancellationToken, Action<int>, Task<DotnetProcessResult>>? controlledRun = null)
     {
         _budget.Require("dispatch");
         _mode = mode;
@@ -56,7 +58,7 @@ internal sealed class PythonProcessProbe : IAsyncDisposable
             exitCode.ToString(CultureInfo.InvariantCulture), "0" };
         _call = Task.Run(() => systemClock
             ? PythonProcess.RunAsync(Script, arguments, timeout)
-            : PythonProcess.RunAsync(Script, arguments, timeout, Clock), _budget.Token);
+            : PythonProcess.RunAsync(Script, arguments, timeout, Clock, controlledRun), _budget.Token);
         Record("helper-dispatched");
     }
 

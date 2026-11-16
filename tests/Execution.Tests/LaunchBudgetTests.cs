@@ -1,3 +1,4 @@
+using Xunit.Abstractions;
 using APThermo.Execution.Chunks;
 using ILGPU.Runtime.Cuda;
 
@@ -17,7 +18,7 @@ namespace APThermo.Execution.Tests;
 /// trait and run under <c>APTHERMO_NO_CUDA=1</c> like any other fact of this node (2026-09-29, review).
 /// </summary>
 [Collection(EngineFixture.CollectionName)]
-public sealed class LaunchBudgetTests
+public sealed class LaunchBudgetTests(ITestOutputHelper output)
 {
     /// <summary>No budget never bounds a chunk: the very first size, and every later one, is <see cref="int.MaxValue"/>
     /// regardless of what the previous chunk measured.</summary>
@@ -140,10 +141,12 @@ public sealed class LaunchBudgetTests
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "driver-only")]
     public void ALaunchTimeoutBecomesAnAcceleratorUnavailableExceptionNamingTheLimitAndTheRemedy()
     {
         if (Engine.CudaForbidden)
         {
+            CudaEvidence.NotRun(output, "driver-only");
             return;
         }
 
@@ -158,16 +161,19 @@ public sealed class LaunchBudgetTests
         Assert.Contains("run-time limit", failure.Message, StringComparison.Ordinal);
         Assert.Contains("CPU accelerator", failure.Message, StringComparison.Ordinal);
         _ = Assert.IsType<CudaException>(failure.InnerException);
+        CudaEvidence.DriverExecuted(output);
     }
 
     /// <summary>A non-timeout <see cref="CudaException"/> passes through unwrapped: only the run-time-limit error is
     /// translated. Gated the same way as <see cref="ALaunchTimeoutBecomesAnAcceleratorUnavailableExceptionNamingTheLimitAndTheRemedy"/>.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "driver-only")]
     public void ANonTimeoutCudaFailurePassesThroughUnwrapped()
     {
         if (Engine.CudaForbidden)
         {
+            CudaEvidence.NotRun(output, "driver-only");
             return;
         }
 
@@ -177,6 +183,7 @@ public sealed class LaunchBudgetTests
         var timer = new RunTimer();
         _ = Assert.Throws<CudaException>(() => cpu.RunBatchLoop(
             plan, buffers, timer, _ => throw new CudaException(CudaError.CUDA_ERROR_OUT_OF_MEMORY)));
+        CudaEvidence.DriverExecuted(output);
     }
 
     /// <summary>
@@ -191,10 +198,12 @@ public sealed class LaunchBudgetTests
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "driver-only")]
     public void ATimedOutEngineRefusesANewCall()
     {
         if (Engine.CudaForbidden)
         {
+            CudaEvidence.NotRun(output, "driver-only");
             return;
         }
 
@@ -209,6 +218,7 @@ public sealed class LaunchBudgetTests
         var refusal = Assert.Throws<AcceleratorUnavailableException>(() => cpu.ProbeMath([1.0]));
         Assert.Contains("earlier launch timeout", refusal.Message, StringComparison.Ordinal);
         _ = Assert.IsType<AcceleratorUnavailableException>(refusal.InnerException);
+        CudaEvidence.DriverExecuted(output);
     }
 
     /// <summary>
@@ -221,10 +231,12 @@ public sealed class LaunchBudgetTests
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "driver-only")]
     public void ATimedOutEnginesDisposalDropsTheStickyFailure()
     {
         if (Engine.CudaForbidden)
         {
+            CudaEvidence.NotRun(output, "driver-only");
             return;
         }
 
@@ -239,6 +251,7 @@ public sealed class LaunchBudgetTests
         using var stillSticky = new StickyDisposable(new CudaException(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT));
         var disposal = Record.Exception(() => cpu.DisposeAfterLoss(stillSticky));
         Assert.Null(disposal);
+        CudaEvidence.DriverExecuted(output);
     }
 
     /// <summary>

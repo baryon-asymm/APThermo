@@ -16,9 +16,9 @@ internal enum PhaseBoundaryAction
 /// The bounded chamber-to-candidate walk, independent of how a boundary is located.
 /// Inspecting its last unresolved boundary is a refusal, never candidate acceptance.
 /// </summary>
-internal struct PhaseBoundaryWalk(PhaseBoundaryEnd outer, CondensedSetIdentity candidate)
+internal struct PhaseBoundaryWalk(PhaseBoundaryEnd outer, CondensedSetIdentity candidate, int alreadyVisited = 0)
 {
-    private int _visited;
+    private int _visited = alreadyVisited;
     private readonly CondensedSetIdentity _candidate = candidate;
 
     internal PhaseBoundaryEnd Outer { get; private set; } = outer;

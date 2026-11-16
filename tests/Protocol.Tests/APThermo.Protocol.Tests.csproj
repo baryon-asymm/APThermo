@@ -7,6 +7,10 @@
     setup contracts listed in this node's BOOT.md Dependencies to exercise a complete diagnostic call.
   -->
   <ItemGroup>
+    <ProjectReference Include="../GpuEvidence/APThermo.GpuEvidence.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Roslyn: syntax trees only, for the Shape level's SourceSyntax (tests/Protocol.Tests/BOOT.md, Dependencies). -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>

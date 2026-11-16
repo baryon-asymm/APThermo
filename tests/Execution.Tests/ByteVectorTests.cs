@@ -1,3 +1,4 @@
+using Xunit.Abstractions;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using ILGPU;
@@ -15,7 +16,7 @@ namespace APThermo.Execution.Tests;
 /// CUDA; the CPU accelerator never sees it. The entry points come from reflection, and the check fails when it finds none.
 /// </summary>
 [Collection(EngineFixture.CollectionName)]
-public sealed partial class ByteVectorTests
+public sealed partial class ByteVectorTests(ITestOutputHelper output)
 {
     [GeneratedRegex(@"^\s*(ld|st)(\.[a-z]+)*\.v[0-9]\.(b8|pred)\b", RegexOptions.Multiline)]
     private static partial Regex ByteVector();
@@ -23,9 +24,10 @@ public sealed partial class ByteVectorTests
     /// <summary>No entry point's PTX loads or stores a vector of bytes or predicates.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void NoEntryPointLoadsOrStoresAVectorOfBytesOrPredicates()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             return;

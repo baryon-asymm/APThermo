@@ -11,6 +11,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="ProcessOwner/**/*.cs" />
+    <ProjectReference Include="ProcessOwner/APThermo.Harness.ProcessOwner.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="ILGPU" />
   </ItemGroup>
 

@@ -154,6 +154,20 @@ def gpu_release_violations(text):
                 problems.append(phase + ": selection/serialization/native refusal/logger command changed")
         if job.find("- name: Build") > job.find("- name: CUDA tests") or job.find("- name: CUDA tests") > job.find("- name: CUDA sweep checks"):
             problems.append("build/remainder/fresh-pair order changed")
+        discovery = gpu_step(job, "Discover GPU evidence inventory")
+        verifier = gpu_step(job, "Verify GPU evidence inventory")
+        sdk_setup = "$env:GPU_EVIDENCE_SDK = dotnet --version" if shell == "powershell" else 'export GPU_EVIDENCE_SDK="$(dotnet --version)"'
+        discover_command = "dotnet run --project tests/GpuEvidence --configuration Release -- discover artifacts/gpu-evidence/inventory.json"
+        discover_lines = [line.strip() for line in discovery.splitlines() if line.startswith("          ")]
+        if one_value(discovery, "shell", 8) != shell or one_value(discovery, "if", 8) or discover_lines != [sdk_setup, discover_command]:
+            problems.append("GPU inventory discovery is missing or changed")
+        prefix = "$env:" if shell == "powershell" else "$"
+        names = prefix + "GPU_TEST_TRX " + prefix + "GPU_SWEEP_TRX" if shell == "powershell" else '"$GPU_TEST_TRX" "$GPU_SWEEP_TRX"'
+        verify_command = "dotnet run --project tests/GpuEvidence --configuration Release --no-build -- verify artifacts/gpu-evidence/inventory.json " + names
+        if one_value(verifier, "shell", 8) != shell or one_value(verifier, "if", 8) != SWEEP_CONDITION or one_value(verifier, "run", 8) != verify_command:
+            problems.append("GPU inventory verification is missing or changed")
+        if not (job.find("- name: Build") < job.find("- name: Discover GPU evidence inventory") < job.find("- name: CUDA tests") < job.find("- name: CUDA sweep checks") < job.find("- name: Verify GPU evidence inventory") < job.find("- name: Upload GPU test evidence")):
+            problems.append("GPU inventory step order changed")
         upload = gpu_step(job, "Upload GPU test evidence")
         if one_value(upload, "if", 8) != "always()" or one_value(upload, "uses", 8) != "actions/upload-artifact@v7":
             problems.append("GPU evidence is not always uploaded")
@@ -165,7 +179,8 @@ def gpu_release_violations(text):
         paths = [line.strip() for line in upload.splitlines() if line.startswith("            ")]
         if paths != ["tests/**/TestResults/${{ env.GPU_TEST_TRX }}",
                      "tests/Execution.Tests/TestResults/${{ env.GPU_SWEEP_TRX }}",
-                     "tests/Execution.Tests/Throughput*.actual.txt"]:
+                     "tests/Execution.Tests/Throughput*.actual.txt",
+                     "artifacts/gpu-evidence/inventory.json"]:
             problems.append("per-project TRX or throughput evidence changed")
     if "  pull_request:" in text or "    branches:" in text:
         for problems in violations.values():
@@ -219,6 +234,8 @@ def gpu_job_mutations(job, name):
         "missing evidence ignored": ("          if-no-files-found: error", "          if-no-files-found: ignore"),
         "remainder reports dropped": ("            tests/**/TestResults/${{ env.GPU_TEST_TRX }}\n", ""),
         "pair reports dropped": ("            tests/Execution.Tests/TestResults/${{ env.GPU_SWEEP_TRX }}\n", ""),
+        "inventory omitted": ("      - name: Discover GPU evidence inventory", "      - name: Removed inventory"),
+        "verification omitted": ("      - name: Verify GPU evidence inventory", "      - name: Removed verification"),
         "hidden extra test": ("      - name: Upload GPU test evidence", "      - name: Hidden test\n        shell: " + shell + "\n        run: |\n          dotnet test APThermo.sln\n\n      - name: Upload GPU test evidence"),
     }
     mutations.update({label: job.replace(before, after, 1) for label, (before, after) in changes.items()})
@@ -301,6 +318,49 @@ class GpuReleaseGuards(unittest.TestCase):
         for inserted in ["  pull_request:\n", "  push:\n    branches: ['**']\n"]:
             with self.subTest(event=inserted):
                 self.assertTrue(all(gpu_release_violations(text.replace("on:\n", "on:\n" + inserted, 1)).values()))
+
+
+class PublicationContractGuards(unittest.TestCase):
+    @staticmethod
+    def violations(text):
+        required = {
+            "pack": {"needs": "[cuda-windows,cuda-linux]", "if": ""},
+            "publish": {"needs": "pack", "if": "github.event_name == 'push'"},
+            "github-release": {"needs": "publish", "if": "github.event_name == 'push'"},
+        }
+        errors = []
+        for name, values in required.items():
+            job = gpu_job(text, name)
+            for key, expected in values.items():
+                actual = one_value(job, key, 4)
+                if key == "needs":
+                    actual = actual.replace(" ", "")
+                if actual != expected:
+                    errors.append(name + ":" + key)
+        events = text.split("\nconcurrency:", 1)[0]
+        if not re.search(r"(?m)^  push:\n    tags: \['v\*'\]$", events) or "  workflow_dispatch:" not in events or "  pull_request:" in events or "    branches:" in events:
+            errors.append("release events")
+        return errors
+
+    def test_release_publication_chain_and_event_mutations(self):
+        original = RELEASE.read_text(encoding="utf-8")
+        self.assertEqual([], self.violations(original))
+        for before, after in [("needs: [cuda-windows, cuda-linux]", "needs: cuda-windows"),
+                              ("needs: pack", "needs: check"), ("needs: publish", "needs: pack"),
+                              ("if: github.event_name == 'push'", "if: always()"),
+                              ("tags: ['v*']", "branches: ['**']"),
+                              ("  workflow_dispatch:", "  pull_request:")]:
+            with self.subTest(mutation=before):
+                self.assertIn(before, original)
+                self.assertTrue(self.violations(original.replace(before, after, 1)))
+
+    def test_ci_version_is_shell_environment_data(self):
+        text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        for name in ["Samples run against the packaged library", "Install the packed tool and run an approved example"]:
+            step = gpu_step(text, name)
+            self.assertEqual("${{ steps.version.outputs.version }}", one_value(step, "PACKAGE_VERSION", 10))
+            self.assertIn('"$PACKAGE_VERSION"', step)
+            self.assertEqual(1, step.count("${{ steps.version.outputs.version }}"))
 
 
 class ReleaseGuards(unittest.TestCase):

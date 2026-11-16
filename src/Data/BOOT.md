@@ -77,7 +77,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   followed by one line with the default interval boundaries (200, 1000, 6000, 20000 K)
   and a date; the node stores them as provenance and does not use them otherwise.
 - Product species follow until the line `END PRODUCTS`; reactant-only records follow
-  until `END REACTANTS`.
+  until `END REACTANTS`. After that terminator only blank or `!` comment lines are
+  allowed; other content is a format error with its source line.
 - Record line 1: columns 1–18 name (no name in the committed file is longer than 15
   characters, and columns 16–18 are blank in every record), columns 19–80 a comment
   (source, reference).

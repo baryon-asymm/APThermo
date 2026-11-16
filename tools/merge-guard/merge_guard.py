@@ -497,8 +497,10 @@ def default_commands() -> List[Command]:
         Command("fast suite", ["dotnet", "test", "APThermo.sln", "--no-build", "--filter", "Category!=LongRunning"],
                 {"APTHERMO_NO_CUDA": "1"}, None, None),
         Command("cuda build", ["dotnet", "build", "APThermo.sln", "-c", "Release"], {}, "cuda", no_warnings),
-        Command("cuda proofs", ["dotnet", "test", "APThermo.sln", "-c", "Release", "--no-build",
-                                "--filter", "Category=Cuda|Category=BitSnapshot"], {}, "cuda", None),
+        Command("cuda proofs", ["dotnet", "test", "APThermo.sln", "-c", "Release", "--no-build", "-m:1",
+                                "--filter", "(Category=Cuda|Category=BitSnapshot)&FullyQualifiedName!=APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic&FullyQualifiedName!=APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio"], {}, "cuda", None),
+        Command("cuda sweep", ["dotnet", "test", "tests/Execution.Tests/APThermo.Execution.Tests.csproj", "-c", "Release", "--no-build", "-m:1",
+                               "--filter", "FullyQualifiedName=APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic|FullyQualifiedName=APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio", "--", "RunConfiguration.TreatNoTestsAsError=true"], {}, "cuda", None),
         Command("execution", ["dotnet", "test", "tests/Execution.Tests", "-c", "Release", "--no-build"], {}, "cuda", None),
     ]
 

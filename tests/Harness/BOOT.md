@@ -21,6 +21,18 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 
 ## Invariants
 
+- The schema validator supports `not` as an independent sibling constraint,
+  auditing its child recursively even when no instance reaches that child.
+
+⚠ 2026-11-16: the supported subset formerly omitted `not`; state-schema exit
+  conditions need negation to distinguish absent or empty arrays from actual exits.
+
+- `JsonSchema.Parse` rejects unsupported, malformed, empty or duplicate `type`
+  declarations throughout the schema graph, including unused branches.
+
+⚠ 2026-11-16: type names were checked only while validating a visited instance;
+  an unused branch could hide an invalid type. The parse audit now checks it.
+
 - Local schema references are URI-fragment JSON Pointers (RFC 3986/RFC 6901):
   validate raw fragment syntax, percent-decode once with strict UTF-8, then split
   pointer tokens and decode only ~0/~1 once. Malformed percent/UTF-8/tilde forms
@@ -38,7 +50,7 @@ and unchecked replacements; it neither adds remote references nor array traversa
   signed exponents. Represent normalized digits with a BigInteger exponent; compare
   decimal orders and padded digits, never materialize exponent-sized powers.
   Enum/const recurse through arrays and objects, keeping object-order independence.
-  The supported keyword subset is unchanged (IT02; JSON Schema 2020-12 §4.2/§6).
+  The numeric rules are unchanged (IT02; JSON Schema 2020-12 §4.2/§6).
 
 ⚠ 2026-11-14: IT02 found fractional values rounded into integers and distinct
 bounds rounded into equality, including underflow to zero. Exact token semantics
@@ -168,6 +180,43 @@ actual path and up-front finite-subset audit replace those assumptions.
 
 Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class library
 (`System.Text.Json` for the JSON-document helpers).
+
+## Owned process runner planned 2026-11-16
+
+One shared owned-process mechanism serves `DotnetProcess`, Protocol.Tests' Python
+runner and the Thermo corpus runner, preserving each caller's arguments, working
+folder, environment, return/error form and stream encoding. The five-minute default
+and five-second bounded cleanup are unchanged; the original deadline begins before
+bootstrap launch and covers target exit and both streams. Cancellation and partial
+output retain their original primary exception and diagnostics.
+
+On Windows create a unique named Job Object before starting a bootstrap, retain the
+parent's non-inheritable handle, and require the bootstrap to join it before creating
+the target; reject assignment failure before target execution. Keep the parent handle
+until successful completion or cleanup and do not allow ordinary child breakaway.
+Use a randomly named `CurrentUserOnly` duplex channel with non-inheritable endpoints;
+concurrent launches must not inherit or retain each other's channels. On Linux bootstrap
+creates its session and group before starting the target and stays alive as an anchor
+until the parent releases or cleans it up; separately communicate
+its target's real exit status, close the bootstrap's own copies of stdout/stderr after
+target launch, and use its own group for termination. An unexpected parent-channel
+EOF triggers cleanup. Failure to establish ownership is not a successful launch.
+See the planned [ProcessOwner](ProcessOwner/BOOT.md) for the boundary.
+
+This controls descendants that remain in the owned job/group; processes deliberately
+escaping the group, created outside the job, or surviving external destruction of the
+owner are not promised. Do not replace the confirmed exited-target/live-child fix with
+only a diagnostic wording change. Do not add a fresh deadline, shell interpolation,
+new required self-hosted tools, analyzer suppressions or `partial` declarations.
+First prove the native mechanism through a small compilable `NativeLibrary.GetExport`
+probe with existing analyzers on Windows and Linux. Exercise real descendants, output,
+exit code, cancellation, timeout, failed assignment, handle inheritance, primary
+errors and the old red witness. RELEASE also terminates ordinary descendants that
+already closed their streams. Cleanup after timeout/cancellation has its own original
+five-second budget; an owner killed as part of authorized group cleanup is expected.
+Success additionally requires a verified empty Windows job or no live Linux group
+members; unknown cleanup is an infrastructure error, never a reported success.
+A platform's result is not evidence for the other.
 
 ## Constraints
 

@@ -132,4 +132,30 @@ public sealed class CorruptionTests
         var error = Assert.Throws<DatabaseFormatException>(() => SpeciesDatabase.Parse(new StringReader(text)));
         Assert.Equal(6, error.LineNumber);
     }
+    /// <summary>Empty lines and whitespace-prefixed comments remain legal after the final section.</summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("\n  \t\n")]
+    [InlineData(" ! comment\n\t! another comment\n")]
+    public void ABlankOrCommentTrailerIsAccepted(string trailer)
+    {
+        var text = MinimalFile(record => record) + trailer;
+        var database = SpeciesDatabase.Parse(new StringReader(text));
+        Assert.Equal("H2O", Assert.Single(database.Products).Name);
+    }
+
+    /// <summary>Unexpected trailer lines are rejected at their precise one-based source location.</summary>
+    [Theory]
+    [InlineData("garbage\n", 0)]
+    [InlineData("  ! comment\n\n  extra record\n", 2)]
+    [InlineData("\t\nEND PRODUCTS\n", 1)]
+    public void UnexpectedTrailerContentIsRejectedAtItsSourceLine(string trailer, int precedingLines)
+    {
+        var original = MinimalFile(record => record);
+        var error = Assert.Throws<DatabaseFormatException>(() => SpeciesDatabase.Parse(new StringReader(original + trailer)));
+        Assert.Null(error.FileName);
+        Assert.Equal(original.Count(character => character == '\n') + precedingLines + 1, error.LineNumber);
+        Assert.Contains("unexpected content after 'END REACTANTS'", error.Message, StringComparison.Ordinal);
+    }
+
 }

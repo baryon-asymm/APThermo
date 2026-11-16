@@ -67,10 +67,11 @@ public sealed class AuditPhaseCudaTests(ITestOutputHelper output)
     [InlineData("srcl2")]
     [InlineData("multiFloor")]
     [Trait("Category", "Cuda")]
+    [Trait("CudaEvidence", "hardware")]
     public void ActualCudaMatchesTheCpuOnEveryFrozenPhaseInput(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             output.WriteLine($"actualCuda=false; {name}: explicit forbidden-CUDA refusal control only; no hardware pair executed");

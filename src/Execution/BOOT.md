@@ -20,17 +20,10 @@ exists, so that every numerical node stays testable without it.
   is loaded on the CPU accelerator and on CUDA from the same method; there is no
   accelerator-specific numerical code.
 - **Every CUDA kernel goes through the post-link, which makes its arithmetic the CPU's**
-  (2026-10-05). The kernels call no libdevice function: the tree's own `Exp`, `Log` and
-  `Pow` are C#, the context is built without `LibDevice()`, and `Sqrt`, `Floor`,
-  `Ceiling` and `Abs` compile to single IEEE instructions. Two things of ILGPU's
-  arithmetic remain. `Math.FusedMultiplyAdd` is an undefined external function: the
-  post-link inlines each call as `fma.rn.f64`. A PTX compiler may contract a `mul.f64`
-  and an `add.f64` into an fma the C# never wrote: the post-link marks every `mul`, `add`
-  and `sub` of `.f64` `.rn`, which PTX defines as never contracted. It then refuses a
-  kernel whose PTX holds a fused or `mad` instruction it did not write, an `.approx`
-  `f64` instruction or an external function, and loads it once as a trial. The stages:
-  [Ptx/BOOT.md](Ptx/BOOT.md). The architecture fact shows the same program on every
-  target from `compute_75` (Acceptance criteria).
+  (2026-10-05). The post-link rewrites and checks the PTX, then trial-loads it; its
+  exact arithmetic and refusal rules are [Ptx/BOOT.md](Ptx/BOOT.md). The architecture
+  fact shows the same program on every target from `compute_75` (Acceptance criteria).
+  → HISTORY.md#post-link-parent-retelling-2026-11-16
   ⚠ 2026-10-05: was the post-link completing the libdevice wrappers a kernel called and
   ILGPU left undefined, now rounding and refusing → HISTORY.md#post-link-ptx-2026-10-05
   ⚠ 2026-09-26: was "ILGPU's wrapper generation is never relied on", now the post-link
@@ -122,8 +115,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   views for its case and call the numerical node. The transport kernel takes a plain
   batch of stations, built by the batch type's factories (`API.md`, Batches) →
   HISTORY.md#kernels-transport-batch-retelling-2026-10-01
-  ⚠ 2026-09-12: was no species-function batch, now the `Functions` entry point →
-  HISTORY.md#kernels-species-function-batch-2026-09-12
+  ⚠ 2026-09-12: `Functions` batch was absent, now present → HISTORY.md#batch-2026-09-12
 - **Warm-up**: kernel compilation and post-link happen on the first run of a program
   per engine and are cached for the engine's lifetime; the time is reported as the
   run's `WarmUp`, separately from the upload, kernel and download times.
@@ -138,9 +130,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   - **All cores (F3).** The CPU accelerator runs `Environment.ProcessorCount` threads,
     through a `CPUDevice` sized for it rather than ILGPU's predefined 16-thread device.
     The layout rounds down to the nearest multiple of 4 not above the count, and the
-    choice is documented where it is made. On the reference
-    machine the count is 16, the layout is today's, and no throughput record moves.
-    Results do not depend on the thread count (Invariants: deterministic batches).
+    choice is documented where it is made. Results do not depend on the thread count
+    (Invariants: deterministic batches). The historical reference-machine measurement
+    → HISTORY.md#all-cores-measurement-2026-11-16
 
     ⚠ 2026-09-28: was the layout rounded for the warp layout, now to keep (4, 4, 1)
     → HISTORY.md#all-cores-layout-reason-2026-09-28
@@ -201,8 +193,7 @@ the package surface → HISTORY.md#engine-and-mathprobe-internal-2026-09-15
 | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline`, `Kernels` | one pipeline per program declares its host arrays, device buffers and views struct and assembles its result; `Kernels` is the registry of entry points, each slicing the views of its case and calling the numerical node; no formula in either. The root's Ce rule allows them above its limit as composition roots and a registry (`## Shape exceptions`); `LaunchBudget` is threaded from `session.Budget` into `ChunkPlan.For`. Three pipelines also have an internal `DeclareBuffers` for the F8 wiring fact; it and `Run` call one private `Declare`, so the two cannot drift, and `Run`'s `using var buffers` exists only because CA2000 needs a literal dispose beside the allocation (`BatchRun.Execute` has already disposed) | internal |
 | `Ptx/` (child node, `APThermo.Execution.Ptx`) | the post-link (`PtxPostLink`, whose `Link` returns what it did) and the WSL workaround (`CudaWslDevices`); its own `BOOT.md`/`API.md` hold the contract | internal |
 
-⚠ 2026-09-14: was `FunctionCount` the kernel's stride, now the const `StrideCount` →
-HISTORY.md#probe-stride-count-2026-09-14
+⚠ 2026-09-14: stride was `FunctionCount`, now `StrideCount` → HISTORY.md#stride-2026-09-14
 
 Decision of 2026-09-15 (the child-nodes phase, root `BOOT.md`, 0aa7e60): a cluster earns
 a child directory when the rest of the node reaches it through a contract narrower than
@@ -252,16 +243,26 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Engine` | efferent coupling | 36 | ⚠ 2026-11-15 R10: was 35, now measured 36 for the internal immutable calibration-observation value-copy accessor; ShapeTests/DiagnosticsTests measured 16 passing and two exact stale-row failures before this correction. Composition/lifecycle orchestration only; no formula.  ⚠ 2026-11-14 R10: was 33, now measured 35 with the session calibration cache and transaction on the existing batch-loop seam; lifecycle orchestration only.  ⚠ 2026-11-14: was 31, now 33 after adding the explicit ExecutionResourceOwner and TableUpload lifecycle collaborators; full ShapeTests measured it. No formula was added.  the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2), `MarkLost` and `DropsAfterLoss(CudaError)` (2026-09-29, review: test-only seams that let the tests node drive the third audit pass's finding 2 without a driver-touching `CudaException`), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
+| `Engine` | efferent coupling | 36 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2), `MarkLost` and `DropsAfterLoss(CudaError)` (2026-09-29, review: test-only seams that let the tests node drive the third audit pass's finding 2 without a driver-touching `CudaException`), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
 | `Kernels` | efferent coupling | 26 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
-| `RocketPipeline` | efferent coupling | 27 | ⚠ 2026-11-14 R10: was 25, now measured 27 after adding calibration cache/transaction lifecycle; no formula.  the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
-| `TransportPipeline` | efferent coupling | 26 | ⚠ 2026-11-14 R10: was 23, now measured 26 for calibration lifecycle and explicit selected-backend gating; no formula.  the same case as `RocketPipeline` above |
-| `EquilibriumPipeline` | efferent coupling | 25 | ⚠ 2026-11-14 R10: was 22, now measured 25 for the same calibration lifecycle/backend gating.  the same case as `RocketPipeline` above |
-| `SpeciesFunctionPipeline` | efferent coupling | 21 | ⚠ 2026-11-14 R10: was 18, now measured 21 for the same calibration lifecycle/backend gating.  the same case as `RocketPipeline` above |
-| `RocketBatchViews.RocketBatchViews` | parameters | 18 | ⚠ 2026-11-14 R10: was 17, now 18 after appending one typed recovery-state view per case; field projection only. A kernel parameter descriptor (internal since 2026-09-15, the ⚠ under "The views structs keep their constructors"); grouping its views would re-emit the kernels and move the contract; every creation names its arguments |
-| `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 14 | ⚠ 2026-11-14 R10: was 13, now 14 for the same appended typed recovery-state projection as `RocketBatchViews` above |
+| `RocketPipeline` | efferent coupling | 27 | the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
+| `TransportPipeline` | efferent coupling | 26 | the same case as `RocketPipeline` above |
+| `EquilibriumPipeline` | efferent coupling | 25 | the same case as `RocketPipeline` above |
+| `SpeciesFunctionPipeline` | efferent coupling | 21 | the same case as `RocketPipeline` above |
+| `RocketBatchViews.RocketBatchViews` | parameters | 18 | A kernel parameter descriptor (internal since 2026-09-15, the ⚠ under "The views structs keep their constructors"); grouping its views would re-emit the kernels and move the contract; every creation names its arguments |
+| `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 14 | projects the typed recovery-state view per case |
 | `RocketBatchResult.RocketBatchResult` | parameters | 10 | mirrors the batch result `API.md` publishes, one argument per property, as `RocketBatchViews` above |
 | `EquilibriumBatchResult.EquilibriumBatchResult` | parameters | 7 | the same case as `RocketBatchResult` above |
+
+⚠ 2026-11-15: Engine Ce was 35, now 36 → HISTORY.md#shape-2026-11-16
+⚠ 2026-11-14: Engine Ce was 33, now 35 → HISTORY.md#shape-2026-11-16
+⚠ 2026-11-14: Engine Ce was 31, now 33 → HISTORY.md#shape-2026-11-16
+⚠ 2026-11-14: RocketPipeline Ce was 25, now 27 → HISTORY.md#shape-2026-11-16
+⚠ 2026-11-14: TransportPipeline Ce was 23, now 26 → HISTORY.md#shape-2026-11-16
+⚠ 2026-11-14: EquilibriumPipeline Ce was 22, now 25 → HISTORY.md#shape-2026-11-16
+⚠ 2026-11-14: SpeciesFunctionPipeline Ce was 18, now 21 → HISTORY.md#shape-2026-11-16
+⚠ 2026-11-14: RocketBatchViews args were 17, now 18 → HISTORY.md#shape-2026-11-16
+⚠ 2026-11-14: EquilibriumBatchViews args were 13, now 14 → HISTORY.md#shape-2026-11-16
 
 `SpeciesFunctionBatchViews` and `TransportBatchViews`, the other two views structs
 `## Structure` names, take six parameters each and need no row, as it already says.

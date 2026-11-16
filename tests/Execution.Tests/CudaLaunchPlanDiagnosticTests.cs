@@ -22,7 +22,7 @@ public sealed class CudaLaunchPlanDiagnosticTests(ITestOutputHelper output)
     [Trait("Category", "LongRunning")]
     public void DiagnosticOnlyFrozenThroughputBoundedVersusStaticLaunches()
     {
-        var cuda = EngineFixture.Shared.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda(output);
         if (cuda is null)
         {
             output.WriteLine("actualCuda=false; diagnostic not executed; no scheduling or throughput evidence");

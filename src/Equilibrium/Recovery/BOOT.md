@@ -210,14 +210,16 @@ candidate final is compared with the banked objective: larger entropy for hp,
 smaller enthalpy for sp. Strict improvement replaces the bank; an exact tie keeps
 the earlier candidate, the original first. A successful final does not stop the
 floor walk. After all distinct floors are visited, restore the best moles,
-multipliers, status and state exactly, without another numerical solve.
+multipliers, condensed slots, status and state exactly, without another numerical solve.
 
 The caller supplies `RecoverySlices`: bracket ends, banked moles/multipliers and
-one dedicated typed `MixtureState` scratch element per case. The existing double
-and integer layouts and offsets stay unchanged. Relative to the original two-end
-bracket, extra bytes per case are `8 * (speciesCount + elementCount) + sizeof(MixtureState)`;
+one dedicated typed `MixtureState` scratch element per case. The existing double layout and pre-existing integer offsets stay unchanged; an integer
+slice for the banked condensed slots follows the existing regions. Relative to the original two-end
+bracket, extra bytes per case are `8 * (speciesCount + elementCount) + sizeof(MixtureState) + 4 * MaxCondensedInSolution`;
 the chunk owner accounts for the separate typed buffer through its actual element size.
 Only objective, status, cursor and unresolved flag remain in the local plan.
+⚠ 2026-11-16: the earlier bank omitted condensed slots; a later probe could leave its
+slots paired with the winning candidate's restored moles, as `RestoringAnEarlierWinnerRestoresItsCondensedSlots` exposed.
 Save/restore the complete state bit for bit, including signed zeros, through a
 typed view; no field subset, numerical expression, selection rule or cap changes.
 No allocation or temperature mesh is introduced inside a solve.

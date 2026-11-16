@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Diagnostics;
+using APThermo.Harness;
 using System.Reflection;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -174,17 +176,32 @@ public sealed class PythonProcessDeadlineTests(ITestOutputHelper output)
         Assert.Equal(1, clock.Fired);
     }
 
-    /// <summary>The production kill-filter mechanism still keeps a documented partial-kill error as secondary detail.</summary>
+    /// <summary>The real owned Python path retains a secondary cleanup failure alongside its timeout.</summary>
     [Fact]
-    public void DocumentedTreeKillFailureRemainsSecondary()
+    public async Task OwnedCleanupFailureRemainsSecondaryToPythonTimeout()
     {
-        var method = typeof(PythonProcess).GetMethod("CaptureTreeKill", BindingFlags.NonPublic | BindingFlags.Static);
-        Assert.NotNull(method);
-        var partial = new AggregateException("injected partial tree kill", new IOException("owned child was not terminated"));
-        Action kill = () => throw partial;
-        var failure = Assert.IsType<string>(method.Invoke(null, [kill]));
-        Assert.Contains(nameof(AggregateException), failure, StringComparison.Ordinal);
-        Assert.Contains(partial.InnerException!.Message, failure, StringComparison.Ordinal);
+        var probe = new PythonProcessProbe();
+        await using var cleanup = probe.ConfigureAwait(true);
+        var attempts = 0;
+        void FailCleanup() { attempts++; throw new AggregateException("controlled owned cleanup failure"); }
+        Task<DotnetProcessResult> RunOwned(ProcessStartInfo start, CancellationToken token, Action<int> started)
+        {
+            var type = typeof(OwnedProcess).Assembly.GetType("APThermo.Harness.OwnedProcessOperation", throwOnError: true)!;
+            var constructor = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Single();
+            var instance = constructor.Invoke([start, started, (Action)FailCleanup, null, null, null]);
+            var method = type.GetMethod("RunAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            return (Task<DotnetProcessResult>)method.Invoke(instance, [token])!;
+        }
+        probe.Start("hang", Deadline, controlledRun: RunOwned);
+        await probe.AcknowledgeAsync().ConfigureAwait(true);
+        RequireBeforeExpiry(probe);
+        probe.AdvanceDeadline();
+        var problem = await Assert.ThrowsAsync<XunitException>(probe.CompletionAsync).ConfigureAwait(true);
+        Assert.Equal(1, attempts);
+        Assert.Contains("controlled owned cleanup failure", Assert.IsType<string>(problem.Data["Cleanup"]), StringComparison.Ordinal);
+        _ = Assert.IsType<byte[]>(problem.Data["StandardOutput"]);
+        _ = Assert.IsType<byte[]>(problem.Data["StandardError"]);
+        await probe.WaitForParentExitAsync(requireSuccess: false).ConfigureAwait(true);
     }
 
     private void RequireBeforeExpiry(PythonProcessProbe probe)
