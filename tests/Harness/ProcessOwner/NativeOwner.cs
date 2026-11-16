@@ -47,13 +47,7 @@ internal static class NativeOwner
         {
             if (OperatingSystem.IsWindows())
             {
-                var get = Load<StandardHandle>(library, "GetStdHandle");
-                var close = Load<CloseHandle>(library, "CloseHandle");
-                foreach (var number in new[] { -11, -12 })
-                {
-                    var handle = get(number);
-                    if (handle is not (0 or -1)) { _ = close(handle); }
-                }
+                CloseWindowsOutputs(library);
             }
             else
             {
@@ -61,6 +55,17 @@ internal static class NativeOwner
             }
         }
         finally { NativeLibrary.Free(library); }
+    }
+
+    private static void CloseWindowsOutputs(nint library)
+    {
+        var get = Load<StandardHandle>(library, "GetStdHandle");
+        var close = Load<CloseHandle>(library, "CloseHandle");
+        foreach (var number in new[] { -11, -12 })
+        {
+            var handle = get(number);
+            if (handle is not (0 or -1)) { _ = close(handle); }
+        }
     }
 
     private static void CloseLinuxOutputs(nint library)

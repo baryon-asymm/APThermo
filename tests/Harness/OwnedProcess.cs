@@ -80,7 +80,7 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         {
             try
             {
-                var cleanup = await CleanupAsync(pipe, owner, job, output, error, authorizedStop, controlProbe, drainWaiting).ConfigureAwait(false);
+                var cleanup = await CleanupAsync(pipe, owner, job, output, error, authorizedStop).ConfigureAwait(false);
                 if (cleanup is not null) { secondary.Add(cleanup); }
             }
             catch (Exception cleanup) when (Record(cleanup, secondary)) { }
@@ -167,8 +167,8 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         }
     }
 
-    private static async Task<Exception?> CleanupAsync(NamedPipeServerStream pipe, Process owner, WindowsJob? job,
-        ProcessOutput output, ProcessOutput error, bool stopping, Action<Stream>? controlProbe, Action? drainWaiting)
+    private async Task<Exception?> CleanupAsync(NamedPipeServerStream pipe, Process owner, WindowsJob? job,
+        ProcessOutput output, ProcessOutput error, bool stopping)
     {
         using var timeout = new CancellationTokenSource(DotnetProcess.CleanupTimeout);
         Exception? controlFailure = null;

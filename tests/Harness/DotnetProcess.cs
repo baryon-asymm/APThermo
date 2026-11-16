@@ -65,13 +65,13 @@ public static class DotnetProcess
             problem.Data["StandardError"] = Array.Empty<byte>();
             throw problem;
         }
-        return RunControlledAsync(assemblyPath, arguments, workingDirectory, timeout, environment, TimeProvider.System, null, cancellationToken).GetAwaiter().GetResult();
+        var start = StartInfo(assemblyPath, arguments, workingDirectory, environment);
+        return RunControlledAsync(start, timeout, TimeProvider.System, null, cancellationToken).GetAwaiter().GetResult();
     }
 
-    internal static async Task<DotnetProcessResult> RunControlledAsync(string assemblyPath, IReadOnlyList<string> arguments, string workingDirectory,
-        TimeSpan timeout, IReadOnlyDictionary<string, string>? environment, TimeProvider clock, Action? cleanupProbe, CancellationToken cancellationToken)
+    internal static async Task<DotnetProcessResult> RunControlledAsync(ProcessStartInfo start, TimeSpan timeout,
+        TimeProvider clock, Action? cleanupProbe, CancellationToken cancellationToken)
     {
-        var start = StartInfo(assemblyPath, arguments, workingDirectory, environment);
         using var deadline = new CancellationTokenSource(timeout, clock);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token, cancellationToken);
         var targetId = 0;

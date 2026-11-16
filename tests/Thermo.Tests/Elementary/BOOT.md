@@ -35,6 +35,7 @@ standard-library corpus parser/identity guard and its portable refusal controls.
 - [Thermo.Elementary](../../../src/Thermo/Elementary/API.md) — the functions, the fast and accurate paths, the tables.
 - [Thermo](../../../src/Thermo/API.md) — `KernelMath`, the entry the numerical nodes use.
 - [Fixtures](../../Fixtures/API.md) — `RepositoryPaths`, to find the fixture files from the repository root.
+- [Harness](../../Harness/API.md) — owned subprocess execution and raw output capture.
 - [Thermo.Tests](../API.md) — the parent's assembly, as parent internals: the compiler's own helper types for
   collection and array expressions (`<>z__ReadOnlyArray`, `<PrivateImplementationDetails>`), which sit in the assembly's
   global namespace and so read as the project node's; no member the parent wrote is used.

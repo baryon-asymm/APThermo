@@ -49,18 +49,7 @@ public sealed class PythonCorpusProcessTests
         {
             Assert.False(child.HasExited);
             var parent = await launched.Task.WaitAsync(watchdog.Token).ConfigureAwait(true);
-            if (parentExits)
-            {
-                try
-                {
-                    await parent.WaitForExitAsync(watchdog.Token).ConfigureAwait(true);
-                }
-                catch (InvalidOperationException) when (pending.IsCompleted)
-                {
-                    Assert.Fail("runner completed after parent exit while the child held inherited streams");
-                }
-                Assert.False(pending.IsCompleted, "runner completed after parent exit while the child held inherited streams");
-            }
+            if (parentExits) { await AssertParentWaitsAsync(parent, pending, watchdog.Token).ConfigureAwait(true); }
             var watch = Stopwatch.StartNew();
             clock.Expire();
             var finished = await Task.WhenAny(pending, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(true);
@@ -75,23 +64,41 @@ public sealed class PythonCorpusProcessTests
         }
         finally
         {
-            if (!child.HasExited) { child.Kill(entireProcessTree: true); }
-            using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await child.WaitForExitAsync(cleanup.Token).ConfigureAwait(true);
-            if (!pending.IsCompleted && launched.Task.IsCompletedSuccessfully)
-            {
-                var parent = await launched.Task.ConfigureAwait(true);
-                try
-                {
-                    if (!parent.HasExited) { parent.Kill(entireProcessTree: true); }
-                }
-                catch (InvalidOperationException)
-                {
-                    // The owned parent completed concurrently with fixture cleanup.
-                }
-            }
-            Directory.Delete(directory, recursive: true);
+            await StopProbeAsync(child, pending, launched.Task, directory).ConfigureAwait(true);
         }
+    }
+
+    private static async Task AssertParentWaitsAsync(Process parent, Task pending, CancellationToken watchdog)
+    {
+        try
+        {
+            await parent.WaitForExitAsync(watchdog).ConfigureAwait(true);
+        }
+        catch (InvalidOperationException) when (pending.IsCompleted)
+        {
+            Assert.Fail("runner completed after parent exit while the child held inherited streams");
+        }
+        Assert.False(pending.IsCompleted, "runner completed after parent exit while the child held inherited streams");
+    }
+
+    private static async Task StopProbeAsync(Process child, Task pending, Task<Process> launched, string directory)
+    {
+        if (!child.HasExited) { child.Kill(entireProcessTree: true); }
+        using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await child.WaitForExitAsync(cleanup.Token).ConfigureAwait(true);
+        if (!pending.IsCompleted && launched.IsCompletedSuccessfully)
+        {
+            var parent = await launched.ConfigureAwait(true);
+            try
+            {
+                if (!parent.HasExited) { parent.Kill(entireProcessTree: true); }
+            }
+            catch (InvalidOperationException)
+            {
+                // The owned parent completed concurrently with fixture cleanup.
+            }
+        }
+        Directory.Delete(directory, recursive: true);
     }
 
     private static ProcessStartInfo Start(string script)
