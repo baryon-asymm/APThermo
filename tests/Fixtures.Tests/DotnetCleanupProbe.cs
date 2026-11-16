@@ -44,9 +44,19 @@ internal sealed class DotnetCleanupProbe : IDisposable
 
     internal Task<DotnetProcessResult> RunAsync(TimeProvider clock, Action? cleanupProbe, CancellationToken caller)
     {
+        var start = new ProcessStartInfo("dotnet")
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            WorkingDirectory = Path.GetTempPath(),
+        };
+        start.ArgumentList.Add(_assembly);
+        foreach (var argument in _arguments) { start.ArgumentList.Add(argument); }
+        foreach (var (key, value) in _environment) { start.Environment[key] = value; }
         var method = typeof(DotnetProcess).GetMethod("RunControlledAsync", BindingFlags.NonPublic | BindingFlags.Static)!;
-        return (Task<DotnetProcessResult>)method.Invoke(null, [_assembly, _arguments, Path.GetTempPath(), TimeSpan.FromSeconds(2),
-            _environment, clock, cleanupProbe, caller])!;
+        return (Task<DotnetProcessResult>)method.Invoke(null,
+            [start, TimeSpan.FromSeconds(2), clock, cleanupProbe, caller])!;
     }
 
     internal async Task WaitForExitAsync()
