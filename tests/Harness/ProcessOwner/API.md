@@ -5,7 +5,7 @@
 The standalone BCL bootstrap is started by the Harness owner with a structured argv:
 
 ```text
---channel <pipe-name> [--job-name <name>] -- <executable> <argument>...
+--channel <pipe-name> --parent-pid <positive decimal> --parent-birth <decimal> [--job-name <name>] -- <executable> <argument>...
 ```
 
 The executable and every argument are passed without shell interpolation, including
@@ -18,6 +18,31 @@ configures kill-on-last-handle-close and retains a non-inheritable handle; the b
 opens it, assigns itself before starting the target, then closes its own job handle.
 Job-creation collisions, configuration, opening or assignment failures fail closed.
 On Linux the bootstrap creates its own session and process group before target start.
+
+Before launching bootstrap, the parent captures its own OS birth identity. The
+`--parent-pid` argument is its positive decimal PID; `--parent-birth` is the unsigned
+decimal process creation FILETIME on Windows or decimal `/proc/self/stat` field 22
+start ticks on Linux. The bootstrap opens a non-inheritable stable observation of that
+specific PID, validates its birth value and that it is live, and refuses before START
+if opening, validation, observation, parsing or identity matching fails. It never
+signals the parent PID. On Windows it retains a query/synchronize process handle,
+checks creation FILETIME and observes death with `WaitForSingleObject`. On Linux it
+opens `/proc/<pid>` with `O_DIRECTORY|O_CLOEXEC`, then reads `stat` relative to that
+retained directory handle via `openat`; ESRCH or terminal Z/X means exited. Once
+validated it never reopens the numeric PID path, so PID reuse cannot turn a different
+process into the observed parent. Other observation errors fail closed, never alive.
+
+Before the channel connects, race cancellable asynchronous `ConnectAsync` against
+parent-death observation. A short polling cadence such as 100 ms on Linux is only an
+observation cadence, not a new timeout; no dedicated monitoring thread is required.
+If parent death or observation failure wins, close the channel and exit nonzero without
+starting the target. If connection wins, cancel and observe the monitoring task and
+close its retained handle; connection alone never authorizes launch, which still needs
+a valid START frame. Once connected, parent-channel EOF governs owner cleanup as below.
+Early parse, open, identity, connection and cancellation failures also close handles
+and cancel and observe any monitoring task. Do not introduce a shorter connection
+deadline or change the caller deadline, five-second cleanup, output, token or handle
+inheritance semantics.
 
 Both directions share the duplex pipe. Each frame is `APTO` (four ASCII bytes), version `1` (one byte),
 one message-type byte, a four-byte unsigned little-endian payload length, then exactly

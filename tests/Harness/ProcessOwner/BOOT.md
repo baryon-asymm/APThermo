@@ -12,6 +12,9 @@ bounded cleanup after that target exits. This is test infrastructure, not produc
 - Ownership covers ordinary descendants remaining in the Windows job or Linux group.
   A deliberate escape or destruction of the owner is outside this guarantee.
 - Failure to establish ownership is explicit and occurs before the target executes.
+- Before connection, the bootstrap observes its launching parent's stable PID and
+  birth identity and exits without START if the parent dies or identity is invalid;
+  observation errors fail closed, and a successful connection still requires START.
 
 ## Dependencies
 
@@ -38,8 +41,31 @@ bootstrap startup and both output streams; bounded cleanup
 uses at most the existing five seconds. Implement only after a native interop probe has
 compiled with the project's analyzers on both supported OSes. The exact argv, framed
 control protocol, target exit/owner lifetime and cancellation rules are in API.md.
+Before launch the parent passes its PID and birth identity using the API's exact argv.
+Windows retains a non-inheritable query/synchronize handle and validates the creation
+FILETIME; Linux retains an `O_DIRECTORY|O_CLOEXEC` `/proc/<pid>` directory handle and
+reads `stat` through `openat`, without reopening the numeric PID after validation.
+Death, terminal Z/X, identity mismatch or observation error fail closed before START;
+never signal the parent. Race the pre-connect channel operation against cancellable
+asynchronous liveness observation, without a dedicated thread or a new deadline; a
+100 ms observation cadence is not a timeout. Cancel and observe the liveness task and
+close every handle on successful connect and every early error. After connection the
+existing channel-EOF cleanup governs owner lifetime. Preserve the original caller
+and cleanup deadlines, output bytes, cancellation token and non-inheritance guarantees.
+
+⚠ 2026-11-16: pre-connect `ConnectAsync` previously waited without observing whether
+the launching parent still existed. A parent crash before connection could leave an
+owner indefinitely waiting even after graceful pre-START cleanup had been repaired.
 
 ## Acceptance criteria
+
+- [ ] On Windows and Linux, real controls prove wrong birth identity and a parent dead
+  before opening fail closed before target launch; a validated parent dying after open
+  ends a still-unconnected bootstrap. Exercise connection/death race, a valid START,
+  and four concurrent launches without inherited or cross-retained handles. Actual
+  compiling negative controls must turn red for missing liveness or accepted mismatch;
+  the native primitive probes alone do not prove forced PID reuse. Record source-bound
+  evidence on each OS and preserve the existing deadlines and exact output/token rules.
 
 - [ ] Real target/descendant controls on both operating systems prove exit-code and
   byte-exact output preservation, actual target PID, completion, timeout, cancellation, failure to join,
