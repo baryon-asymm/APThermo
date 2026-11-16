@@ -104,6 +104,13 @@ This test-only seam exposes direct bootstrap killing while its target and child 
 The owning control releases the gate and reaps its own identities in finally. A distinct
 real parent owns the connected-mode server and Windows job; its exit closes both.
 
+If owner exit wins setup recovery and the connection was still pending at deliberate
+server disposal, Linux may report `SocketException` with `OperationAborted`; treat only
+that outcome as expected. A preexisting error or another socket error remains secondary.
+
+⚠ 2026-11-16: intentional server disposal also produced a native Linux aborted socket
+error, which the former ObjectDisposed/OperationCanceled-only filter misclassified.
+
 ## Acceptance criteria
 - [ ] Real separate parent starts bootstrap; death before parent-open, after the opened
   marker and racing a private server connection cannot start target, on both platforms.

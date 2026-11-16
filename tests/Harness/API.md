@@ -283,8 +283,10 @@ Func<Task>? captureGate, Action? drainWaiting)`. `RunAsync(CancellationToken int
 returns `Task<DotnetProcessResult>`. Instance properties `OwnerStartOverride`
 (`Func<ProcessStartInfo, ProcessStartInfo>?`), `OwnerLaunched` (`Action<Process>?`),
 `StartWriteOverride` (`Func<Stream, CancellationToken, Task>?`),
-`CapabilityOverride` (`Func<bool>?`) and `SetupProbe` (`Action<Process>?`) are
-per-operation controls, default null.
+`CapabilityOverride` (`Func<bool>?`), `SetupProbe` (`Action<Process>?`),
+`SetupConnectionOverride` (`Func<CancellationToken, Task>?`) and
+`SetupPipeClosed` (`Action?`) are per-operation controls, default null. The last two
+provide synthetic connection outcomes immediately around intentional server closure.
 `CapabilityOverride` can deny Linux capability before launch; it cannot bypass the real
 capability probe. `OwnerLaunched` runs immediately after `Process.Start` and inside
 setup-failure cleanup. The write override executes after conservative START state is set.
