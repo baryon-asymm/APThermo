@@ -43,3 +43,6 @@ the normal six arguments, forwarded only into bootstrap argv before `--`, with t
 the real parent creates and retains the private control server and, on Windows, job.
 Its exit closes both. The parent
 still launches the real bootstrap using its own OS identity and controlled lifetime.
+
+While connected and live, the controlled parent sends ABORT when `<ready-marker>.abort`
+exists. This test-only command preserves the START requirement and runs no target.

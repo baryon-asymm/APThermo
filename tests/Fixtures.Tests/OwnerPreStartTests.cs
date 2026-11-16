@@ -134,6 +134,18 @@ public sealed class OwnerPreStartTests(ITestOutputHelper output) : IDisposable
         var type = typeof(OwnedProcess).Assembly.GetType("APThermo.Harness.OwnedProcessOperation", throwOnError: true)!;
         var constructor = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Single();
         var operation = constructor.Invoke([target, null, null, null, null, null]);
+        var gate = Path.Combine(_session.DirectoryPath, "eof-gate");
+        var gateDeadline = DateTime.UtcNow.AddSeconds(15);
+        Func<ProcessStartInfo, ProcessStartInfo> ownerStart = start =>
+        {
+            var index = start.ArgumentList.IndexOf("--");
+            start.ArgumentList.Insert(index, "--test-control-eof");
+            start.ArgumentList.Insert(index + 1, gate);
+            start.ArgumentList.Insert(index + 2, "--test-deadline-utc-ticks");
+            start.ArgumentList.Insert(index + 3, gateDeadline.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return start;
+        };
+        type.GetProperty("OwnerStartOverride", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, ownerStart);
         Func<Stream, CancellationToken, Task> write = async (stream, token) =>
         {
             byte[] frame = [(byte)'A', (byte)'P', (byte)'T', (byte)'O', 1, 2, 0, 0, 0, 0];
@@ -153,15 +165,19 @@ public sealed class OwnerPreStartTests(ITestOutputHelper output) : IDisposable
         var method = type.GetMethod("RunAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var pending = (Task<DotnetProcessResult>)method.Invoke(operation, [timeout.Token])!;
-        var problem = await Assert.ThrowsAsync<InvalidOperationException>(async () => await pending.ConfigureAwait(true)).ConfigureAwait(true);
-        Assert.Equal("controlled ambiguous START write", problem.Message);
-        Assert.Null(problem.Data["CleanupException"]);
-        Assert.False(DotnetProcessObservation.Read(marker).IsLive, "the target's child survived scope cleanup");
-        Assert.False(DotnetProcessObservation.Read(marker + ".parent").IsLive, "the target survived scope cleanup");
-        var stdout = await File.ReadAllBytesAsync(Path.Combine(_session.DataPath, "stdout.bin")).ConfigureAwait(true);
-        var stderr = await File.ReadAllBytesAsync(Path.Combine(_session.DataPath, "stderr.bin")).ConfigureAwait(true);
-        Assert.Equal(stdout.Concat(stdout), Assert.IsType<byte[]>(problem.Data["StandardOutput"]));
-        Assert.Equal(stderr.Concat(stderr), Assert.IsType<byte[]>(problem.Data["StandardError"]));
+        try
+        {
+            var problem = await Assert.ThrowsAsync<InvalidOperationException>(async () => await pending.ConfigureAwait(true)).ConfigureAwait(true);
+            Assert.Equal("controlled ambiguous START write", problem.Message);
+            Assert.Null(problem.Data["CleanupException"]);
+            Assert.False(DotnetProcessObservation.Read(marker).IsLive, "the target's child survived scope cleanup");
+            Assert.False(DotnetProcessObservation.Read(marker + ".parent").IsLive, "the target survived scope cleanup");
+            var stdout = await File.ReadAllBytesAsync(Path.Combine(_session.DataPath, "stdout.bin")).ConfigureAwait(true);
+            var stderr = await File.ReadAllBytesAsync(Path.Combine(_session.DataPath, "stderr.bin")).ConfigureAwait(true);
+            Assert.Equal(stdout.Concat(stdout), Assert.IsType<byte[]>(problem.Data["StandardOutput"]));
+            Assert.Equal(stderr.Concat(stderr), Assert.IsType<byte[]>(problem.Data["StandardError"]));
+        }
+        finally { await File.WriteAllTextAsync(gate + ".release", "release").ConfigureAwait(true); }
     }
 
     /// <summary>Stops any retained finite probe and removes its private directory.</summary>

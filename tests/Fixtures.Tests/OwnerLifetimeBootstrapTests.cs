@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.IO.Pipes;
 using System.Reflection;
 using APThermo.Harness;
 using Xunit.Abstractions;
@@ -14,10 +13,8 @@ public sealed class OwnerLifetimeBootstrapTests(ITestOutputHelper output) : IDis
     private readonly DotnetProcessGuardSession _session = new(output);
 
     /// <summary>Parent death after identity open stops a bootstrap, also when connection races death.</summary>
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ActualParentDeathAfterOpenStopsBootstrap(bool raceConnection)
+    [Fact]
+    public async Task ActualParentDeathAfterOpenStopsBootstrap()
     {
         _ = Directory.CreateDirectory(_session.DirectoryPath);
         var channel = "apt-parent-" + Guid.NewGuid().ToString("N");
@@ -36,32 +33,100 @@ public sealed class OwnerLifetimeBootstrapTests(ITestOutputHelper output) : IDis
             await WaitForMarkerAsync(opened, deadline.Token).ConfigureAwait(true);
             Assert.False(parent.HasExited);
             Assert.False(owner.HasExited);
-            using var server = raceConnection ? new NamedPipeServerStream(channel, PipeDirection.InOut, 1,
-                PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly) : null;
-            var connection = server?.WaitForConnectionAsync(deadline.Token);
             await File.WriteAllTextAsync(ready + ".release", "release", deadline.Token).ConfigureAwait(true);
             await parent.WaitForExitAsync(deadline.Token).ConfigureAwait(true);
-            if (server is not null)
-            {
-                await server.DisposeAsync().ConfigureAwait(true);
-                try { await connection!.ConfigureAwait(true); }
-                catch (Exception problem) when (problem is IOException or ObjectDisposedException or OperationCanceledException) { }
-            }
             await owner.WaitForExitAsync(deadline.Token).ConfigureAwait(true);
             Assert.False(File.Exists(target));
         }
         finally
         {
             if (!parent.HasExited) { await File.WriteAllTextAsync(ready + ".release", "release").ConfigureAwait(true); }
-            await parent.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
-            if (owner is not null) { await StopOwnerAsync(owner, channel).ConfigureAwait(true); }
+            try { await parent.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(true); }
+            finally { if (owner is not null) { await StopOwnerAsync(owner, channel).ConfigureAwait(true); } }
+        }
+    }
+
+    /// <summary>Real launching-parent exit is ordered before open, before connect, or after connect.</summary>
+    [Theory]
+    [InlineData("--test-before-parent-open")]
+    [InlineData("--test-connect-pending")]
+    [InlineData("--test-connected")]
+    public async Task ActualParentDeathAtControlledStageFailsClosed(string option)
+    {
+        _ = Directory.CreateDirectory(_session.DirectoryPath);
+        var channel = "apt-stage-" + Guid.NewGuid().ToString("N");
+        var ready = Path.Combine(_session.DirectoryPath, "parent.ready");
+        var opened = Path.Combine(_session.DirectoryPath, "opened.ready");
+        var target = Path.Combine(_session.DirectoryPath, "target.ready");
+        var gate = Path.Combine(_session.DirectoryPath, "stage");
+        var expires = DateTime.UtcNow.AddSeconds(15);
+        using var deadline = new CancellationTokenSource(expires - DateTime.UtcNow);
+        using var parent = StartParent(channel, opened, target, ready, [option, gate, expires.Ticks.ToString(CultureInfo.InvariantCulture)]);
+        Process? owner = null;
+        try
+        {
+            await WaitForMarkerAsync(ready, deadline.Token).ConfigureAwait(true);
+            owner = Process.GetProcessById(int.Parse(await File.ReadAllTextAsync(ready, deadline.Token).ConfigureAwait(true), CultureInfo.InvariantCulture));
+            _ = owner.SafeHandle;
+            await WaitForMarkerAsync(gate + ".ready", deadline.Token).ConfigureAwait(true);
+            Assert.Equal(option != "--test-before-parent-open", File.Exists(opened));
+            Assert.False(parent.HasExited);
+            await File.WriteAllTextAsync(ready + ".release", "release", deadline.Token).ConfigureAwait(true);
+            await parent.WaitForExitAsync(deadline.Token).ConfigureAwait(true);
+            await File.WriteAllTextAsync(gate + ".release", "release", deadline.Token).ConfigureAwait(true);
+            await owner.WaitForExitAsync(deadline.Token).ConfigureAwait(true);
+            Assert.False(File.Exists(target));
+        }
+        finally
+        {
+            await File.WriteAllTextAsync(gate + ".release", "release").ConfigureAwait(true);
+            if (!parent.HasExited) { await File.WriteAllTextAsync(ready + ".release", "release").ConfigureAwait(true); }
+            try { await parent.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(true); }
+            finally { if (owner is not null) { await StopOwnerAsync(owner, channel).ConfigureAwait(true); } }
+        }
+    }
+
+    /// <summary>A connected live parent can release the gate and explicitly ABORT without launching target.</summary>
+    [Fact]
+    public async Task LiveParentCanAbortAfterConnectedGate()
+    {
+        _ = Directory.CreateDirectory(_session.DirectoryPath);
+        var channel = "apt-positive-" + Guid.NewGuid().ToString("N");
+        var ready = Path.Combine(_session.DirectoryPath, "parent.ready");
+        var opened = Path.Combine(_session.DirectoryPath, "opened.ready");
+        var target = Path.Combine(_session.DirectoryPath, "target.ready");
+        var gate = Path.Combine(_session.DirectoryPath, "stage");
+        var expires = DateTime.UtcNow.AddSeconds(15);
+        using var deadline = new CancellationTokenSource(expires - DateTime.UtcNow);
+        using var parent = StartParent(channel, opened, target, ready, ["--test-connected", gate, expires.Ticks.ToString(CultureInfo.InvariantCulture)]);
+        Process? owner = null;
+        try
+        {
+            await WaitForMarkerAsync(ready, deadline.Token).ConfigureAwait(true);
+            owner = Process.GetProcessById(int.Parse(await File.ReadAllTextAsync(ready, deadline.Token).ConfigureAwait(true), CultureInfo.InvariantCulture));
+            _ = owner.SafeHandle;
+            await WaitForMarkerAsync(gate + ".ready", deadline.Token).ConfigureAwait(true);
+            Assert.False(parent.HasExited);
+            await File.WriteAllTextAsync(gate + ".release", "release", deadline.Token).ConfigureAwait(true);
+            await File.WriteAllTextAsync(ready + ".abort", "abort", deadline.Token).ConfigureAwait(true);
+            await owner.WaitForExitAsync(deadline.Token).ConfigureAwait(true);
+            Assert.Equal(0, owner.ExitCode);
+            Assert.False(parent.HasExited);
+            Assert.False(File.Exists(target));
+        }
+        finally
+        {
+            await File.WriteAllTextAsync(gate + ".release", "release").ConfigureAwait(true);
+            if (!parent.HasExited) { await File.WriteAllTextAsync(ready + ".release", "release").ConfigureAwait(true); }
+            try { await parent.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(true); }
+            finally { if (owner is not null) { await StopOwnerAsync(owner, channel).ConfigureAwait(true); } }
         }
     }
 
     /// <summary>Releases the isolated files.</summary>
     public void Dispose() => _session.Dispose();
 
-    private Process StartParent(string channel, string opened, string target, string ready)
+    private Process StartParent(string channel, string opened, string target, string ready, IReadOnlyList<string>? gateArguments = null)
     {
         var start = new ProcessStartInfo("dotnet") { UseShellExecute = false };
         start.ArgumentList.Add(_session.AssemblyPath);
@@ -71,6 +136,7 @@ public sealed class OwnerLifetimeBootstrapTests(ITestOutputHelper output) : IDis
         start.ArgumentList.Add(opened);
         start.ArgumentList.Add(target);
         start.ArgumentList.Add(ready);
+        if (gateArguments is not null) { foreach (var argument in gateArguments) { start.ArgumentList.Add(argument); } }
         return Process.Start(start) ?? throw new InvalidOperationException("parent did not start");
     }
 
