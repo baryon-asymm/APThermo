@@ -121,13 +121,23 @@ the TOCTOU interval is explicitly admitted and covered by a deterministic contro
 retain the proc identity immediately, but check nonce only at the decision boundaries.
 
 ## Acceptance criteria
-- [ ] Real separate parent starts bootstrap; death before parent-open, after the opened
+
+2026-11-16 CPU evidence: c0 hosted CI and Release cohorts pass on Windows and Linux;
+Linux native process controls at source `524df1fa` and frozen-test red/green at `e041385d`
+retain their actual identities in owner-held `fix-evidence/root/owner-524-linux/` and
+`fix-evidence/root/exec-e041-baseline/`. Final c0 readiness controls are recorded in
+`fix-evidence/root/readiness-c0-linux/`. The individual criteria below cite their completed controls; no hardware result is
+inferred from these CPU process checks.
+- [x] 2026-11-16 — Real separate parent starts bootstrap; death before parent-open, after the opened
   marker and racing a private server connection cannot start target, on both platforms.
-- [ ] A real bootstrap exits after injected post-spawn setup failure and no target runs;
+  (2026-11-16: `OwnerLifetimeBootstrapTests` on both OSes in Release run 43861338174; `root/parent-mutants-c0-linux/index.json` and `parent-mutants-c0-windows/`.)
+
+- [x] 2026-11-16 — A real bootstrap exits after injected post-spawn setup failure and no target runs;
   original exception and raw bytes survive, no unverified identity is signalled. A
   compiling no-rendezvous mutant fails, and inability to rendezvous is reported.
+  (2026-11-16: `OwnerIdentityTests.SetupFailureRendezvousStopsRealBootstrap` on both OSes; `owner-setup-rendezvous-windows/` retains the compiling no-rendezvous red/green.)
 
-- [ ] Linux safe force-reap probes `pidfd_send_signal` on retained `/proc/self`
+- [x] 2026-11-16 — Linux safe force-reap probes `pidfd_send_signal` on retained `/proc/self`
   before spawning and refuses explicitly when unavailable; a capability-unavailable
   per-call seam proves no bootstrap or target started. A real wrong-channel-nonce or
   birth/stat mismatch fails without signalling. A matching retained child identity
@@ -135,22 +145,25 @@ retain the proc identity immediately, but check nonce only at the decision bound
   descendant enumeration is used. Windows directly terminates the retained process
   handle. Execute compiling negative controls and the real controls on both OSes;
   native primitive probes alone do not prove forced PID reuse.
+  (2026-11-16: `OwnerIdentityTests`, `OwnerPreStartTests`, `root/linux_bootstrap_signal_primitive.json`, `root/owner-e10-linux-mutants/index.json` and both parent-mutant receipts.)
 
-- [ ] On Windows and Linux, real controls prove wrong birth identity and a parent dead
+- [x] 2026-11-16 — On Windows and Linux, real controls prove wrong birth identity and a parent dead
   before opening fail closed before target launch; a validated parent dying after open
   ends a still-unconnected bootstrap. Exercise connection/death race, a valid START,
   and four concurrent launches without inherited or cross-retained handles. Actual
   compiling negative controls must turn red for missing liveness or accepted mismatch;
   the native primitive probes alone do not prove forced PID reuse. Record source-bound
   evidence on each OS and preserve the existing deadlines and exact output/token rules.
+  (2026-11-16: `OwnerIdentityTests`, `OwnerLifetimeBootstrapTests` and `OwnedProcessGuardTests.FourConcurrentOwnersKeepStreamsAndChannelsSeparate`; both parent-mutant receipts and Release run 43861338174.)
 
-- [ ] Real target/descendant controls on both operating systems prove exit-code and
+- [x] 2026-11-16 — Real target/descendant controls on both operating systems prove exit-code and
   byte-exact output preservation, actual target PID, completion, timeout, cancellation, failure to join,
   cleanup after target exit even when a live descendant closed both streams, expected
   owner death after cleanup, a checked empty-job/no-live-group postcondition, and no
   accidental handle inheritance, including four simultaneous distinct channels. An
   owner crash after RELEASE but before group kill cannot report success. Compiling mutations
   reproduce the old leak and fail; host-specific evidence identifies source and OS.
+  (2026-11-16: `OwnedProcessGuardTests`, `OwnerChannelTests`, `OwnerPreStartTests` and the cross-platform owner receipts in `fix-evidence/process-owned-worker-97a0/` and `root/owner-524-linux/index.json`.)
 
 ## Taboos
 

@@ -1,5 +1,12 @@
 # Acceptance criteria
 
+- [x] 2026-11-16 — `Performance.Tests` passed 1,498/1,498 in each c0 hosted core
+  lane; the 101 selected Performance bit-snapshot results in the GPU workflow passed
+  on each OS.
+  The actual Verify exhaustion seam remains synthetic, not an eight-boundary physical
+  witness. Evidence: [Release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174), `fix-evidence/performance-z6/index.json` in the owner-held archive.
+
+
 - [x] 2026-09-12 — The reference rocket cases (the four propellants, RP-1311 examples 8
       and 12 with freezing at the throat) agree with the fixtures within the tolerance
       table, the compared fields generated from the fixture: `Performance.Tests`,

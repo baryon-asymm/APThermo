@@ -4,8 +4,15 @@
 
 - [x] 2026-11-16 — `LoopLiveBoundaryTests` shows the original direct `ref plan` red
   and an alias mutant red, with the per-iteration copy green (5/5); `BitSnapshotTests`,
-  `WarmStartTests` and recovery controls pass 350/350 on the CPU. CUDA and throughput verification remain
-  pending on the integrated source; no approved numerical record is changed.
+  `WarmStartTests` and recovery controls pass 350/350 on the CPU. CUDA and unchanged throughput gates now pass on the integrated c0 source; no
+  approved numerical record is changed.
+  ⚠ 2026-11-16: the complete earlier criterion was:
+  2026-11-16 — `LoopLiveBoundaryTests` shows the original direct `ref plan` red   and an alias mutant
+  red, with the per-iteration copy green (5/5); `BitSnapshotTests`,   `WarmStartTests` and recovery
+  controls pass 350/350 on the CPU. CUDA and throughput verification remain   pending on the
+  integrated source; no approved numerical record is changed.
+  Its pending CUDA statement describes the pre-c0 handoff. Both actual c0 GPU
+  runs and unchanged throughput gates pass: [Release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174).
 
 - [x] 2026-09-12 — tp problems: for the product mixtures of the four reference
       propellants and the RP-1311 examples in the fixtures node, the mole fractions of

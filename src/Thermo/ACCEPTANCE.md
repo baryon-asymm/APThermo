@@ -1,5 +1,11 @@
 # ACCEPTANCE.md — Thermo
 
+- [x] 2026-11-16 — `Thermo.Tests` passed 1,253/1,253 in each c0 hosted core lane;
+  all 252 selected Thermo bit-result identities passed on each platform in the GPU
+  workflow. The separate constructor rollback mutation remains CPU evidence.
+  Evidence: [Release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174), `fix-evidence/thermo-z7/index.json` in the owner-held archive.
+
+
 ## Acceptance criteria
 
 - [x] 2026-11-16 — `SpeciesConstructorRollbackTests.ConstructorRollsBackActualBuffersWhenAColumnCopyFails`

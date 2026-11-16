@@ -1,6 +1,6 @@
 # API.md — ProcessOwner
 
-## Bootstrap contract ⏳
+## Bootstrap contract ✅
 
 The standalone BCL bootstrap is started by the Harness owner with a structured argv:
 
@@ -66,11 +66,12 @@ invalid lengths, incomplete frames and unexpected message order fail closed. Typ
 
 Stages in ERROR are 1 ownership setup, 2 target launch and 3 control/protocol failure.
 The server accepts one bootstrap connection under the original deadline; the bootstrap
-sets up ownership and connects before READY. A timeout before READY must stop/reap the
-bootstrap, which has not received START and cannot have launched the target. Before
-any START write begins, the parent closes control and directly terminates and reaps
-only its retained bootstrap identity, even if it never connected or entered the
-job/session. Windows retains the actual non-inheritable process handle and terminates
+sets up ownership and connects before READY. Before START a bootstrap with a verified
+retained identity can be directly terminated and reaped. If its Linux nonce cannot be
+verified, do not signal it: retain the private server for bounded rendezvous and report
+secondary infrastructure failure if cleanup cannot be established. An externally
+suspended owner that cannot connect and cannot be verified is outside the cleanup
+success guarantee. Windows retains the actual non-inheritable process handle and terminates
 through that handle, without enumerating descendants. Linux test infrastructure first
 opens a retained `/proc/self` directory handle and probes `pidfd_send_signal` with
 signal 0 before `Process.Start`; unsupported, unavailable or refused capability is an
@@ -88,6 +89,14 @@ or the control must use the real bootstrap. This Linux x64 capability is a test-
 requirement only, not a requirement of the product package. No Linux Arm64 adapter
 is claimed. Parent-liveness monitoring
 is the separate proc-directory/openat observation described above.
+
+⚠ 2026-11-16: this contract previously said “A timeout before READY must stop/reap the
+bootstrap” and “Before any START write begins, the parent closes control and directly
+terminates and reaps only its retained bootstrap identity, even if it never connected or
+entered the job/session.” This absolute wording overlooked an unverified pre-exec
+identity. Verified retained identities may be signalled; otherwise bounded rendezvous
+must establish cleanup or report secondary infrastructure failure.
+
 The parent sets START-may-have-been-sent before beginning the write; a possibly partial
 write uses owned-scope termination and verified postcondition, not that direct path.
 The parent
@@ -177,7 +186,7 @@ its ProcessProbe also use `APThermo.Harness.ProcessOwner.WindowsJob.Create(strin
 through reflection, returning the retained `WindowsJob` (`IDisposable`). These internal
 test contracts are not public package interfaces.
 
-## Bootstrap identity test marker ⏳
+## Bootstrap identity test marker ✅
 
 The optional structured `--test-parent-opened <private-marker-path>` occurs after
 `--job-name` when present and before `--`. After the real parent lifetime identity
@@ -186,7 +195,7 @@ bootstrap atomically publishes this marker. Normal owner launches omit the optio
 The marker is not passed to the target, and does not replace the normal control pipe.
 Marker publication failure fails closed before START.
 
-## Bootstrap ordering test gates ⏳
+## Bootstrap ordering test gates ✅
 
 Optional private argv pairs `--test-before-parent-open <gate>`,
 `--test-connect-pending <gate>`, and `--test-connected <gate>` occur in that order

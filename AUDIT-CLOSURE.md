@@ -5,10 +5,61 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
-## Re-audit and current status — 2026-11-16
+## Re-audit remediation and current acceptance — 2026-11-16
 
-The independent re-audit of `08bf26c3` confirmed further gaps. The aggregate is
-reopened while those gaps are corrected and reverified. Earlier headings and
+The implementation source is `c0ebe7047a0756dbb054e6853fa787a3cc185a11`.
+The earlier 76 A01–A41/R01–R19/T01–T16 identifiers overlap and are not 76 distinct
+defects. Their original register, prior fixes and historical proofs remain in the
+owner-held archive already named below. The current 76-row mapping and Z1–Z14 are
+`fix-evidence/closure-matrix-c0.md` and `closure-matrix-c0.json` in that namespace;
+their SHA-256 values are `ed5073c184ae75395372d8c8b23879693f9f00e92aaa0f1dddd46c00191af340`
+and `82e913c6457433181a25cccc614340a565a2239c72227944283abcee323c6b6c`, respectively.
+
+[CI](https://github.com/baryon-asymm/APThermo/actions/runs/43861325471) and
+[Release](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174)
+hosted lanes each passed 15,588/15,588, without skips. [Trace](https://github.com/baryon-asymm/APThermo/actions/runs/43861325374) passed its two facts on each OS.
+Both GPU platforms passed 451/451 (449 remainder plus both original sweep facts),
+including 87 hardware and 4 executed driver-only CUDA markers per OS, without skips.
+The unchanged warm gates passed at ratios 30.46/25.98 and per-step medians
+1.342e-7/1.272e-7 s on Windows/Linux; the separate cold guard passed too
+(`root/cloud-c0/gpu/windows-independent-receipt.json` and
+`root/cloud-c0/gpu/linux-independent-receipt.json` in the owner-held namespace).
+Pack succeeded and publication jobs were skipped. Actual Windows/Linux consumers matched the downloaded package bytes,
+and PDB/SourceLink evidence passed (`root/cloud-c0/consumer/independent-consumer-receipt.json`
+and `root/cloud-c0/package-inspection/combined-package-source-receipt.json` in the
+owner-held namespace). Run pages identify the runs; uploaded
+artifacts may expire. Earlier f21 acceptance and failed 589 hosted results retain their
+actual source and outcomes.
+
+| Delta | Current correction and proof location |
+|---|---|
+| Z1 | Original throughput approvals and arithmetic remain; separate first-cold record and cold/hit/hit checks have host red/green controls. Frozen historical reference is one reported sample per OS, not a stability estimate. First cold values 2.681e-7 Windows and 2.686e-7 Linux s/step passed their predeclared bounds. |
+| Z2 | Recovery candidate restores all condensed slots with winning state; frozen identical CPU probe is red before/green after. Actual c0 CUDA witness and bit gates pass on both platforms. |
+| Z3 | This ledger names tests, run pages and the owner-held archive namespace; external evidence is explicitly located, not treated as a broken in-clone relative link. |
+| Z4 | Condensed eligibility/open-below-policy is in the actual public consumer contract. |
+| Z5 | CPU cache bypass is tested after compilation against real seeded session state. |
+| Z6 | Actual Verify exhaustion dispatch has controlled positive/mutant tests; the synthetic seam is not claimed as an eight-boundary physical witness. |
+| Z7 | Real Thermo buffer construction fault exercises rollback, with a host-only test seam and kernel-reachability check. |
+| Z8 | State schema enforces target cardinality and flow parity; independent validator matrix covers 288 combinations and two array controls. |
+| Z9 | ThermoFile tail semantics have contract and negative controls. |
+| Z10 | Delivery guards verify exact discovered GPU identities against both TRX phases, and CI/Release/Trace command policy is aligned. Actual GPU and Pack evidence is separate. |
+| Z11 | A shared bounded process owner handles ordinary descendants, output and primary/secondary failures; pre-exec identity is retained and verified before signal/START. Frozen Linux exec-transition, parent-liveness and wrong-birth mutations are red with restored controls green; Windows parent mutations are also red/green. The 589 hosted failure stays historical. |
+| Z12 | Refusal and real-CUDA markers are distinct; hardware verification is not inferred from CPU-forbidden runs. |
+| Z13 | History pointers, chronology, document limits, host/kernel scope and loop-live rule are reconciled; BeO historical approval is not rewritten. |
+| Z14 | Invalid schema type and nonfinite Python comparison inputs/tolerances are rejected. |
+| A36 | Public failed-state inventory covers all supported state and figure fields with meaningful controls. |
+
+Current source-bound criteria are in [Equilibrium](src/Equilibrium/ACCEPTANCE.md),
+[Recovery](src/Equilibrium/Recovery/BOOT.md), [Performance](src/Performance/ACCEPTANCE.md),
+[Thermo](src/Thermo/ACCEPTANCE.md), [Execution tests](tests/Execution.Tests/ACCEPTANCE.md),
+[process ownership](tests/Harness/ProcessOwner/BOOT.md) and [root acceptance](ACCEPTANCE.md).
+Earlier tables, corrections, numeric approvals and command/gate semantics remain below;
+no f21, 589 or intermediate native run is relabelled as c0 evidence.
+
+## Historical re-audit reopening at 08bf — 2026-11-16
+
+The independent re-audit of `08bf26c3` confirmed further gaps. At that stage the
+aggregate was reopened pending correction and re-verification. Earlier headings and
 claims below describe their dated source and stage, including the f21ac451
 acceptance; they do not assert acceptance of later changes. The detailed re-audit
 and source-bound receipts are retained in the owner-held external archive rooted at

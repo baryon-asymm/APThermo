@@ -2,10 +2,19 @@
 
 ## Acceptance criteria
 
-- [ ] The shared owned-process mechanism passes real exited-target/live-descendant,
+- [x] 2026-11-16 — The shared owned-process mechanism passes real exited-target/live-descendant,
   timeout, cancellation, assignment failure, output and exit-code controls on Windows
   and Linux. All three runners use it; red mutations fail, cleanup stays bounded, and
   supported ownership limits are documented with source-bound evidence.
+  (2026-11-16: `OwnedProcessGuardTests`, `OwnerIdentityTests`, `PythonCorpusProcessTests`,
+  both hosted OS cohorts and retained liveness/birth mutation receipts in the
+  owner-held `fix-evidence/parent-mutants-c0-windows/` and `root/parent-mutants-c0-linux/`.)
+
+2026-11-16 CPU evidence: the c0 hosted CI and Release cohorts each pass 15,588
+cases across both OSes. Native Linux `root/owner-524-linux/index.json`,
+`root/exec-e041-baseline/index.json` and `root/readiness-c0-linux/index.json` in
+the owner-held `fix-evidence` archive record the separately sourced mechanism,
+frozen mutation and final readiness controls.
 
 - [x] 2026-11-16 — `StateSchemaGuardTests.NegationHasIndependentControls` and
   `NegationBranchIsAudited` exercise boolean negation, instance-kind distinctions

@@ -348,6 +348,10 @@ retained. A clean diagnostic run cannot reconstruct an unsampled historical miss
   ⚠ 2026-09-28: was "about three minutes" for the architecture fact, now measured 8 m 2
   s on Windows and 11 m 3 s under WSL (a corrected duration, not a new bound) →
   HISTORY.md#long-running-duration-2026-09-28
+  ⚠ 2026-11-16: the earlier measurements were 8 m 2 s on Windows and 11 m 3 s
+  under WSL. On `c0ebe704`, the actual Windows `ArchitectureTests` fact took
+  37 m 21.2537 s on Windows and 39 m 5.8704 s on Linux
+  ([Release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174)); these single measurements are not bounds and their causes are unknown.
 - The post-link facts (`PostLinkTests`) take their PTX from fragments typed in the facts, in the
   shape ILGPU 1.5.3 emits; the fixtures `Ptx/probe.sm_89.ptx` and `Ptx/probe.sm_120.ptx`, which
   served the wrapper inventory, are gone with it (2026-10-05). `ArchitectureTests` is what finds

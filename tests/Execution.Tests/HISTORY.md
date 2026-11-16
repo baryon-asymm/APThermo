@@ -9,6 +9,101 @@ used to stand.
 
 ---
 
+<a id="r10-linux-handoff-2026-11-15"></a>
+
+## 2026-11-16 — from "ACCEPTANCE.md" — R10 host-only diagnostic handoff
+
+⚠ 2026-11-15: the preceding pending-Linux statement records the host-only handoff.
+The separate observability criterion above now carries actual source-a930 Linux
+evidence. This closes diagnostic coverage, while the full performance matrix remains
+open and the older source-463 miss cause remains unknown.
+
+---
+
+<a id="p1-readiness-restatement-2026-11-15"></a>
+
+## 2026-11-16 — from "ACCEPTANCE.md" — P1 hardware readiness wording
+
+  ⚠ 2026-11-15: the last sentence is stated as a readiness requirement rather than
+  an implementation handoff's pending status, so a later tick cannot coexist with
+  a claim that verification remains undone. It still requires actual device proof
+  on both platforms and independent scientific evidence; this wording change
+  supplies neither. Full previous criterion: [HISTORY.md](HISTORY.md#p1-hardware-proof-2026-11-15).
+  “P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented
+  in `AuditPhaseCudaTests`, with explicit selected-device provenance and a forbidden-CUDA
+  refusal labeled as no hardware proof. The CPU companion passes after R08;
+  actual Windows/WSL CUDA equality and scientific obligations remain to be verified.”
+
+---
+
+<a id="r09-identical-prefix-2026-11-15"></a>
+
+## 2026-11-16 — from "ACCEPTANCE.md" — R09 identical-prefix policy
+
+  ⚠ 2026-11-15: the accepted calibration design (`90dfdec1`) permits a live identical
+  workload prefix as a new empirical probe; its merged duration is measured again,
+  never inferred from the old sum. The previous blanket first-one-case wording did
+  not describe that policy. Unknown/changed inputs still start at one, subsequent
+  growth stays at most 2x, and the 500 ms target and workloads are unchanged.
+  Full previous criterion and provenance: [HISTORY.md](HISTORY.md#identical-prefix-launch-budget-2026-11-15).
+  “Re-verify the unchanged bracketing and trace-gas workload per-launch durations
+  on actual CUDA under first-one-case and 2x maximum growth: maximum at most the SAME
+  500 ms target, nonzero launch count and covered cases equal the run count over the
+  unchanged 16,384-case reference workloads. Report aggregate, count, maximum duration
+  and its chunk cases/ordinal; leave cumulative throughput gates unchanged.”
+  ⚠ 2026-11-14: was an aggregate ceiling, now a per-launch bound → HISTORY.md#r09-per-launch-correction-2026-11-14
+
+---
+
+<a id="r09-per-launch-correction-2026-11-14"></a>
+
+## 2026-11-16 — from "ACCEPTANCE.md" — aggregate to per-launch correction
+
+  ⚠ 2026-11-14: R09 was "aggregate kernel-time ceilings", now per-launch duration
+  bounds with complete observations, because the original F2 target concerns each
+  synchronized launch. No GPU verification was performed by this implementation.
+
+---
+
+<a id="r09-aggregate-history-2026-11-14"></a>
+
+## 2026-11-16 — from "ACCEPTANCE.md" — original aggregate obligation
+
+⚠ 2026-11-14: R09 the criterion above replaces the mistaken aggregate obligation
+below, not the original per-launch F2 target. C0 Windows CUDA measured aggregate
+6523.4 ms for bracketing and 668.8 ms for trace gas; both failed the aggregate predicate.
+Retain these observations. They establish neither a maximum nor absence of a separate
+throughput regression. The previous criterion is preserved verbatim:
+“- [ ] Re-verify the unchanged bracketing and trace-gas workload aggregate kernel-time
+  ceilings on actual CUDA under first-one-case and 2x maximum growth. Comments and
+  diagnostics corrected 2026-11-14; no case count, budget or numerical expression changed.”
+
+---
+
+<a id="p1-shared-consumer-red-2026-11-14"></a>
+
+## 2026-11-16 — from "ACCEPTANCE.md" — original red shared seeded consumer
+
+The 2026-11-15 P1 entry below said this witness remained in ACCEPTANCE.md;
+it is now here, with a permanent dated pointer at its former location.
+
+⚠ 2026-11-14: the previous wording recorded a deliberately red shared consumer:
+“P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented
+in `AuditPhaseCudaTests`, with explicit selected-device provenance and a forbidden-CUDA
+refusal labeled as no hardware proof. CPU companion is intentionally red pending the
+numerical owner's correction: Mg–H–O–S SP seeded from the 1075.3181818181818 K TP
+witness returns Ok at 199.43950239292752 K, H=-6044275.863694346 instead of a state
+no worse than the independent feasible H=-9775607.014204179 at the same S,p.
+Evidence obtained 2026-11-14: `SCRATCH/audit/seeded-sp-failure-witness.json` contains
+exact seed species/moles, assigned arrays, cold/seeded states, statuses and counters;
+`phase-cpu-companion-red.log` is 1 passed/1 failed. No GPU run.”
+The Cold-only recovery gate was the cause. `77d9c7b2` applies the same candidate
+bank to initial Warm success; the two CPU consumers pass, and the exact failing
+bytes remain in `fix-evidence/root/seeded-recovery-red-witnesses.json` in the audit
+archive. This revises the observed CPU status without asserting hardware proof.
+
+---
+
 <a id="p1-hardware-proof-2026-11-15"></a>
 
 ## 2026-11-15 — from "ACCEPTANCE.md" — P1 required proof versus the implementation handoff

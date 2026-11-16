@@ -398,6 +398,12 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
   `c0df7b146ffd-linux-throughput/result.json`.  all retain their executed commit.)
 
 Historical 2026-10-04 measurements above are not redated.
+- [x] 2026-11-16 — Winning recovery slots, moles, multipliers and state agree with
+  the CPU for cold and seeded solves on both actual c0 CUDA runners; the original
+  bit/throughput gates pass. `PhysicalRecoverySlotsOnActualCudaMatchCpuForColdAndSeededSolves`,
+  [Release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174). The independent frozen CPU probe is red/green in the owner-held
+  `fix-evidence/root/baseline-scratch-probe.trx` and `fixed-scratch-probe.trx`.
+
 ## Taboos
 
 - No formula of the iteration and no new equation: a probe is a tp solve of the same solver.

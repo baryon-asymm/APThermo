@@ -6,7 +6,7 @@ frame; this file holds the criteria that prove it, read only in the root node.
 
 ## Acceptance criteria
 
-- [ ] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
+- [x] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
       verification in [AUDIT-CLOSURE.md](AUDIT-CLOSURE.md) has dated evidence; the
       prior criteria and historical measurements remain discoverable.
   (2026-11-15: Exact-source `0f7ecb6f4fff` CI `43691428901`, hosted trace
@@ -22,6 +22,9 @@ frame; this file holds the criteria that prove it, read only in the root node.
   CI `43742270400`, Trace `43742270272`, Release `43742272942`.
   Source-bound reports, controls and artifact inventory:
   external `fix-evidence/github-f21a/final-proof-index-f21a-v1.json`.)
+  (2026-11-16: source `c0ebe704`; [CI 43861325471](https://github.com/baryon-asymm/APThermo/actions/runs/43861325471),
+  [Trace 43861325374](https://github.com/baryon-asymm/APThermo/actions/runs/43861325374) and
+  [Release 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174); independent hosted, GPU, package/consumer and process-mutant receipts in the owner-held audit archive.)
   ⚠ 2026-11-15 (earlier in the sequence, before the f21ac451 acceptance above):
   the formerly checked aggregate is reopened after the actual
   final-head Linux tree assertion failed. Its requirement and earlier proof are
@@ -32,6 +35,9 @@ frame; this file holds the criteria that prove it, read only in the root node.
   ⚠ 2026-11-16: the independent re-audit found further confirmed gaps at
   `08bf26c3`; this aggregate is reopened pending their correction and new evidence.
   The f21ac451 acceptance remains historical evidence for its actual source.
+  ⚠ 2026-11-16: was reopened after the 08bf re-audit; now the c0 implementation and
+  named source-bound checks above close the aggregate. The 589 hosted failure and all
+  earlier acceptance/failure receipts remain historical for their actual sources.
 
 - [x] 2026-09-12 — For LOX/LH2, LOX/RP-1, N2O4/UDMH and AP/HTPB/Al the chamber,
       throat and exit states and the performance figures, in equilibrium and in frozen
@@ -145,7 +151,24 @@ frame; this file holds the criteria that prove it, read only in the root node.
       execution tests node's `BOOT.md` explains the per-platform file). The first run at
       `f67b1a9` failed only the bit snapshots and two platform assumptions of the tests,
       the discovery test's `.dll` suffix and the Windows throughput figure.
-- [x] 2026-09-18 — The packages (2026-09-15): packed by the CI from a commit, `APThermo` restores
+- [x] 2026-11-16 — The packages are packed by CI from a commit. `APThermo` restores from a local
+      feed into every sample, and each sample reproduces its approved output on
+      Windows and Linux. `APThermo.Cli` installs from the same feed as a .NET tool
+      and runs an approved example without `--database`. Every tracked source document
+      of every packed assembly resolves through SourceLink to the exact commit and
+      matching file bytes; every generated untracked source document is embedded in
+      its PDB with the matching document checksum. Before the first release the package
+      READMEs link the guide on the public repository; until it exists they carry no
+      guide link. (2026-11-16: exact-source [Release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174),
+      `fix-evidence/root/cloud-c0/consumer/independent-consumer-receipt.json` and
+      `fix-evidence/root/cloud-c0/package-inspection/combined-package-source-receipt.json`
+      in the owner-held audit archive: both OSes pass all twelve samples and installed
+      tool; package/DLL bytes match; all 262 tracked URLs and 49 embedded generated
+      documents match their PDB checksums.)
+
+      ⚠ 2026-11-16: the previous checked criterion (`[x]`) and its complete dated evidence
+      were:
+      2026-09-18 — The packages (2026-09-15): packed by the CI from a commit, `APThermo` restores
       from a local feed into every sample, and each sample reproduces its approved
       output on Windows and on Linux. `APThermo.Cli` installs from the same feed as a
       .NET tool and runs an approved example without `--database`. Every source
@@ -163,6 +186,13 @@ frame; this file holds the criteria that prove it, read only in the root node.
       (`SCRATCH/sourcelink-proof.txt`, kept out of the tree with the audit reports).
       The package READMEs link the guide since `20cc262`.
 
+      This prior tick and evidence remain historical for their named sources. The
+      previous all-document SourceLink wording was overbroad: inspection of later
+      `f21ac451` packages found generated documents embedded in their PDBs with
+      matching checksums, not committed files at SourceLink URLs. The revised current
+      criterion preserves availability of every source document while distinguishing
+      tracked files from generated untracked documents; current proof is cited above.
+
       ⚠ 2026-09-18: the criterion said "a debugger steps from a sample into the
       library's source through SourceLink, and the step is recorded". A step in an IDE
       is a human action that no run can repeat, so the record would age into a claim
@@ -174,6 +204,10 @@ frame; this file holds the criteria that prove it, read only in the root node.
       ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
       package restore into the samples (the ⚠ of that date, now at
       [HISTORY.md#restored](HISTORY.md#restored)).
+- [x] 2026-11-16 — Hosted TraceGas scans at `c0ebe704` passed both matrix facts on
+      each operating system; [Trace run 43861325374](https://github.com/baryon-asymm/APThermo/actions/runs/43861325374)
+      and the owner-held `fix-evidence/root/cloud-c0/trace/independent-trace-receipt.json`
+      retain the reviewed discovery and TRX evidence.
 - [x] 2026-09-17 — The documentation (2026-09-15), proven by the docs tests node, with every check
       shown red once and failing on an empty set:
       - every C# block of the guide equals its snippet (`SnippetTests`, and

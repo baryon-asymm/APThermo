@@ -1,8 +1,10 @@
 # ACCEPTANCE.md — tests/Execution.Tests
 
-- [ ] The throughput fact explicitly verifies cold/hit/hit after writing its actual
+- [x] 2026-11-16 — The throughput fact explicitly verifies cold/hit/hit after writing its actual
   record, and rejects cold/hit/cold and cold/cold/hit with the affected sample and
   calibration reason/age before applying the unchanged original comparisons.
+  (2026-11-16: `SweepModeTests` host controls and both actual c0 GPU records in
+  [Release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174).)
 
 - [x] The CPU bypass test compiles its kernel before seeding the real session cache;
   omitting bypass invalidation fails that test while the intact implementation passes.
@@ -16,8 +18,10 @@
   byte-exact restoration and rebuilding, 61 calibration host controls passed, no skips.
   Evidence: test names and `fix-evidence/cache-z5/z5-mutant.trx`, `fix-evidence/cache-z5/z5-final.trx`
   in the external audit archive; this is CPU evidence, not a CUDA run.
-- [ ] CUDA refusal and actual-device paths carry explicit evidence, and the GPU job
+- [x] 2026-11-16 — CUDA refusal and actual-device paths carry explicit evidence, and the GPU job
   rejects refusal-only results; no permanently skipped test is introduced.
+  (2026-11-16: `CudaEvidenceTests`, actual 451-identity GPU inventories and marker
+  verification on both OSes in [Release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174).)
 
 ### CUDA evidence CPU controls — 2026-11-16
 
@@ -25,21 +29,49 @@
 one structured marker per CUDA case: 86 verified refusals, four driver-only cases and
 one hardware case explicitly not run. The test's sorted method inventory is generated
 from discovery traits. Compiling premature-refusal and false-GPU driver mutations fail.
-External `fix-evidence/cuda-z12/index.json`. Actual CUDA and GPU-gate validation remain open.
+External `fix-evidence/cuda-z12/index.json`. Both actual c0 CUDA jobs and the GPU
+identity/marker gate pass on their reference device.
+⚠ 2026-11-16: was “Actual CUDA and GPU-gate validation remain open”; now both actual
+OS jobs pass with source-bound evidence in Release run 43861338174.
 
 - [x] 2026-11-16 — `ColdThroughputTests` and `ThroughputRecordTests` pass 55/55 on
   CPU. Frozen control commit `e7112d46` compiles; with its no-guard stub, six
   cold-mode or missing-evidence cases fail while the known-answer positive passes.
   `cold-red.trx` SHA-256 D10C0EF01A558AF3A57835BA2B496AB90D0BBC19D641DB9604B38A7904868E73;
   `cold-green.trx` SHA-256 07506B8DB53BB83DD684F63651F7FC40F62892E04CB09858162D139C18743882.
-  These host controls are not CUDA evidence; hardware acceptance remains open below.
+  These host controls are not CUDA evidence; actual c0 device proof is separate below.
+  ⚠ 2026-11-16: the complete previous criterion was:
+  2026-11-16 — `ColdThroughputTests` and `ThroughputRecordTests` pass 55/55 on   CPU. Frozen control
+  commit `e7112d46` compiles; with its no-guard stub, six   cold-mode or missing-evidence cases fail
+  while the known-answer positive passes.   `cold-red.trx` SHA-256
+  D10C0EF01A558AF3A57835BA2B496AB90D0BBC19D641DB9604B38A7904868E73;   `cold-green.trx` SHA-256
+  07506B8DB53BB83DD684F63651F7FC40F62892E04CB09858162D139C18743882.   These host controls are not CUDA
+  evidence; hardware acceptance remains open below.
+  Its pending hardware statement was the pre-c0 handoff; the later c0 device
+  proof is separate from these CPU controls and is cited below.
 
-- [ ] 2026-11-16 — The separate first-call cold throughput guard and its positive and
+- [x] 2026-11-16 — The separate first-call cold throughput guard and its positive and
   compiling negative controls pass, and the unmodified original throughput, numerical
   and bit gates pass on the actual Windows and Linux reference CUDA runners at the
   integrated source. Source-bound receipts must identify the hardware and run.
+  (2026-11-16: `ColdThroughputTests` red/green and both actual RTX 5070 Ti runs in
+  [Release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174); Windows/Linux warm medians 1.342e-7/1.272e-7 and cold samples
+  2.681e-7/2.686e-7 s per step pass their limits; ratios 30.46/25.98 pass original
+  gates. Both are cold/hit/hit and cover the original 100,000 cases.)
 
-- [ ] Recovery condensed-slot actual-CUDA evidence: `RecoverySlotsCudaTests.PhysicalRecoverySlotsOnActualCudaMatchCpuForColdAndSeededSolves` requires the actual-device marker and compares slots, moles, multipliers, every state field, status and iterations against the CPU kernel. The hardware run remains pending. The CPU companion `PhysicalRecoverySlotsOnCpuKernelAgreeWithTheWinningComposition` passed 2026-11-16; removing the bank-to-live slot restore compiled and failed that companion with positive species [38, 40] but live slots [38].
+- [x] 2026-11-16 — Recovery condensed-slot actual-CUDA evidence: `RecoverySlotsCudaTests.PhysicalRecoverySlotsOnActualCudaMatchCpuForColdAndSeededSolves` requires the actual-device marker and compares slots, moles, multipliers, every state field, status and iterations against the CPU kernel. The CPU companion `PhysicalRecoverySlotsOnCpuKernelAgreeWithTheWinningComposition` passed 2026-11-16; removing the bank-to-live slot restore compiled and failed that companion with positive species [38, 40] but live slots [38].
+  (2026-11-16: `PhysicalRecoverySlotsOnActualCudaMatchCpuForColdAndSeededSolves`
+  passes with actual-device markers on both platforms in [Release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174).)
+  ⚠ 2026-11-16: the prior criterion stated:
+  Recovery condensed-slot actual-CUDA evidence:
+  `RecoverySlotsCudaTests.PhysicalRecoverySlotsOnActualCudaMatchCpuForColdAndSeededSolves` requires
+  the actual-device marker and compares slots, moles, multipliers, every state field, status and
+  iterations against the CPU kernel. The hardware run remains pending. The CPU companion
+  `PhysicalRecoverySlotsOnCpuKernelAgreeWithTheWinningComposition` passed 2026-11-16; removing the
+  bank-to-live slot restore compiled and failed that companion with positive species [38, 40] but live
+  slots [38].
+  The prior pending hardware claim is superseded by those exact-source device results;
+  the earlier CPU and mutation evidence remains unchanged.
 
 - [x] R10 decision observability: controlled histories and deliberate mutations
   prove accurate identity/presence, before/after-upload age/reason, generation and
@@ -56,7 +88,7 @@ External `fix-evidence/cuda-z12/index.json`. Actual CUDA and GPU-gate validation
   `a93074210a6c02646c2197b764334a83e221cefd/root-diagnostic-summary-v1.json`
   retains source/binary hashes, raw TRX/stdout, fresh actual bytes and all outcomes.
   Full current Release acceptance remains pending. The old miss was not reproduced.)
-  ⚠ 2026-11-16: the pending statement above describes source `a9307421`; the later
+  ⚠ 2026-11-16 (pre-c0 historical handoff): the pending statement above describes source `a9307421`; the later
   original Release run at `f21ac451` passed on both reference GPUs for that source.
   Its 2026-11-15 predecessor `1a8aca20` failed the Windows sweep: 449/450 facts,
   ratio 10.37 against the 14.816 minimum; an entry was observed expired after
@@ -82,12 +114,19 @@ External `fix-evidence/cuda-z12/index.json`. Actual CUDA and GPU-gate validation
   precise assertions (7/3/10/6/5 failures out of 22 each), restored before final green;
   `behavioral-mutants.json` retains commands, source/control hashes and counters.
   Sweep retains exactly three value snapshots after its original elapsed assignments
-  and prints them before unchanged gates. Actual Linux diagnosis above remains open.
+  and prints them before unchanged gates. At that host-only handoff, actual Linux diagnosis remained open.
+  ⚠ 2026-11-16: the full previous criterion was:
+  2026-11-15 — R10 host decision-observation controls: final affected host   set passes 147/147,
+  including the original lifecycle, weak-ownership, identity,   prefix and current-computation facts
+  plus controlled decision histories.   `SCRATCH/audit/final-host.log`/`.trx`; five compiling
+  diagnostic mutations fail   precise assertions (7/3/10/6/5 failures out of 22 each), restored before
+  final green;   `behavioral-mutants.json` retains commands, source/control hashes and counters.
+  Sweep retains exactly three value snapshots after its original elapsed assignments   and prints them
+  before unchanged gates. Actual Linux diagnosis above remains open.
+  Its final pending statement describes the earlier handoff; source a930 and
+  the later c0 GPU results are separately attributed above.
 
-⚠ 2026-11-15: the preceding pending-Linux statement records the host-only handoff.
-The separate observability criterion above now carries actual source-a930 Linux
-evidence. This closes diagnostic coverage, while the full performance matrix remains
-open and the older source-463 miss cause remains unknown.
+⚠ 2026-11-15: was Linux diagnostics pending at handoff, now separately evidenced → HISTORY.md#r10-linux-handoff-2026-11-15
 
 - [x] 2026-11-14 — Diagnostic budget override restoration: the CPU-only
   `DiagnosticOverrideRestoresTheOriginalBudgetOnFailure` control passed in
@@ -136,30 +175,9 @@ open and the older source-463 miss cause remains unknown.
   cold/seeded and rocket consumers. The five-result budget and full CUDA receipts
   record the selected device. Both CPU cohorts and independent phase/objective
   witnesses pass.  forbidden-CUDA CPU counts are not reported as hardware proof.)
-  ⚠ 2026-11-15: the last sentence is stated as a readiness requirement rather than
-  an implementation handoff's pending status, so a later tick cannot coexist with
-  a claim that verification remains undone. It still requires actual device proof
-  on both platforms and independent scientific evidence; this wording change
-  supplies neither. Full previous criterion: [HISTORY.md](HISTORY.md#p1-hardware-proof-2026-11-15).
-  “P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented
-  in `AuditPhaseCudaTests`, with explicit selected-device provenance and a forbidden-CUDA
-  refusal labeled as no hardware proof. The CPU companion passes after R08;
-  actual Windows/WSL CUDA equality and scientific obligations remain to be verified.”
+  ⚠ 2026-11-15: was a pending handoff, now a hardware-proof requirement → HISTORY.md#p1-readiness-restatement-2026-11-15
 
-⚠ 2026-11-14: the previous wording recorded a deliberately red shared consumer:
-“P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented
-in `AuditPhaseCudaTests`, with explicit selected-device provenance and a forbidden-CUDA
-refusal labeled as no hardware proof. CPU companion is intentionally red pending the
-numerical owner's correction: Mg–H–O–S SP seeded from the 1075.3181818181818 K TP
-witness returns Ok at 199.43950239292752 K, H=-6044275.863694346 instead of a state
-no worse than the independent feasible H=-9775607.014204179 at the same S,p.
-Evidence obtained 2026-11-14: `SCRATCH/audit/seeded-sp-failure-witness.json` contains
-exact seed species/moles, assigned arrays, cold/seeded states, statuses and counters;
-`phase-cpu-companion-red.log` is 1 passed/1 failed. No GPU run.”
-The Cold-only recovery gate was the cause. `77d9c7b2` applies the same candidate
-bank to initial Warm success; the two CPU consumers pass, and the exact failing
-bytes remain in `fix-evidence/root/seeded-recovery-red-witnesses.json` in the audit
-archive. This revises the observed CPU status without asserting hardware proof.
+⚠ 2026-11-14: was a red shared seeded CPU consumer, now warm candidate bank passes → HISTORY.md#p1-shared-consumer-red-2026-11-14
 
 - [x] 2026-11-14 — T08: `TraceGasFamiliesTests` 13 passed after separating plain-host
   result acceptance from the named mechanism diagnostic, retaining the calibrated
@@ -195,29 +213,10 @@ archive. This revises the observed CPU status without asserting hardware proof.
   Current cold/hit/changed-input first sizes are 1/15/1, coverage 31 each. Original
   quiet throughput passes separately at medians 1.269e-7/1.254e-7 s per Newton step.
   all original timing domains, 5x/80%/115% gates and earlier failures are retained.)
-  ⚠ 2026-11-15: the accepted calibration design (`90dfdec1`) permits a live identical
-  workload prefix as a new empirical probe; its merged duration is measured again,
-  never inferred from the old sum. The previous blanket first-one-case wording did
-  not describe that policy. Unknown/changed inputs still start at one, subsequent
-  growth stays at most 2x, and the 500 ms target and workloads are unchanged.
-  Full previous criterion and provenance: [HISTORY.md](HISTORY.md#identical-prefix-launch-budget-2026-11-15).
-  “Re-verify the unchanged bracketing and trace-gas workload per-launch durations
-  on actual CUDA under first-one-case and 2x maximum growth: maximum at most the SAME
-  500 ms target, nonzero launch count and covered cases equal the run count over the
-  unchanged 16,384-case reference workloads. Report aggregate, count, maximum duration
-  and its chunk cases/ordinal; leave cumulative throughput gates unchanged.”
-  ⚠ 2026-11-14: R09 was "aggregate kernel-time ceilings", now per-launch duration
-  bounds with complete observations, because the original F2 target concerns each
-  synchronized launch. No GPU verification was performed by this implementation.
+  ⚠ 2026-11-15: was first-one-case unconditionally, now identical-prefix probing → HISTORY.md#r09-identical-prefix-2026-11-15
+  ⚠ 2026-11-14: was an aggregate ceiling, now a per-launch bound → HISTORY.md#r09-per-launch-correction-2026-11-14
 
-⚠ 2026-11-14: R09 the criterion above replaces the mistaken aggregate obligation
-below, not the original per-launch F2 target. C0 Windows CUDA measured aggregate
-6523.4 ms for bracketing and 668.8 ms for trace gas; both failed the aggregate predicate.
-Retain these observations. They establish neither a maximum nor absence of a separate
-throughput regression. The previous criterion is preserved verbatim:
-“- [ ] Re-verify the unchanged bracketing and trace-gas workload aggregate kernel-time
-  ceilings on actual CUDA under first-one-case and 2x maximum growth. Comments and
-  diagnostics corrected 2026-11-14; no case count, budget or numerical expression changed.”
+⚠ 2026-11-14: was an aggregate obligation, now the per-launch F2 target → HISTORY.md#r09-aggregate-history-2026-11-14
 
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
