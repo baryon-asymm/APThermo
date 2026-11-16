@@ -171,10 +171,22 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
     private async Task RecoverSetupAsync(NamedPipeServerStream pipe, Process owner, ProcessOutput? output,
         ProcessOutput? error, List<Exception> secondary, CancellationToken cleanupToken)
     {
+        try { await CloseUnstartedAsync(pipe, owner, cleanupToken).ConfigureAwait(false); }
+        catch (Exception problem) when (Record(problem, secondary)) { }
         try
         {
-            var connection = SetupConnectionOverride?.Invoke(cleanupToken) ?? pipe.WaitForConnectionAsync(cleanupToken);
-            var exited = owner.WaitForExitAsync(cleanupToken);
+            var streams = new[] { output?.Completion, error?.Completion }.OfType<Task>();
+            await Task.WhenAll(streams).WaitAsync(cleanupToken).ConfigureAwait(false);
+        }
+        catch (Exception problem) when (Record(problem, secondary)) { }
+    }
+
+    private async Task CloseUnstartedAsync(NamedPipeServerStream pipe, Process owner, CancellationToken token)
+    {
+        if (!pipe.IsConnected)
+        {
+            var connection = SetupConnectionOverride?.Invoke(token) ?? pipe.WaitForConnectionAsync(token);
+            var exited = owner.WaitForExitAsync(token);
             var first = await Task.WhenAny(connection, exited).ConfigureAwait(false);
             if (first == connection) { await connection.ConfigureAwait(false); }
             if (first != connection && connection.IsCompleted) { await connection.ConfigureAwait(false); }
@@ -187,15 +199,9 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
                 catch (SocketException problem) when (problem.SocketErrorCode == SocketError.OperationAborted) { }
                 catch (Exception problem) when (problem is ObjectDisposedException or OperationCanceledException or IOException) { }
             }
-            await exited.ConfigureAwait(false);
         }
-        catch (Exception problem) when (Record(problem, secondary)) { }
-        try
-        {
-            var streams = new[] { output?.Completion, error?.Completion }.OfType<Task>();
-            await Task.WhenAll(streams).WaitAsync(cleanupToken).ConfigureAwait(false);
-        }
-        catch (Exception problem) when (Record(problem, secondary)) { }
+        else { await pipe.DisposeAsync().ConfigureAwait(false); }
+        await owner.WaitForExitAsync(token).ConfigureAwait(false);
     }
 
     private static bool Record(Exception problem, List<Exception>? failures)
@@ -215,6 +221,7 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         }
         await connect.ConfigureAwait(false);
         _ = await ExpectAsync(pipe, Wire.Ready, 0, interruption).ConfigureAwait(false);
+        _linuxOwner?.RequireChannel(_name);
         interruption.ThrowIfCancellationRequested();
         _startMayHaveBeenSent = true;
         if (StartWriteOverride is null) { await Wire.SendAsync(pipe, Wire.Start, ReadOnlyMemory<byte>.Empty, interruption).ConfigureAwait(false); }
@@ -279,13 +286,8 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         return start;
     }
 
-    private LinuxProcessIdentity? CaptureLinuxOwner(Process owner)
-    {
-        if (!OperatingSystem.IsLinux()) { return null; }
-        var identity = LinuxProcessIdentity.Open(owner.Id);
-        try { identity.RequireChannel(_name); return identity; }
-        catch { identity.Dispose(); throw; }
-    }
+    private static LinuxProcessIdentity? CaptureLinuxOwner(Process owner) =>
+        OperatingSystem.IsLinux() ? LinuxProcessIdentity.Open(owner.Id) : null;
 
     private static async Task WaitForScopeEmptyAsync(int identity, WindowsJob? job, CancellationToken token)
     {
@@ -297,6 +299,11 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
 
     private async Task<Exception?> StopBeforeStartAsync(NamedPipeServerStream pipe, Process owner, WindowsJob? job, CancellationToken token)
     {
+        if (_linuxOwner is not null && !CanSignalOwner())
+        {
+            await CloseUnstartedAsync(pipe, owner, token).ConfigureAwait(false);
+            return null;
+        }
         Exception? closeFailure = null;
         try { await pipe.DisposeAsync().ConfigureAwait(false); }
         catch (Exception problem) when (Record(problem, null)) { closeFailure = problem; }
@@ -310,6 +317,15 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         await owner.WaitForExitAsync(token).ConfigureAwait(false);
         if (job is not null) { await WaitForScopeEmptyAsync(owner.Id, job, token).ConfigureAwait(false); }
         return closeFailure;
+    }
+
+    private bool CanSignalOwner()
+    {
+        try { _linuxOwner!.RequireChannel(_name); return true; }
+        catch (Exception problem) when (problem is InvalidOperationException or InvalidDataException or IOException or Win32Exception)
+        {
+            return false;
+        }
     }
 
     private async Task<Exception?> CleanupAsync(NamedPipeServerStream pipe, Process owner, WindowsJob? job,
