@@ -87,6 +87,12 @@ the ordinary connect/death race. Normal launches omit it and it never reaches ta
 Marker failure is fail-closed. A separate real parent starts bootstrap and controls its
 own finite exit; observation is not a substitute for that parent-child relationship.
 
+Per-call private test argv may request finite gates before parent Open, after connect
+and death observation start, or after connect completion before the final live check.
+Each atomically publishes `<gate>.ready`, asynchronously waits for `<gate>.release`
+up to twenty seconds, then continues; timeout and I/O errors fail closed. These gates
+are absent from ordinary launches, do not reach target and introduce no normal deadline.
+
 ## Acceptance criteria
 - [ ] Real separate parent starts bootstrap; death before parent-open, after the opened
   marker and racing a private server connection cannot start target, on both platforms.

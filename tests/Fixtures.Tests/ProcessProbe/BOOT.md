@@ -37,7 +37,8 @@ only this test probe; existing exact bytes, exit code and finite caps remain.
 
 Owner-parent test mode starts the real bootstrap as its own child using its own PID and
 birth identity, publishes the child PID atomically, and waits for an explicit release
-within its existing finite bound. Its requested target writes only a private marker.
+within its existing finite bound. An optional test-gate argv pair passes only to the
+bootstrap. Its requested target writes only a private marker.
 
 ## Acceptance criteria
 
