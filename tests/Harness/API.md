@@ -283,6 +283,15 @@ Func<Task>? captureGate, Action? drainWaiting)`. `RunAsync(CancellationToken int
 returns `Task<DotnetProcessResult>`. Instance properties `OwnerStartOverride`
 (`Func<ProcessStartInfo, ProcessStartInfo>?`), `OwnerLaunched` (`Action<Process>?`),
 `StartWriteOverride` (`Func<Stream, CancellationToken, Task>?`) and
-`CapabilityOverride` (`Func<bool>?`) are per-operation controls, default null. The
+`CapabilityOverride` (`Func<bool>?`) and `SetupProbe` (`Action<Process>?`) are
+per-operation controls, default null. The
 last override can deny Linux capability before launch; it cannot bypass the real
 capability probe. The write override executes after conservative START state is set.
+
+After a post-spawn acquisition failure before START, the owner retains the private
+server for the existing five-second cleanup budget, accepts the bootstrap connection
+and closes it before START, waits for owner exit and drains available raw output.
+If identity is unverified, it sends no process signal. An externally suspended owner
+that cannot connect or be verified produces a secondary infrastructure failure.
+The Linux safe-signal adapter is supported on Linux x64 and requires the documented
+capability; it makes no assertion about Linux Arm64.

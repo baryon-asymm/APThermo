@@ -107,6 +107,38 @@ public sealed class OwnerIdentityTests(ITestOutputHelper output) : IDisposable
         }
     }
 
+    /// <summary>An actual bootstrap exits by rendezvous after post-spawn setup fails, before START.</summary>
+    [Fact]
+    public async Task SetupFailureRendezvousStopsRealBootstrap()
+    {
+        var marker = Path.Combine(Path.GetTempPath(), "apt-setup-" + Guid.NewGuid().ToString("N"));
+        var target = new ProcessStartInfo("python") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+        target.ArgumentList.Add("-c");
+        target.ArgumentList.Add("import sys;open(sys.argv[1],'w').close()");
+        target.ArgumentList.Add(marker);
+        var type = typeof(OwnedProcess).Assembly.GetType("APThermo.Harness.OwnedProcessOperation", true)!;
+        var operation = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Single().Invoke([target, null, null, null, null, null]);
+        Process? captured = null;
+        string? channel = null;
+        Func<ProcessStartInfo, ProcessStartInfo> remember = info => { channel = info.ArgumentList[2]; return info; };
+        Action<Process> fail = owner => { captured = Process.GetProcessById(owner.Id); _ = captured.SafeHandle; throw new InvalidOperationException("controlled identity failure"); };
+        type.GetProperty("OwnerStartOverride", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, remember);
+        type.GetProperty("SetupProbe", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, fail);
+        var pending = (Task<DotnetProcessResult>)type.GetMethod("RunAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(operation, [CancellationToken.None])!;
+        try
+        {
+            var problem = await Assert.ThrowsAsync<InvalidOperationException>(() => pending.WaitAsync(TimeSpan.FromSeconds(10))).ConfigureAwait(true);
+            Assert.Equal("controlled identity failure", problem.Message);
+            Assert.Null(problem.Data["CleanupException"]);
+            Assert.Empty(Assert.IsType<byte[]>(problem.Data["StandardOutput"]));
+            _ = Assert.IsType<byte[]>(problem.Data["StandardError"]);
+            Assert.NotNull(captured);
+            Assert.True(captured.HasExited);
+            Assert.False(File.Exists(marker));
+        }
+        finally { if (captured is not null) { await StopOwnedProbeAsync(captured, channel!).ConfigureAwait(true); } }
+    }
+
     /// <summary>A wrong channel cannot signal a retained Linux identity.</summary>
     [Fact]
     public async Task LinuxNonceMismatchDoesNotSignal()
@@ -145,6 +177,22 @@ public sealed class OwnerIdentityTests(ITestOutputHelper output) : IDisposable
 
     /// <summary>Releases the isolated test directory.</summary>
     public void Dispose() => _session.Dispose();
+
+    private static async Task StopOwnedProbeAsync(Process process, string channel)
+    {
+        using (process)
+        {
+            if (!process.HasExited && OperatingSystem.IsWindows()) { process.Kill(); }
+            else if (!process.HasExited)
+            {
+                var type = OwnerAssembly.GetType("APThermo.Harness.ProcessOwner.LinuxProcessIdentity", true)!;
+                using var identity = (IDisposable)type.GetMethod("Open", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [process.Id])!;
+                _ = type.GetMethod("RequireChannel", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(identity, [channel]);
+                _ = type.GetMethod("Send", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(identity, [9]);
+            }
+            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
+        }
+    }
 
     private static object Open(int pid, ulong birth) => Lifetime.GetMethod("Open", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [pid, birth])!;
 

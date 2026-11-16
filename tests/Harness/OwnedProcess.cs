@@ -32,15 +32,17 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
     private readonly Action<int>? _started = started;
     private bool _startMayHaveBeenSent;
     private LinuxProcessIdentity? _linuxOwner;
+    private readonly List<Exception> _secondary = [];
 
     internal Func<ProcessStartInfo, ProcessStartInfo>? OwnerStartOverride { get; set; }
     internal Func<Stream, CancellationToken, Task>? StartWriteOverride { get; set; }
     internal Action<Process>? OwnerLaunched { get; set; }
     internal Func<bool>? CapabilityOverride { get; set; }
+    internal Action<Process>? SetupProbe { get; set; }
 
     internal async Task<DotnetProcessResult> RunAsync(CancellationToken interruption)
     {
-        var secondary = new List<Exception>();
+        var secondary = _secondary;
         DotnetProcessResult? result = null;
         Exception? primary = null;
         try { result = await RunResourcesAsync(secondary, interruption).ConfigureAwait(false); }
@@ -68,16 +70,47 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         interruption.ThrowIfCancellationRequested();
         using var ownerScope = new OwnedResource<Process>(() => Process.Start(SelectOwnerStart(parentBirth)) ??
             throw new InvalidOperationException("process owner did not start"), secondary);
-        var job = jobScope.Value;
-        var pipe = pipeScope.Value!;
-        var owner = ownerScope.Value!;
-        _ = owner.SafeHandle;
-        using var identityScope = new OwnedResource<LinuxProcessIdentity>(() => CaptureLinuxOwner(owner), secondary);
-        _linuxOwner = identityScope.Value;
-        using var outputScope = new OwnedResource<ProcessOutput>(() => new ProcessOutput(owner.StandardOutput.BaseStream, captureGate), secondary);
-        using var errorScope = new OwnedResource<ProcessOutput>(() => new ProcessOutput(owner.StandardError.BaseStream), secondary);
-        var output = outputScope.Value!;
-        var error = errorScope.Value!;
+        return await RunAcquiredAsync(ownerScope.Value!, pipeScope.Value!, jobScope.Value, secondary, interruption).ConfigureAwait(false);
+    }
+
+    private async Task<DotnetProcessResult> RunAcquiredAsync(Process owner, NamedPipeServerStream pipe,
+        WindowsJob? job, List<Exception> secondary, CancellationToken interruption)
+    {
+        OwnedResource<LinuxProcessIdentity>? identityScope = null;
+        OwnedResource<ProcessOutput>? outputScope = null;
+        OwnedResource<ProcessOutput>? errorScope = null;
+        var setupComplete = false;
+        try
+        {
+            _ = owner.SafeHandle;
+            outputScope = new OwnedResource<ProcessOutput>(() => new ProcessOutput(owner.StandardOutput.BaseStream, captureGate), secondary);
+            errorScope = new OwnedResource<ProcessOutput>(() => new ProcessOutput(owner.StandardError.BaseStream), secondary);
+            SetupProbe?.Invoke(owner);
+            identityScope = new OwnedResource<LinuxProcessIdentity>(() => CaptureLinuxOwner(owner), secondary);
+            _linuxOwner = identityScope.Value;
+            setupComplete = true;
+            return await RunAttachedAsync(pipe, owner, job, outputScope.Value!, errorScope.Value!, interruption).ConfigureAwait(false);
+        }
+        catch (Exception problem) when (!setupComplete)
+        {
+            outputScope ??= RecoverOutput(owner, false, secondary);
+            errorScope ??= RecoverOutput(owner, true, secondary);
+            await RecoverSetupAsync(pipe, owner, outputScope?.Value, errorScope?.Value, secondary).ConfigureAwait(false);
+            problem.Data["StandardOutput"] = outputScope?.Value?.Snapshot() ?? [];
+            problem.Data["StandardError"] = errorScope?.Value?.Snapshot() ?? [];
+            throw;
+        }
+        finally
+        {
+            identityScope?.Dispose();
+            errorScope?.Dispose();
+            outputScope?.Dispose();
+        }
+    }
+
+    private async Task<DotnetProcessResult> RunAttachedAsync(NamedPipeServerStream pipe, Process owner, WindowsJob? job,
+        ProcessOutput output, ProcessOutput error, CancellationToken interruption)
+    {
         var authorizedStop = false;
         try
         {
@@ -99,13 +132,50 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
             try
             {
                 var cleanup = await CleanupAsync(pipe, owner, job, output, error, authorizedStop).ConfigureAwait(false);
-                if (cleanup is not null) { secondary.Add(cleanup); }
+                if (cleanup is not null) { _secondary.Add(cleanup); }
             }
-            catch (Exception cleanup) when (Record(cleanup, secondary)) { }
+            catch (Exception cleanup) when (Record(cleanup, _secondary)) { }
             problem.Data["StandardOutput"] = output.Snapshot();
             problem.Data["StandardError"] = error.Snapshot();
             throw;
         }
+    }
+
+    private static OwnedResource<ProcessOutput>? RecoverOutput(Process owner, bool error, List<Exception> secondary)
+    {
+        try
+        {
+            return new OwnedResource<ProcessOutput>(() => new ProcessOutput(error
+                ? owner.StandardError.BaseStream : owner.StandardOutput.BaseStream), secondary);
+        }
+        catch (Exception problem) when (Record(problem, secondary)) { return null; }
+    }
+
+    private static async Task RecoverSetupAsync(NamedPipeServerStream pipe, Process owner, ProcessOutput? output,
+        ProcessOutput? error, List<Exception> secondary)
+    {
+        using var timeout = new CancellationTokenSource(DotnetProcess.CleanupTimeout);
+        try
+        {
+            var connection = pipe.WaitForConnectionAsync(timeout.Token);
+            var exited = owner.WaitForExitAsync(timeout.Token);
+            var first = await Task.WhenAny(connection, exited).ConfigureAwait(false);
+            if (first == connection) { await connection.ConfigureAwait(false); }
+            await pipe.DisposeAsync().ConfigureAwait(false);
+            if (first != connection)
+            {
+                try { await connection.ConfigureAwait(false); }
+                catch (Exception problem) when (problem is ObjectDisposedException or OperationCanceledException) { }
+            }
+            await exited.ConfigureAwait(false);
+        }
+        catch (Exception problem) when (Record(problem, secondary)) { }
+        try
+        {
+            var streams = new[] { output?.Completion, error?.Completion }.OfType<Task>();
+            await Task.WhenAll(streams).WaitAsync(timeout.Token).ConfigureAwait(false);
+        }
+        catch (Exception problem) when (Record(problem, secondary)) { }
     }
 
     private static bool Record(Exception problem, List<Exception>? failures)

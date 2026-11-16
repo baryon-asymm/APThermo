@@ -71,7 +71,20 @@ launch when unavailable rather than signalling a reusable numeric PID.
 the launching parent still existed. A parent crash before connection could leave an
 owner indefinitely waiting even after graceful pre-START cleanup had been repaired.
 
+If post-spawn setup fails before owner identity is validated or START is sent, keep the
+private channel open for the existing five-second cleanup budget. Accept the real
+bootstrap connection and close the channel before START; wait for bootstrap exit and
+drain available raw streams. Never signal an unvalidated identity. A bootstrap that
+cannot connect or be validated, such as an externally suspended one, yields a secondary
+infrastructure failure. The safe-signal adapter supports Linux x64, the root platform.
+
+⚠ 2026-11-16: disposal alone did not stop an unconnected owner after identity or stream
+acquisition failure; bounded rendezvous closes that gap without a raw-PID fallback.
+
 ## Acceptance criteria
+- [ ] A real bootstrap exits after injected post-spawn setup failure and no target runs;
+  original exception and raw bytes survive, no unverified identity is signalled. A
+  compiling no-rendezvous mutant fails, and inability to rendezvous is reported.
 
 - [ ] Linux safe force-reap probes `pidfd_send_signal` on retained `/proc/self`
   before spawning and refuses explicitly when unavailable; a capability-unavailable

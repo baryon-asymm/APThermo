@@ -78,8 +78,9 @@ observation error fails closed without signalling. Once the child view is valida
 never reopen its numeric PID; use `pidfd_send_signal` on that retained handle alone,
 with ESRCH indicating that the original identity ended. Do not fall back to raw PID or
 descendant enumeration. The test surrogate must carry the exact nonce in its argv,
-or the control must use the real bootstrap. This Linux capability is a test-harness
-requirement only, not a requirement of the product package. Parent-liveness monitoring
+or the control must use the real bootstrap. This Linux x64 capability is a test-harness
+requirement only, not a requirement of the product package. No Linux Arm64 adapter
+is claimed. Parent-liveness monitoring
 is the separate proc-directory/openat observation described above.
 The parent sets START-may-have-been-sent before beginning the write; a possibly partial
 write uses owned-scope termination and verified postcondition, not that direct path.
