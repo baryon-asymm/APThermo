@@ -284,8 +284,8 @@ returns `Task<DotnetProcessResult>`. Instance properties `OwnerStartOverride`
 (`Func<ProcessStartInfo, ProcessStartInfo>?`), `OwnerLaunched` (`Action<Process>?`),
 `StartWriteOverride` (`Func<Stream, CancellationToken, Task>?`) and
 `CapabilityOverride` (`Func<bool>?`) and `SetupProbe` (`Action<Process>?`) are
-per-operation controls, default null. The
-last override can deny Linux capability before launch; it cannot bypass the real
+per-operation controls, default null.
+`CapabilityOverride` can deny Linux capability before launch; it cannot bypass the real
 capability probe. The write override executes after conservative START state is set.
 
 After a post-spawn acquisition failure before START, the owner retains the private

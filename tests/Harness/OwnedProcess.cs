@@ -82,6 +82,7 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         var setupComplete = false;
         try
         {
+            OwnerLaunched?.Invoke(owner);
             _ = owner.SafeHandle;
             outputScope = new OwnedResource<ProcessOutput>(() => new ProcessOutput(owner.StandardOutput.BaseStream, captureGate), secondary);
             errorScope = new OwnedResource<ProcessOutput>(() => new ProcessOutput(owner.StandardError.BaseStream), secondary);
@@ -93,16 +94,15 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         }
         catch (Exception problem) when (!setupComplete)
         {
-            outputScope ??= RecoverOutput(owner, false, secondary);
-            errorScope ??= RecoverOutput(owner, true, secondary);
-            await RecoverSetupAsync(pipe, owner, outputScope?.Value, errorScope?.Value, secondary).ConfigureAwait(false);
-            problem.Data["StandardOutput"] = outputScope?.Value?.Snapshot() ?? [];
-            problem.Data["StandardError"] = errorScope?.Value?.Snapshot() ?? [];
+            var (standardOutput, standardError) = await RecoverAcquisitionAsync(pipe, owner,
+                outputScope?.Value, errorScope?.Value, secondary).ConfigureAwait(false);
+            problem.Data["StandardOutput"] = standardOutput;
+            problem.Data["StandardError"] = standardError;
             throw;
         }
         finally
         {
-            identityScope?.Dispose();
+            DisposeOwned(identityScope);
             errorScope?.Dispose();
             outputScope?.Dispose();
         }
@@ -114,7 +114,6 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         var authorizedStop = false;
         try
         {
-            OwnerLaunched?.Invoke(owner);
             var exitCode = await RunOwnedAsync(pipe, owner, output, error, interruption).ConfigureAwait(false);
             await Wire.SendAsync(pipe, Wire.Release, ReadOnlyMemory<byte>.Empty, interruption).ConfigureAwait(false);
             authorizedStop = true;
@@ -141,6 +140,20 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         }
     }
 
+    private static async Task<(byte[] Output, byte[] Error)> RecoverAcquisitionAsync(NamedPipeServerStream pipe,
+        Process owner, ProcessOutput? output, ProcessOutput? error, List<Exception> secondary)
+    {
+        using var timeout = new CancellationTokenSource(DotnetProcess.CleanupTimeout);
+        using var recoveredOutput = output is null ? RecoverOutput(owner, false, secondary) : null;
+        using var recoveredError = error is null ? RecoverOutput(owner, true, secondary) : null;
+        output ??= recoveredOutput?.Value;
+        error ??= recoveredError?.Value;
+        await RecoverSetupAsync(pipe, owner, output, error, secondary, timeout.Token).ConfigureAwait(false);
+        return (output?.Snapshot() ?? [], error?.Snapshot() ?? []);
+    }
+
+    private static void DisposeOwned<T>(OwnedResource<T>? resource) where T : class, IDisposable => resource?.Dispose();
+
     private static OwnedResource<ProcessOutput>? RecoverOutput(Process owner, bool error, List<Exception> secondary)
     {
         try
@@ -152,20 +165,20 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
     }
 
     private static async Task RecoverSetupAsync(NamedPipeServerStream pipe, Process owner, ProcessOutput? output,
-        ProcessOutput? error, List<Exception> secondary)
+        ProcessOutput? error, List<Exception> secondary, CancellationToken cleanupToken)
     {
-        using var timeout = new CancellationTokenSource(DotnetProcess.CleanupTimeout);
         try
         {
-            var connection = pipe.WaitForConnectionAsync(timeout.Token);
-            var exited = owner.WaitForExitAsync(timeout.Token);
+            var connection = pipe.WaitForConnectionAsync(cleanupToken);
+            var exited = owner.WaitForExitAsync(cleanupToken);
             var first = await Task.WhenAny(connection, exited).ConfigureAwait(false);
             if (first == connection) { await connection.ConfigureAwait(false); }
+            if (first != connection && connection.IsCompleted) { await connection.ConfigureAwait(false); }
             await pipe.DisposeAsync().ConfigureAwait(false);
-            if (first != connection)
+            if (first != connection && !connection.IsCompletedSuccessfully)
             {
                 try { await connection.ConfigureAwait(false); }
-                catch (Exception problem) when (problem is ObjectDisposedException or OperationCanceledException) { }
+                catch (Exception problem) when (problem is ObjectDisposedException or OperationCanceledException or IOException) { }
             }
             await exited.ConfigureAwait(false);
         }
@@ -173,7 +186,7 @@ internal sealed class OwnedProcessOperation(ProcessStartInfo target, Action<int>
         try
         {
             var streams = new[] { output?.Completion, error?.Completion }.OfType<Task>();
-            await Task.WhenAll(streams).WaitAsync(timeout.Token).ConfigureAwait(false);
+            await Task.WhenAll(streams).WaitAsync(cleanupToken).ConfigureAwait(false);
         }
         catch (Exception problem) when (Record(problem, secondary)) { }
     }

@@ -62,10 +62,13 @@ public sealed class OwnerIdentityTests(ITestOutputHelper output) : IDisposable
         var operation = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Single().Invoke([target, null, null, null, null, null]);
         using var cancellation = new CancellationTokenSource();
         var spawned = false;
+        var launched = false;
+        Action<Process> observeLaunch = _ => launched = true;
         Func<bool> capability = () => { if (cancel) { cancellation.Cancel(); } return cancel; };
         Func<ProcessStartInfo, ProcessStartInfo> start = info => { spawned = true; return info; };
         type.GetProperty("CapabilityOverride", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, capability);
         type.GetProperty("OwnerStartOverride", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, start);
+        type.GetProperty("OwnerLaunched", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, observeLaunch);
         var task = (Task<DotnetProcessResult>)type.GetMethod("RunAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(operation, [cancellation.Token])!;
         if (cancel)
         {
@@ -74,6 +77,7 @@ public sealed class OwnerIdentityTests(ITestOutputHelper output) : IDisposable
         }
         else { _ = await Assert.ThrowsAsync<PlatformNotSupportedException>(() => task).ConfigureAwait(true); }
         Assert.False(spawned);
+        Assert.False(launched);
     }
 
     /// <summary>The connected monitor observes the death of the exact retained parent identity.</summary>
@@ -105,6 +109,33 @@ public sealed class OwnerIdentityTests(ITestOutputHelper output) : IDisposable
             if (!parent.HasExited) { await File.WriteAllTextAsync(marker + ".release", "release").ConfigureAwait(true); }
             await parent.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
         }
+    }
+
+    /// <summary>An owner already exited before connecting leaves no spurious pipe cleanup failure.</summary>
+    [Fact]
+    public async Task SetupFailureAfterOwnerExitDoesNotReportPipeFailure()
+    {
+        var (arguments, environment) = _session.Input("echo");
+        var target = new ProcessStartInfo("python") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+        var type = typeof(OwnedProcess).Assembly.GetType("APThermo.Harness.OwnedProcessOperation", true)!;
+        var operation = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Single().Invoke([target, null, null, null, null, null]);
+        Func<ProcessStartInfo, ProcessStartInfo> substitute = _ =>
+        {
+            var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+            start.ArgumentList.Add(_session.AssemblyPath);
+            foreach (var argument in arguments) { start.ArgumentList.Add(argument); }
+            foreach (var pair in environment) { start.Environment[pair.Key] = pair.Value; }
+            return start;
+        };
+        Action<Process> fail = owner => { Assert.True(owner.WaitForExit(5000)); throw new InvalidOperationException("controlled exited owner"); };
+        type.GetProperty("OwnerStartOverride", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, substitute);
+        type.GetProperty("SetupProbe", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(operation, fail);
+        var pending = (Task<DotnetProcessResult>)type.GetMethod("RunAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(operation, [CancellationToken.None])!;
+        var problem = await Assert.ThrowsAsync<InvalidOperationException>(() => pending.WaitAsync(TimeSpan.FromSeconds(10))).ConfigureAwait(true);
+        Assert.Equal("controlled exited owner", problem.Message);
+        Assert.Null(problem.Data["CleanupException"]);
+        Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(_session.DataPath, "stdout.bin")).ConfigureAwait(true), Assert.IsType<byte[]>(problem.Data["StandardOutput"]));
+        Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(_session.DataPath, "stderr.bin")).ConfigureAwait(true), Assert.IsType<byte[]>(problem.Data["StandardError"]));
     }
 
     /// <summary>An actual bootstrap exits by rendezvous after post-spawn setup fails, before START.</summary>
