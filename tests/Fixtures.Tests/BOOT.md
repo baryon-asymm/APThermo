@@ -21,6 +21,24 @@ provenance and coverage, never their values (AGENTS.md §1).
 
 ## Invariants
 
+- **Private process-directory teardown.** Once owned-process cleanup finishes, delete
+  the session's private temporary directory. On Windows only, a sharing-violation
+  IOException (0x80070020) means the directory is still in use: retry that exact
+  operation while the separate existing five-second cleanup policy remains. A
+  Stopwatch bounds the whole deletion, not a fresh budget per retry. At the boundary
+  rethrow the original I/O error; other I/O and access errors propagate immediately.
+  No process identity, product deadline or GPU budget changes. Real child-CWD
+  controls prove the first attempt is blocked and a controlled release succeeds;
+  a held child remains a failure at the deadline. On Unix, directory unlink may
+  succeed while the child holds its old working directory; that outcome is observed
+  explicitly rather than treated as evidence of Windows sharing semantics.
+
+⚠ 2026-11-16: session teardown previously attempted recursive deletion once; hosted
+Windows CI reported three sharing violations after otherwise successful tests. A
+real owned child holding the session as CWD reproduces the same error code, but
+hosted logs do not identify its holder. The bounded retry does not infer that cause.
+
+
 - Process infrastructure controls use the owned ProcessProbe executable, never a
   product calculation. Every process-starting guard is Category=EndToEnd. The probe
   has its own finite self-stop, and tests clean up only the PID written by their own
@@ -135,6 +153,13 @@ observes the same terminal states within the remaining original budget. No claim
 about PF_EXITING or the historical failed instant is inferred from a later pass.
 
 ## Acceptance criteria
+
+- [x] 2026-11-16 — `DotnetProcessDirectoryTests` exercises a real child holding the
+  private directory as CWD, controlled release after the actual Windows sharing
+  error, refusal while held through a bounded test deadline, a non-sharing I/O
+  error, and fail-closed missing-root classification. Windows Release process
+  controls 37/37; compiling sharing-code and absent-root mutations fail their
+  respective controls. Linux execution remains separate acceptance evidence.
 
 - [x] R18 local cleanup controls preserve primary timeout/cancellation and raw
   evidence under documented partial tree-kill failures. (2026-11-15:

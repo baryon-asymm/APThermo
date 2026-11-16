@@ -19,12 +19,49 @@ internal sealed class DotnetProcessGuardSession(ITestOutputHelper output) : IDis
     public void Dispose()
     {
         StopRecordedProbe();
-        if (Directory.Exists(DirectoryPath))
-        {
-            Directory.Delete(DirectoryPath, recursive: true);
-        }
+        DeleteOwnedDirectory(DirectoryPath, DotnetProcess.CleanupTimeout);
     }
 
+    /// <summary>Deletes a private session directory after bounded Windows sharing contention.</summary>
+    internal static void DeleteOwnedDirectory(string directory, TimeSpan budget, Action? sharingObserved = null, Action<string>? deleteDirectory = null)
+    {
+        var watch = Stopwatch.StartNew();
+        while (true)
+        {
+            try
+            {
+                if (deleteDirectory is null) { Directory.Delete(directory, recursive: true); }
+                else { deleteDirectory(directory); }
+                return;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                if (!IsAbsent(directory)) { throw; }
+                return;
+            }
+            catch (IOException problem) when (OperatingSystem.IsWindows() && problem.HResult == unchecked((int)0x80070020) && watch.Elapsed < budget)
+            {
+                sharingObserved?.Invoke();
+                var remaining = budget - watch.Elapsed;
+                if (remaining > TimeSpan.Zero)
+                {
+                    Thread.Sleep(remaining < TimeSpan.FromMilliseconds(10) ? remaining : TimeSpan.FromMilliseconds(10));
+                }
+            }
+        }
+    }
+    private static bool IsAbsent(string directory)
+    {
+        try
+        {
+            _ = File.GetAttributes(directory);
+            return false;
+        }
+        catch (Exception problem) when (problem is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return true;
+        }
+    }
     internal static async Task WaitForOwnedReadyAsync(string marker)
     {
         var watch = Stopwatch.StartNew();

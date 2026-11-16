@@ -30,6 +30,15 @@ nonzero exits, validation, cancellation, deadline and inherited-pipe/tree cleanu
 ⚠ 2026-11-14: the old introduction said nobody referenced a test project; the protocol
 inventory does reference this assembly. This is verification, not a consumer API.
 
+## Private process-directory teardown ✅
+
+After the owned process is stopped, the session deletes only its private temporary
+root. Windows sharing error 0x80070020 is retried within one separate five-second
+cleanup budget; exhaustion retains the I/O failure, and unrelated errors fail
+immediately. An absent directory is idempotent only after confirming that the
+actual root is absent, not merely a vanished descendant. The hosted failure did
+not reveal who held the directory; real child-CWD controls reproduce the error.
+
 ## Process liveness evidence ✅
 
 Process-tree controls require both owned processes to be live before cancellation
