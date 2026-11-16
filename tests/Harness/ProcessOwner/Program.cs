@@ -11,11 +11,12 @@ internal static class Program
 {
     private static async Task<int> Main(string[] arguments)
     {
-        var (channel, parent, birth, job, command) = Parse(arguments);
+        var (channel, parent, birth, job, marker, command) = Parse(arguments);
         using var pipe = new NamedPipeClientStream(".", channel, PipeDirection.InOut,
             PipeOptions.Asynchronous, TokenImpersonationLevel.None, HandleInheritability.None);
         using (var lifetime = ParentLifetime.Open(parent, birth))
         {
+            if (marker is not null) { PublishMarker(marker); }
             await ConnectWhileParentLivesAsync(pipe, lifetime).ConfigureAwait(false);
         }
         try
@@ -122,7 +123,14 @@ internal static class Program
         await Wire.SendAsync(pipe, Wire.Error, data, CancellationToken.None).ConfigureAwait(false);
     }
 
-    private static (string Channel, int Parent, ulong Birth, string? Job, string[] Command) Parse(string[] arguments)
+    private static void PublishMarker(string marker)
+    {
+        var temporary = marker + ".pending";
+        File.WriteAllText(temporary, "opened");
+        File.Move(temporary, marker, overwrite: true);
+    }
+
+    private static (string Channel, int Parent, ulong Birth, string? Job, string? Marker, string[] Command) Parse(string[] arguments)
     {
         if (arguments.Length < 8 || arguments[0] != "--channel" || arguments[2] != "--parent-pid" ||
             arguments[4] != "--parent-birth" || !int.TryParse(arguments[3], NumberStyles.None, CultureInfo.InvariantCulture, out var parent) ||
@@ -138,8 +146,18 @@ internal static class Program
             job = arguments[index + 1];
             index += 2;
         }
-        return arguments[index] != "--" || index + 1 >= arguments.Length
+        string? marker = null;
+        if (index < arguments.Length && arguments[index] == "--test-parent-opened")
+        {
+            if (index + 1 >= arguments.Length || arguments[index + 1].Length == 0)
+            {
+                throw new ArgumentException("missing test marker path", nameof(arguments));
+            }
+            marker = arguments[index + 1];
+            index += 2;
+        }
+        return index >= arguments.Length || arguments[index] != "--" || index + 1 >= arguments.Length
             ? throw new ArgumentException("missing target", nameof(arguments))
-            : (arguments[1], parent, birth, job, arguments[(index + 1)..]);
+            : (arguments[1], parent, birth, job, marker, arguments[(index + 1)..]);
     }
 }
