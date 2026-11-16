@@ -7,6 +7,16 @@ cited below is held in [generate/BOOT.md](generate/BOOT.md), which its scripts a
 
 ## Acceptance criteria
 
+- [x] 2026-11-16 — After the document comparator changed, the actual full
+  `generate/regenerate.py` run with pinned CEA 3.3.4 and NumPy 2.5.3 regenerated all
+  379 fixtures. An independent JSON leaf comparison against `108fa6b15baef` found
+  only `generator.generatorSha256` and `generator.generatedOn` changed, in each
+  file; no input, output, tolerance or other provenance field changed. Full
+  `regenerate.py --check` returned 379 unchanged and `--check --sample` returned
+  38 unchanged; the pre-regeneration sample was red on the old fingerprint in
+  all 38. The owner-held audit archive's `fix-evidence/fixture-provenance/`
+  retains the comparison inventory, both source hashes per file, raw diff and logs.
+
 - [x] 2026-11-14: A27 completion,
       `OracleGuardTests.FiniteIntermediateOverflowKeepsTheTrueBoundary`: maximum
       finite inputs with absolute MaxValue and relative 0.5 no longer turn the
