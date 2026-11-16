@@ -76,6 +76,13 @@ cleanup and a verified scope postcondition.
 
 ## Acceptance criteria
 
+- [x] 2026-11-16 — `PythonCorpusProcessTests` holds the parent alive until the
+  start callback delivers its process, then releases it and checks the parent exited
+  while the descendant and inherited pipes remain live. A real callback failure
+  reaches the test immediately; restoring the former start-only wait makes this
+  control fail at the unchanged watchdog (`corpus-callback-mutant.trx`). The hosted
+  watchdog failure did not establish which callback step had failed.
+
 - [x] 2026-11-16 — `PythonCorpusProcessTests` and
   `FullCorpusIntegrityHasPortableNegativeControls`: four pass on Windows; the real
   live-tree and inherited-pipe cases are interrupted after readiness. Removing the
