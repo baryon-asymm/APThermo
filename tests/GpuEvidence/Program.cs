@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Xml.Linq;
+using APThermo.Execution.Tests;
 using Microsoft.TestPlatform.VsTestConsole.TranslationLayer;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
@@ -9,8 +10,8 @@ namespace APThermo.GpuEvidence;
 
 internal static class Program
 {
-    private const string FirstSweep = "APThermo.Execution.Tests.CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic";
-    private const string SecondSweep = "APThermo.Execution.Tests.CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio";
+    private static readonly string FirstSweep = typeof(CudaTests).FullName + "." + nameof(CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic);
+    private static readonly string SecondSweep = typeof(CudaTests).FullName + "." + nameof(CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio);
     private const string Marker = "CUDA_EVIDENCE:";
 
     public static int Main(string[] args)

@@ -1,5 +1,18 @@
 # API.md — Execution.Tests
 
+## Release sweep identities ✅
+
+The GPU evidence verifier uses the containing type and method names to identify the
+two release sweep facts. These declarations do not execute the tests by themselves.
+
+```csharp
+public sealed class CudaTests(ITestOutputHelper output)
+{
+    public void TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic();
+    public void ThroughputIsRecordedAndNotBelowTheApprovedRatio();
+}
+```
+
 ## CUDA execution evidence ✅
 
 Every `Category=Cuda` test method has one `CudaEvidence` trait with value `hardware`
@@ -31,10 +44,13 @@ SweepRun copies each Engine.CalibrationObservation only after the original elaps
 assignment. CudaTests prints all three value snapshots before throughput gate assertions.
 CPU-only controls do not establish actual Linux diagnostic evidence.
 
-The node exposes nothing outward. Its contract points upward: what the parent may
+The node exposes the release sweep identities above to the GPU evidence verifier. Its other contract points upward: what the parent may
 consider proven about `Execution`, and it holds the approved throughput figures that other
 nodes refer to. Since 2026-10-05 it holds no tolerance table: CUDA and the CPU accelerator
 are compared by their bits.
+
+⚠ 2026-11-16: the former wording said the node exposed nothing outward, but the GPU
+evidence verifier already depended on these sweep identities and marker format.
 
 ## What this node guarantees ✅
 
