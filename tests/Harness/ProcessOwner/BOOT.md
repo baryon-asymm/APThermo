@@ -87,8 +87,12 @@ the ordinary connect/death race. Normal launches omit it and it never reaches ta
 Marker failure is fail-closed. A separate real parent starts bootstrap and controls its
 own finite exit; observation is not a substitute for that parent-child relationship.
 
-Per-call private test argv may request finite gates before parent Open, after connect
-and death observation start, or after connect completion before the final live check.
+Per-call private test argv, in order after `--test-parent-opened`, may specify
+`--test-before-parent-open`, `--test-connect-pending`, `--test-connected`, and
+`--test-control-eof`, each followed by its private gate path. A following
+`--test-deadline-utc-ticks` supplies the shared positive UTC DateTime-ticks deadline.
+The first three gates are before parent Open, after connect and death observation start,
+and after connect completion before the final live check, respectively.
 Each atomically publishes `<gate>.ready`, asynchronously waits for `<gate>.release`
 only until the shared absolute test-preparation deadline supplied in argv, then
 continues; timeout and I/O errors fail closed. Test teardown releases every gate. These gates
@@ -97,7 +101,8 @@ are absent from ordinary launches, do not reach target and introduce no normal d
 An optional `--test-control-eof` gate makes post-START EOF wait under the same test
 preparation deadline before normal cleanup; actual TERMINATE stays on the ordinary path.
 This test-only seam exposes direct bootstrap killing while its target and child live.
-The owning control releases the gate and reaps its own identities in finally.
+The owning control releases the gate and reaps its own identities in finally. A distinct
+real parent owns the connected-mode server and Windows job; its exit closes both.
 
 ## Acceptance criteria
 - [ ] Real separate parent starts bootstrap; death before parent-open, after the opened

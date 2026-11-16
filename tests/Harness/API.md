@@ -282,11 +282,12 @@ Action<int>? started, Action? cleanupProbe, Action<Stream>? controlProbe,
 Func<Task>? captureGate, Action? drainWaiting)`. `RunAsync(CancellationToken interruption)`
 returns `Task<DotnetProcessResult>`. Instance properties `OwnerStartOverride`
 (`Func<ProcessStartInfo, ProcessStartInfo>?`), `OwnerLaunched` (`Action<Process>?`),
-`StartWriteOverride` (`Func<Stream, CancellationToken, Task>?`) and
+`StartWriteOverride` (`Func<Stream, CancellationToken, Task>?`),
 `CapabilityOverride` (`Func<bool>?`) and `SetupProbe` (`Action<Process>?`) are
 per-operation controls, default null.
 `CapabilityOverride` can deny Linux capability before launch; it cannot bypass the real
-capability probe. The write override executes after conservative START state is set.
+capability probe. `OwnerLaunched` runs immediately after `Process.Start` and inside
+setup-failure cleanup. The write override executes after conservative START state is set.
 
 After a post-spawn acquisition failure before START, the owner retains the private
 server for the existing five-second cleanup budget, accepts the bootstrap connection

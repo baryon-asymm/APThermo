@@ -35,14 +35,15 @@ identity validation; it keeps the same bytes, readiness and bounded release beha
 starts the actual owner as this process's own child with the optional opened marker,
 its own PID and birth identity, and a target that creates target-marker. It publishes
 ready-marker and its child PID atomically, then exits upon ready-marker.release or
-after the existing twenty-second finite bound. On Windows it names the caller's job
-with the channel. This mode never starts a numerical workload.
+after the existing twenty-second finite bound. On Windows its bootstrap job name is
+the channel; in connected mode the parent creates and holds that job itself. This mode never starts a numerical workload.
 
-Owner-parent additionally accepts an optional `<gate-option> <gate-path> <deadline-utc-ticks>` triple after
-the normal six arguments, forwarded only into bootstrap argv before `--`, with the deadline as `--test-deadline-utc-ticks`. For a connected gate
-the real parent creates and retains the private control server and, on Windows, job.
-Its exit closes both. The parent
-still launches the real bootstrap using its own OS identity and controlled lifetime.
+Owner-parent additionally accepts an optional `<gate-option> <gate-path>
+<deadline-utc-ticks>` triple after the normal six arguments, forwarded only into
+bootstrap argv before `--`, with the deadline as `--test-deadline-utc-ticks`. For the
+connected gate the real parent creates and retains the private control server and, on
+Windows, job; its exit closes both. The parent still launches the real bootstrap using
+its own OS identity and controlled lifetime.
 
 While connected and live, the controlled parent sends ABORT when `<ready-marker>.abort`
 exists. This test-only command preserves the START requirement and runs no target.

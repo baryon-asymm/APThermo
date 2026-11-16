@@ -5,7 +5,11 @@
 The standalone BCL bootstrap is started by the Harness owner with a structured argv:
 
 ```text
---channel <pipe-name> --parent-pid <positive decimal> --parent-birth <decimal> [--job-name <name>] [--test-parent-opened <private-marker-path>] -- <executable> <argument>...
+--channel <pipe-name> --parent-pid <positive decimal> --parent-birth <decimal>
+[--job-name <name>] [--test-parent-opened <private-marker-path>]
+[--test-before-parent-open <gate>] [--test-connect-pending <gate>]
+[--test-connected <gate>] [--test-control-eof <gate>]
+[--test-deadline-utc-ticks <ticks>] -- <executable> <argument>...
 ```
 
 The executable and every argument are passed without shell interpolation, including
@@ -166,7 +170,9 @@ returns `Task`. `APThermo.Harness.ProcessOwner.Program.ConnectWhileParentLivesAs
 accepts `(NamedPipeClientStream pipe, ParentLifetime lifetime)` and returns `Task`.
 Linux-only `APThermo.Harness.ProcessOwner.LinuxProcessIdentity.Open(int pid)` returns
 a retained `IDisposable` identity; `RequireChannel(string channel)` validates the
-nonce and `Send(int signal)` returns whether the identity still exists. These internal
+nonce and `Send(int signal)` returns whether the identity still exists. Fixtures and
+its ProcessProbe also use `APThermo.Harness.ProcessOwner.WindowsJob.Create(string name)`
+through reflection, returning the retained `WindowsJob` (`IDisposable`). These internal
 test contracts are not public package interfaces.
 
 ## Bootstrap identity test marker ⏳
@@ -186,8 +192,9 @@ after the opened-marker option and before `--`; a `--test-deadline-utc-ticks <ti
 pair follows the gate pairs and supplies their shared absolute test preparation deadline.
 Only test launches specify them; they
 are not environment variables or target arguments. Each atomically creates
-`<gate>.ready`, waits asynchronously for `<gate>.release` only until that deadline, and
-fails closed on timeout or I/O failure. Test teardown releases every requested gate. Before-parent-open runs before identity open;
+`<gate>.ready` via a `.pending` file, waits asynchronously for `<gate>.release` only
+until that positive UTC DateTime-ticks deadline, and fails closed on timeout or I/O
+failure. Test teardown releases every requested gate. Before-parent-open runs before identity open;
 connect-pending runs after starting connect and death tasks; connected runs after
 connection completes and before the final parent-live check. No test gate changes the
 normal path, its cancellation/deadlines, or the requirement for valid START.
@@ -195,6 +202,7 @@ normal path, its cancellation/deadlines, or the requirement for valid START.
 For the compiling START-order control only, optional `--test-control-eof <gate>`
 precedes the shared test deadline. If control EOF occurs after actual target launch,
 bootstrap publishes `<gate>.ready` and waits within the same deadline before its
-normal scope cleanup; a valid TERMINATE still takes the ordinary direct path. This
+normal scope cleanup; a valid TERMINATE still takes the ordinary direct path. It is
+activated only by `EndOfStreamException` while handling post-START control. This
 exposes a direct owner-only kill without suppressing the fixed scope-termination path.
 The control test releases the gate in its finally and reaps its own identified probes.
