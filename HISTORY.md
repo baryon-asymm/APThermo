@@ -1,5 +1,13 @@
 # HISTORY.md — AerospacePropellantThermodynamics (tree root)
 
+<a id="wsl-registration-story-2026-11-17"></a>
+
+## 2026-11-17 — from "## Constraints" — WSL device registration
+
+  - A second defect (2026-09-27): under WSL the second CUDA engine of a process failed
+    to bind; the execution node's `Ptx` child registers the devices itself
+    ([BOOT.md](src/Execution/Ptx/BOOT.md)). → HISTORY.md#retold-by-nodes
+
 Append-only store of what `BOOT.md` no longer needs to state as current truth
 (`AGENTS.md`, §15). Newest entry first. Every entry names the date it was moved, the
 `BOOT.md` section it came from, and carries the original text in full, unedited. The

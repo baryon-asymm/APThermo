@@ -200,9 +200,8 @@ delivery (2026-09-15, `## Delivery` below).
   double multiplication, addition and subtraction `.rn`, `Math.FusedMultiplyAdd` the
   instruction `fma.rn.f64`). Nothing else in the tree may know about the mechanism.
   ⚠ 2026-10-05: was libdevice wrappers completed by a post-link, now no libdevice → HISTORY.md#ilgpu-libdevice-retired
-  - A second defect (2026-09-27): under WSL the second CUDA engine of a process failed
-    to bind; the execution node's `Ptx` child registers the devices itself
-    ([BOOT.md](src/Execution/Ptx/BOOT.md)). → HISTORY.md#retold-by-nodes
+  - WSL CUDA devices are registered by `Ptx` ([BOOT.md](src/Execution/Ptx/BOOT.md)). → HISTORY.md#retold-by-nodes
+    ⚠ 2026-11-17: was second-engine failure narrative, now registration rule → HISTORY.md#wsl-registration-story-2026-11-17
   - A third (2026-09-28): ILGPU moves a constant left operand of a floating-point
     comparison to the right and inverts its NaN ordering while doing so, so `1.0 < v`
     compiles to `setp.gtu.f64` and is true for a NaN `v` on CUDA and false on the CPU.
@@ -243,6 +242,7 @@ delivery (2026-09-15, `## Delivery` below).
   `Category=EndToEnd`; the command line's other facts run in-process on warm solvers
   ([src/Cli/API.md](src/Cli/API.md)); the approved outputs and bit records are also proven
   through the real process, on both platforms, in the end-to-end set.
+  Solution Build precedes VSTest unless no-build is requested ([solution-order](tools/solution-order/API.md)).
   ⚠ 2026-10-03: was "in-process waits until broken", now two budgets → HISTORY.md#test-budgets
 - Data: [src/Data/BOOT.md](src/Data/BOOT.md), `## Constraints`.
 - Repository: git, branch `main`, Conventional Commits, MIT license, English in every
