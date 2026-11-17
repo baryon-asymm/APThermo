@@ -9,6 +9,20 @@ used to stand.
 
 ---
 
+<a id="cold-host-handoff-2026-11-16"></a>
+
+## 2026-11-17 — from ACCEPTANCE.md, Acceptance criteria — pre-c0 hardware handoff
+
+  ⚠ 2026-11-16: the complete previous criterion was:
+  2026-11-16 — `ColdThroughputTests` and `ThroughputRecordTests` pass 55/55 on   CPU. Frozen control
+  commit `e7112d46` compiles; with its no-guard stub, six   cold-mode or missing-evidence cases fail
+  while the known-answer positive passes.   `cold-red.trx` SHA-256
+  D10C0EF01A558AF3A57835BA2B496AB90D0BBC19D641DB9604B38A7904868E73;   `cold-green.trx` SHA-256
+  07506B8DB53BB83DD684F63651F7FC40F62892E04CB09858162D139C18743882.   These host controls are not CUDA
+  evidence; hardware acceptance remains open below.
+  Its pending hardware statement was the pre-c0 handoff; the later c0 device
+  proof is separate from these CPU controls and is cited below.
+
 <a id="rocket-compile-allocation-runs-2026-10-05"></a>
 
 ## 2026-11-17 — from "## Purpose" — compile allocation measurements of 2026-10-05

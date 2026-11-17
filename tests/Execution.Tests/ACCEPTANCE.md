@@ -44,15 +44,7 @@ OS jobs pass with source-bound evidence in Release run 43861338174.
   `cold-red.trx` SHA-256 D10C0EF01A558AF3A57835BA2B496AB90D0BBC19D641DB9604B38A7904868E73;
   `cold-green.trx` SHA-256 07506B8DB53BB83DD684F63651F7FC40F62892E04CB09858162D139C18743882.
   These host controls are not CUDA evidence; actual c0 device proof is separate below.
-  ⚠ 2026-11-16: the complete previous criterion was:
-  2026-11-16 — `ColdThroughputTests` and `ThroughputRecordTests` pass 55/55 on   CPU. Frozen control
-  commit `e7112d46` compiles; with its no-guard stub, six   cold-mode or missing-evidence cases fail
-  while the known-answer positive passes.   `cold-red.trx` SHA-256
-  D10C0EF01A558AF3A57835BA2B496AB90D0BBC19D641DB9604B38A7904868E73;   `cold-green.trx` SHA-256
-  07506B8DB53BB83DD684F63651F7FC40F62892E04CB09858162D139C18743882.   These host controls are not CUDA
-  evidence; hardware acceptance remains open below.
-  Its pending hardware statement was the pre-c0 handoff; the later c0 device
-  proof is separate from these CPU controls and is cited below.
+  ⚠ 2026-11-16: was hardware proof pending after the host controls, now the separate c0 device proof is recorded below → HISTORY.md#cold-host-handoff-2026-11-16
 
 - [x] 2026-11-16 — The separate first-call cold throughput guard and its positive and
   compiling negative controls pass, and the unmodified original throughput, numerical
