@@ -20,6 +20,14 @@ Outside the tree: host shells and GitHub Actions versions inherited from the anc
 
 ## Constraints
 
+The hosted lane inventory must match every test project found in the tree as well as
+the solution; tests expose a missing project. Workflow guards reject a missing release
+environment, continue-on-error, diagnostic suppression, discover-only and failure
+masking. `test_document_comparison.py` runs in the established tool self-test lane.
+Trace workflow path selection includes `data/**`. Guard controls mutate actual policy
+and include unchanged positive wiring; no CUDA, publication, or credentials are used.
+⚠ 2026-11-17: earlier guards checked selected syntax but accepted these masking cases.
+
 The CPU trace runner derives scan methods from the neighbour's checked API declaration,
 requires exact nonempty discovery under Category=LongRunning, and then runs exactly
 that filter with APTHERMO_NO_CUDA=1. It records discovery, a generated category/job

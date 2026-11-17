@@ -49,6 +49,12 @@ hooks reference documents them (code.claude.com/docs/en/hooks), read 2026-10-02.
 
 ## Constraints
 
+Shell reads recognize existing bare directory names as paths. `git grep` and `git diff`
+must provide a `--`-separated nonempty pathspec, every path judged by the ordinary read
+set. Missing, foreign, root, or otherwise unjudgeable pathspecs are refused; approved
+scoped paths stay usable. The shell parser remains a heuristic, not OS isolation.
+⚠ 2026-11-17: bare directories and unscoped Git reads previously escaped path judgment.
+
 - **Which worktree.** The coder's worktree is the hook input's `cwd` when it lies under
   `<repo>/.claude/worktrees/<name>/`; `<name>` keys the scope file
   `<repo>/.claude/scopes/<name>.json`. A coder call whose `cwd` is elsewhere is refused.

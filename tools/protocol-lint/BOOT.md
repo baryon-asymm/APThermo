@@ -90,6 +90,10 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
 
 ## Constraints
 
+`history_guard.py --help` prints both supported forms and exits successfully without
+opening a repository. Invalid invocations retain nonzero diagnostics.
+⚠ 2026-11-17: the help option was unpacked as positional arguments and raised ValueError.
+
 - The node knows none of the project's programming languages: the list of source
   extensions is a parameter, not knowledge. The one place the code is read for a
   citation, outside the node documents, is the files under `src/` and `tests/` that the

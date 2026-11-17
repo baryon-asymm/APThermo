@@ -19,6 +19,9 @@ Outside the tree: host shells and GitHub Actions versions inherited from the anc
 
 ## Constraints
 
+Trace-gas path filters cover `data/**` as well as source and workflow changes; the
+document-comparison self-tests participate in the existing local/hosted checks.
+
 Inherit .github delivery policy and hosted evidence requirement. Every changed path must have executable local guards and a later actual GitHub run on its runner class. Trace scan discovery must contain both scan facts before execution; upload TRX and diagnostic files even after failure.
 
 CI's Windows fixture binding uses CPython 3.13 x64, a published-wheel ABI for the pinned

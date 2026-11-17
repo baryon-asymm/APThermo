@@ -24,8 +24,7 @@ dependencies against the real ones.
 | Tree contract | a library node's public types are named in its `API.md`'s package surface, not only its tree contract; a declared type's own section (package surface or tree contract) matches its reflected visibility; a type crossing an assembly boundary through a friend grant is found in the friend's own tree-contract section; every `InternalsVisibleTo` of a `src` assembly names a recognised friend | the assemblies' reflected visibility and IL, the nodes' `API.md` and `BOOT.md` (`TreeContractTests`) | ✅ (2026-09-15, distribution phase) |
 | Diagnostics | the root's Diagnostics constraint: no source, build or analyzer-configuration file suppresses a diagnostic (Roslyn's own generated-code markers and every MSBuild severity channel, rule sets included), the root build files set the maximum, every compiled source lives in a node directory, and no kernel-reached method throws, allocates or boxes | the tree's `.cs`, project, props, targets, `.editorconfig`, `.globalconfig`, `Directory.Build.rsp` and `*.ruleset` files, and the call graph from the execution node's `Kernels` (`DiagnosticsTests`) | ✅ (2026-09-25; extended 2026-09-28 and 2026-09-29) |
 
-⚠ 2026-10-03: was the Lint and Tool self-tests levels in the fast set, now `Category=EndToEnd`
-(each starts a Python process, which the End-to-end level above counts as a process start)
+⚠ 2026-10-03: was fast-set tool tests, now EndToEnd → HISTORY.md#tool-endtoend-2026-11-17
 
 ⚠ 2026-09-13: was five levels, now the table above → HISTORY.md#purpose-levels
 
@@ -63,6 +62,12 @@ dependencies against the real ones.
 - **Dependencies are read from method bodies too**: the members every instruction
   names, with the types in their signatures; an enum used only through its literals is
   an integer in the IL and is caught through the property or parameter it is assigned to.
+- Exact full names in IL string literals count as dependencies when resolved to real
+  types in the complete assembly inventory. Partial or unknown names never create edges.
+- EndToEnd reachability includes xUnit constructors and declared fixture constructors,
+  as well as the test method. Diagnostic guards include both MSBuild warning channels
+  `MSBuildWarningsAsMessages` and `MSBuildWarningsNotAsErrors`.
+⚠ 2026-11-17: reflection names, setup paths and these MSBuild channels were omitted.
 - **The shape check measures syntax, not text**: sizes, nesting, parameters, `partial`
   and `#region` from the C# syntax trees, coupling from the assemblies through the same
   IL walk as the dependency check; a `## Shape exceptions` row whose figure is below the
@@ -132,11 +137,7 @@ No caller script deadline, normal exit code or stdout-before-stderr ordering cha
   disposes two CPU engines once per test process for its whole-entry control;
   no CUDA context, benchmark method or timing measurement is involved.
 
-  ⚠ 2026-11-14: was reflection-only with no accelerator and no declared neighbours;
-  the benchmark diagnostic now has a real CPU input/output pair through documented
-  public/tree contracts. Its direct dependencies are listed above. A result clone
-  uses the internal record constructor only to inject corrupted station lists,
-  binding unique public property types, not private fields or parameter names.
+  ⚠ 2026-11-14: was reflection-only, now benchmark CPU control → HISTORY.md#benchmark-cpu-2026-11-17
 - **The tool self-tests' deadline** (`ToolSelfTestTests.Deadline`, 2026-10-04) is a hang guard,
   not a budget: ten minutes per script, twice the worst measured run of the slowest script
   (the merge guard's, 271 s with 64 CPU-bound processes on 16 cores), rounded up. A script that
@@ -175,9 +176,7 @@ written interface must occur in the compiled type's full interface closure. Reso
 aliases and generic/nullability arguments semantically. Omitted bases/interfaces
 remain omitted promises; do not demand an exhaustive implicit base list (IT03).
 
-⚠ 2026-11-14: the type header compared kind/modifiers/constraints but silently ignored
-explicit base lists. IT03 accepted false IDisposable/Exception promises on a type with
-neither. Written base contracts now have their own metadata comparison.
+⚠ 2026-11-14: was no base check, now metadata comparison → HISTORY.md#bases-2026-11-17
 
 Implemented C# fences are parsed with Roslyn and bound in their documented namespace
 against every built tree assembly, including internal types and nested nodes. The

@@ -1,5 +1,30 @@
 # HISTORY.md — Protocol.Tests
 
+<a id="bases-2026-11-17"></a>
+
+## 2026-11-17 — from Declaration verification — written bases
+
+> ⚠ 2026-11-14: the type header compared kind/modifiers/constraints but silently ignored
+> explicit base lists. IT03 accepted false IDisposable/Exception promises on a type with
+> neither. Written base contracts now have their own metadata comparison.
+
+<a id="benchmark-cpu-2026-11-17"></a>
+
+## 2026-11-17 — from Constraints — benchmark control
+
+>   ⚠ 2026-11-14: was reflection-only with no accelerator and no declared neighbours;
+>   the benchmark diagnostic now has a real CPU input/output pair through documented
+>   public/tree contracts. Its direct dependencies are listed above. A result clone
+>   uses the internal record constructor only to inject corrupted station lists,
+>   binding unique public property types, not private fields or parameter names.
+
+<a id="tool-endtoend-2026-11-17"></a>
+
+## 2026-11-17 — from Purpose — tool test category
+
+> ⚠ 2026-10-03: was the Lint and Tool self-tests levels in the fast set, now `Category=EndToEnd`
+> (each starts a Python process, which the End-to-end level above counts as a process start)
+
 Append-only store of what `BOOT.md` no longer needs to state as current truth
 (`AGENTS.md`, §15). Newest entry first. Every entry names the date it was moved, the
 `BOOT.md` section it came from, and carries the original text in full, unedited. The
