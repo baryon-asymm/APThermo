@@ -54,12 +54,13 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   `ILGPU.Runtime.Cuda` namespace; only the execution node does, and it works with the
   CPU accelerator when there is no CUDA device. Checked by reflection
   over every assembly (`Protocol.Tests.InvariantTests.OnlyTheExecutionNodeAndItsTestsNameCudaTypes`).
-- **GPU equals CPU.** For the same batch, the results on CUDA and on the CPU accelerator
-  are equal bit for bit: every field of every result, statuses and iteration counts
-  included, a NaN's payload aside. The tree's own correctly rounded `Exp`, `Log` and `Pow`
-  and the execution node's post-link, which keeps CUDA from fusing a multiplication into
-  an addition, make the two run one set of IEEE operations. CUDA comparison facts prove
-  this contract; CPU-only validation and repetition facts have narrower purposes.
+- **GPU equals CPU.** For the same batch, numerical results, statuses and iteration
+  counts match bit for bit, NaN payload aside. Accelerator identity and timing metadata
+  are reported, not equated. The tree's own correctly rounded `Exp`, `Log` and `Pow`
+  and the execution node's post-link prevent CUDA fusing multiplication into addition,
+  so both run the same IEEE operations. CUDA comparison facts prove this contract;
+  CPU-only validation and repetition facts have narrower purposes.
+  ⚠ 2026-11-17: was every field, now numerical outputs → HISTORY.md#gpu-metadata-2026-11-17
   ⚠ 2026-11-14: was every batch fact, now CUDA facts → HISTORY.md#audit-scope-2026-11-14
 
   ⚠ 2026-10-05: was within a tolerance table (1e-10 temperature, 1e-9 mole fractions), now exact → HISTORY.md#gpu-exact
@@ -155,10 +156,9 @@ delivery (2026-09-15, `## Delivery` below).
     ⚠ 2026-11-17: was 0.2.0 examples, now the current rule → HISTORY.md#diagnostic-examples-2026-11-17
   - A conflict that code cannot resolve goes to the owner; no node declares an exception
     of its own.
-  - Checked by every build and by the protocol tests node (`DiagnosticsTests`). Decided
-    with the owner on 2026-09-24, who asked for the maximum and rejected the scoped
-    exceptions proposed for the test nodes, the benchmarks and the public exceptions.
+  - Checked by every build and by the protocol tests node (`DiagnosticsTests`).
     → HISTORY.md#diagnostics-condensed
+    Owner's 2026-09-24 decision → HISTORY.md#diagnostics-decision-2026-11-17
 - Namespaces mirror the directory path from the tree root (AGENTS.md §1). The root
   namespace is `APThermo`; the grouping directories `src/`, `tests/` and `samples/` are
   transparent: `src/Equilibrium` is `APThermo.Equilibrium`, `tests/Equilibrium.Tests` is

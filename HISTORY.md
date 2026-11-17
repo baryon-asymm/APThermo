@@ -8,6 +8,32 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="gpu-metadata-2026-11-17"></a>
+
+## 2026-11-17 — from Invariants — numerical equality and metadata
+
+The numerical bit-equality obligation remains. Accelerator identity and timing are
+backend metadata, so they are separately inventoried and validated, not compared for
+equality. The earlier wording overclaimed equality of every result field. Original text:
+
+> - **GPU equals CPU.** For the same batch, the results on CUDA and on the CPU accelerator
+>   are equal bit for bit: every field of every result, statuses and iteration counts
+>   included, a NaN's payload aside. The tree's own correctly rounded `Exp`, `Log` and `Pow`
+>   and the execution node's post-link, which keeps CUDA from fusing a multiplication into
+>   an addition, make the two run one set of IEEE operations. CUDA comparison facts prove
+>   this contract; CPU-only validation and repetition facts have narrower purposes.
+
+<a id="diagnostics-decision-2026-11-17"></a>
+
+## 2026-11-17 — from Constraints — diagnostics decision history
+
+The checks remain required by BOOT.md. The dated decision is preserved in full:
+
+>   - Checked by every build and by the protocol tests node (`DiagnosticsTests`). Decided
+>     with the owner on 2026-09-24, who asked for the maximum and rejected the scoped
+>     exceptions proposed for the test nodes, the benchmarks and the public exceptions.
+>     → HISTORY.md#diagnostics-condensed
+
 <a id="roslyn-guard-2026-11-17"></a>
 
 ## 2026-11-17 — from Dependencies — Roslyn guard correction
