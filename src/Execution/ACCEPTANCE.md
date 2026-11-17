@@ -4,13 +4,13 @@
 
 - [x] 2026-10-05 — GPU equals CPU, bit for bit (item 13 of 0.2.2, owner decisions O1 to O9; `BOOT.md`, Invariants). The
       tree's own correctly rounded `Exp`, `Log` and `Pow` and the post-link that fixes the arithmetic of the PTX make the two
-      accelerators run one program on one set of IEEE operations, so numerical comparisons are exact (the tests node's
+      accelerators run one program on one set of IEEE operations, so every comparison is exact (the tests node's
       `ExactComparison`; its `ACCEPTANCE.md` holds the facts).
       - The probe kernel, 15 entries of the math list and the constant operand orders, equals the host functions on the CPU
         accelerator (`ProbeKernelTests.TheCpuAcceleratorReproducesTheHostFunctionsExactly`) and the CPU accelerator on CUDA
         bit for bit, the NaN payload aside (`CudaEqualsTheCpuAcceleratorBitForBitForEveryFunction`).
       - The rocket, equilibrium, transport and species-function batches on CUDA equal the CPU accelerator in statuses,
-        iteration counts and numerical outputs (`CudaTests` families; `SpeciesFunctionTests.CudaEqualsTheCpuAcceleratorBitForBit`),
+        iteration counts and every field (`CudaTests` families; `SpeciesFunctionTests.CudaEqualsTheCpuAcceleratorBitForBit`),
         and the sweep of 100 000 cases does too and is deterministic
         (`CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic`, long-running).
       - Throughput: the CUDA/CPU ratio stays above the root's 5x floor, 20.07 on Windows and 31.07 under WSL2 (Release, median
@@ -20,12 +20,12 @@
       - Evidence, 2026-10-05, the merged tree: Windows, Debug, `Category=Cuda` 80 of 81 (the one failure is the throughput fact,
         which refuses to compare a Debug run with the Release record); Release, the throughput and the compile facts 4 of 4;
         WSL2 Ubuntu 24.04, Release, `Category=Cuda` 81 of 81 (the sweep, the architecture fact and the throughput fact included, 27 m 37 s).
-      ⚠ 2026-11-17: "every comparison is exact" and "every field" overstated this
-      criterion: `ResultInventory` and `ExactComparison` validate accelerator identity
-      and timing metadata separately, without requiring CPU/GPU equality. Numerical
-      outputs, statuses and iteration counts remain exact, NaN payload aside. The
-      re-audit found the stale wording; the 2026-10-05 date and measurements above
-      remain evidence for their original runs, not a new GPU verification.
+      ⚠ 2026-11-17: the 2026-10-05 criterion above retains its historical wording
+      verbatim. "Every comparison" and "every field" are qualified here as numerical
+      outputs, statuses and iteration counts only, NaN payload aside. `ResultInventory`
+      and `ExactComparison` validate accelerator identity and timings separately,
+      without requiring CPU/GPU equality. The re-audit found the overbroad wording;
+      the original date and measurements are not a new GPU verification.
 - [x] 2026-10-05 — The PTX post-link (`Ptx/BOOT.md`): `Math.FusedMultiplyAdd` becomes `fma.rn.f64`, every double `mul`, `add`
       and `sub` is marked `.rn`, and a foreign fma or mad, an `.approx` f64 instruction and any `.extern` are refused before
       the trial load. `PostLinkTests` (15 facts, no GPU) and every architecture of `ArchitectureTests.EveryArchitectureFromSm75UpPassesThePostLinkAndMatchesTheDevice`

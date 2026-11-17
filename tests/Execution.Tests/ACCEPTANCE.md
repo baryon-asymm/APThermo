@@ -265,8 +265,8 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       `APTHERMO_NO_CUDA=1`, 16 processors): 113 080 797 032 bytes in the process (44 785 589 192 on the calling thread),
       warm-up 263.22 s, against the bound of 7 516 192 768: red by a factor of 15.
 - [x] 2026-10-05 — CUDA equals the CPU accelerator bit for bit on every family (`## Invariants`, item 13 of 0.2.2, owner
-      decisions O1 and O6). `ExactComparison` (`Rocket`, `Equilibrium`, `Transport`, `Functions`) compares numerical outputs,
-      statuses and iteration counts by bits, and returns at most 30 mismatches, each naming the
+      decisions O1 and O6). `ExactComparison` (`Rocket`, `Equilibrium`, `Transport`, `Functions`) compares the bits of every
+      field of every result, the statuses and iteration counts included, and returns at most 30 mismatches, each naming the
       case, the field and both values; the facts that run it on CUDA are the families of `CudaTests`: `ARocketFamilyOnCudaMatchesTheCpuAccelerator`,
       `AThroatFamilyOnCudaMatchesTheCpuAccelerator`, `AnEquilibriumFamilyOnCudaMatchesTheCpuAccelerator`, `ANamedEquilibriumFamilyOnCudaMatchesTheCpuAccelerator`,
       `AnEquilibriumTableFamilyOnCudaMatchesTheCpuAccelerator`, `ASeededFamilyOnCudaMatchesTheCpuAccelerator`,
@@ -277,8 +277,8 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       Evidence, 2026-10-05, the tree merged with coder 9's balancing-record rule: Windows, Debug, `Category=Cuda` 80 of 81 (the
       throughput fact refuses a Debug run, as designed), Release throughput and compile facts 4 of 4; WSL2 Ubuntu 24.04, Release,
       `Category=Cuda` 81 of 81 (the sweep, the architecture fact and the throughput fact included, 27 m 37 s). No tier, share bound, correction or case was needed to get there.
-      ⚠ 2026-11-17: was “every field of every result”; `ResultInventory` assigns accelerator identity and timings separate
-      metadata policies. The wording now matches that scope; the original 2026-10-05 date and hardware evidence remain historical.
+      ⚠ 2026-11-17: the retained historical “every field” wording means numerical outputs, statuses and iteration counts only.
+      Accelerator identity and timings follow separate `ResultInventory` policies; the 2026-10-05 hardware evidence is unchanged.
 - [x] 2026-10-05 — The comparison is proven non-degenerate: `ExactComparisonTests` (7 facts: two runs compare clean; an
       equilibrium and a rocket result differing in one thing, a transport and a function result differing in one value, a signed
       zero and a NaN told apart, results of different shapes refused before any value is read, at most the shown mismatches
