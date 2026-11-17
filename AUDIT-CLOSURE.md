@@ -5,7 +5,17 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
-## Re-audit remediation and current acceptance — 2026-11-16
+## Re-audit remediation in progress — 2026-11-17
+
+The independent review of `1a9ac02f1e33e915aff3877e47898d413f39de26` found further
+confirmed product, verification and documentary defects. The root aggregate is
+reopened while they are corrected and checked on the integrated source. The verified
+scope and distinctions are in the owner-held `VERIFIED-REMAINING-1a9-20261117.txt`;
+the original report is `REAUDIT-1a9-FABLE52.md` in the archive named below. In
+particular, the earlier cold guard did not establish recovery of fresh-workload
+performance. Previous CPU, GPU and package receipts retain their original source.
+
+## Historical re-audit acceptance — 2026-11-16
 
 The implementation source is `c0ebe7047a0756dbb054e6853fa787a3cc185a11`.
 The earlier 76 A01–A41/R01–R19/T01–T16 identifiers overlap and are not 76 distinct
