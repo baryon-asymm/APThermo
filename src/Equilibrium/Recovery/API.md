@@ -88,6 +88,10 @@ The bank includes the exact condensed slots alongside moles, multipliers and sta
 All Newton steps remain counted. An unresolved branch returns `NotConverged` with
 zero state and the best known composition; a gasless winner keeps T,p only.
 
+⚠ 2026-11-17: bracket give-up reason is kept separately from its inherited status.
+An exhausted numerical probe cannot become a domain-edge certificate merely because
+the original failure was `TemperatureOutOfRange`.
+
 ```csharp
 internal static class DeadEndCandidates
 {

@@ -134,6 +134,12 @@ approved bytes; labels are diagnostic text only, never extra hash input.
 
 ### Audit closure (2026-11-14)
 
+The `AreaRatioDispatchTests` boundary uses a synthetic scaled throat mass flux and
+nineteen subsonic steps followed by one frozen supersonic pass. The actual iteration
+must reject a residual beyond `1e-6` even when its correction meets the report's
+`4e-5` bound. The guard-disabled compiling control must fail with an accepted outcome;
+the physical state solve and the iteration cap are unchanged.
+
 - Only the known BeO plateau-edge mismatch exempts its seven derivative, sound and
   Mach fields, guarded by that fixture and its pinned-pair signature. Ordinary
   sonic throats and the other fields remain compared.

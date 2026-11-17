@@ -297,9 +297,8 @@ non-positive or nonfinite pressure, a tp temperature that is non-positive or not
 *given* (nonzero) hp or sp temperature estimate that is not finite and positive —
 0 stays the sentinel for "none given", defaulting to 3800 K, the third pass of
 2026-09-28, observation O1 — more elements than `TableLimits.MaxElements`; for
-`SolveFrozen` also a composition without gaseous moles, any mole number negative or
-not finite (2026-09-26), or an initial temperature estimate that is non-positive or
-not finite (2026-09-28)),
+`SolveFrozen` also a composition without gaseous moles or any mole number negative or
+not finite (2026-09-26)); a nonfinite hp/sp assigned target is invalid for either solve,
 `NotConverged` (the report's tests not met within `MaxNewtonSteps` after the last
 change of the condensed set, more than `MaxCondensedSetChanges` changes, the element
 conservation invariant violated at the end, or, since 2026-09-26, a condensed candidate
@@ -326,6 +325,12 @@ On any status but `Ok`, `NoGasPhase` excepted, `Moles` hold the last iterate and
 that was bracketed has it cleared to zero, a probe may have written one); on
 `InvalidInput` nothing but `Status` and `Iterations` (zero) is written. `Iterations` sums every attempt's
 Newton steps.
+
+⚠ 2026-11-17: `SolveFrozen` previously described every non-positive hp/sp estimate
+as invalid, while zero is the shared absent-estimate sentinel. It also silently replaced
+negative or NaN estimates with the default; those given invalid estimates are now refused.
+Nonfinite hp/sp targets are refused before attempts write state or composition. A later
+internal setup failure ends `NotConverged`, clears the state and keeps paid iterations.
 
 ⚠ 2026-09-28: the `SingularMatrix` clause named only the targeted removal of 2026-09-28,
 as if it followed straight after the two gaseous resets. Rules A and B (BOOT.md, "Two

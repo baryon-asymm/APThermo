@@ -108,9 +108,14 @@ internal static class StationFigures
         figures.SpecificImpulse = velocity;
         figures.VacuumSpecificImpulse = velocity + state.Pressure / (state.Density * velocity);
         result.Figures[station] = figures;
-        if (!(Math.Abs(state.Entropy - chamberEntropy) <= RocketSolver.EntropyTolerance * Math.Abs(chamberEntropy)))
+        if (!Finite(velocity) || !Finite(state.Mach) || !Finite(figures.AreaRatio) || !Finite(figures.PressureRatio)
+            || !Finite(figures.CharacteristicVelocity) || !Finite(figures.ThrustCoefficient)
+            || !Finite(figures.SpecificImpulse) || !Finite(figures.VacuumSpecificImpulse)
+            || !(Math.Abs(state.Entropy - chamberEntropy) <= RocketSolver.EntropyTolerance * Math.Abs(chamberEntropy)))
         {
             result.StationStatus[station] = (int)CaseStatus.NotConverged;
         }
     }
+
+    private static bool Finite(double value) => value is > double.NegativeInfinity and < double.PositiveInfinity;
 }

@@ -79,15 +79,22 @@ internal static class EquilibriumSolver
         result.Status[0] = (int)CaseStatus.InvalidInput;
         var plan = default(AttemptPlan);
         plan.Begin(problem, useMolesAsEstimate);
+        var started = false;
         while (true)
         {
             var state = new IterationState();
             var current = plan.Current;
             if (CaseSetup.Begin(table, current, scratch, result, plan.Source, ref state) != CaseStatus.Ok)
             {
+                if (started)
+                {
+                    CaseSetup.RefuseAfterAttempt(result, plan.Iterations);
+                }
+
                 return;
             }
 
+            started = true;
             var status = CaseStatus.NotConverged;
             if (plan.RunsAttempt)
             {
@@ -156,7 +163,8 @@ internal static class EquilibriumSolver
     {
         result.Iterations[0] = 0;
         result.Status[0] = (int)CaseStatus.InvalidInput;
-        if (table.SpeciesCount <= 0 || problem.Pressure is not (> 0.0 and < double.PositiveInfinity))
+        if (table.SpeciesCount <= 0 || problem.Pressure is not (> 0.0 and < double.PositiveInfinity)
+            || !CaseSetup.ValidTemperature(problem) || !CaseSetup.ValidTarget(problem))
         {
             return;
         }

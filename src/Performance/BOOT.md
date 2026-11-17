@@ -51,6 +51,11 @@ restate the equations. Whoever codes this node reads chapter 6.
   `Isp = u_e` (effective exhaust velocity, m/s, ambient pressure equal to exit
   pressure); `Ivac = u_e + p_e / (ρ_e u_e)`; `C_F = Isp / c*`; `Mach = u / a` with the
   sound speed of the flow model.
+- **An accepted station has finite figures.** If a pressure-assigned exit's velocity,
+  area ratio or derived performance cannot be represented, it is `NotConverged`; it
+  never returns `Ok` with an infinite area ratio or vacuum impulse. Other finite
+  pressure-ratio stations keep their existing acceptance policy.
+  ⚠ 2026-11-17: a ratio just above one could return `Ok` with infinite output figures.
 - **Stateless, deterministic, bounded**, as `Equilibrium`: explicit inputs and
   scratch; iteration caps; a status per case.
 
@@ -187,9 +192,11 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   diagnostics and composition output; Transport takes temperature and moles), the performance figures per station (the reference
   reports them at every station: `c*` everywhere, the throat's `C_F`, `Isp`, `Ivac`),
   a status per station, the equilibrium iteration counts, and the case status.
-- Not in version 1: finite-area chamber, subsonic exit stations, freezing at an
+- Not in version 1: finite-area chamber, area-assigned subsonic exits, freezing at an
   arbitrary station, the report's stop of a frozen expansion 50 K below the range of
   a condensed species present at the chamber (section 6.5.1).
+  ⚠ 2026-11-17: was all subsonic exits; finite pressure-assigned exits can be subsonic
+  in shifting and frozen-at-chamber flow, as the pressure-ratio contract already allowed.
 - Compile size (2026-09-30, the root's Compile size constraint): `StationSolve.At` is
   marked `[MethodImpl(MethodImplOptions.NoInlining)]`. It is the one method through
   which the rocket program reaches `Equilibrium`'s solves, from eight call sites

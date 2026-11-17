@@ -151,8 +151,9 @@ exit whose pressure is at or above the throat's, 2026-09-28, finding F5), `AreaR
 (an area ratio not above 1, that station; the reference's rule, 2026-09-26), `ThroatNotFound`
 (neither the sonic condition within `MaxThroatIterations` nor the bracket's bisection found
 the throat; `BOOT.md`, the first maximum of the mass flux met from the chamber), `NotConverged`
-(an area ratio not met within `MaxAreaRatioIterations`, or an accepted station's entropy off
-the chamber's by more than the relative tolerance `1e-9`, `BOOT.md`'s entropy check), and the
+(an area ratio not met within `MaxAreaRatioIterations`, nonfinite station figures, or an
+accepted station's entropy off the chamber's by more than the relative tolerance `1e-9`,
+`BOOT.md`'s entropy check), and the
 statuses of `Equilibrium` propagated from a station's solve. A chamber or throat failure ends
 the case; the exits keep `InvalidInput`.
 
@@ -175,6 +176,10 @@ area ratio and vacuum specific impulse that resulted before the fix.
 A failed station has zero State and performance figures, except NoGasPhase retains
 its temperature and pressure only. Earlier successful stations and the permitted
 diagnostic composition remain available.
+
+⚠ 2026-11-17: a pressure-ratio exit with a rounded zero velocity could report `Ok`
+with infinite area and vacuum impulse. Nonfinite figures now refuse that station as
+`NotConverged`; this does not reject other finite pressure-ratio exits.
 
 ⚠ 2026-11-14: failed frozen/area iterations could expose a partial State even with
 a correct failure status (A36). Finalization now enforces the outward payload rule.

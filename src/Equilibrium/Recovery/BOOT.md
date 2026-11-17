@@ -248,6 +248,12 @@ silently turned into a proof of optimality. Iterations count all attempted work;
 restoring the bank never resets the counter. A gasless winner retains its
 `NoGasPhase` status and T,p-only state.
 
+Record whether a bracket ended at the domain edge independently of its inherited
+status: an exhausted numerical attempt remains unresolved even when the first
+attempt's status was `TemperatureOutOfRange`. Reset the reason when starting a
+new bracket or scan; only the actual edge and exhausted range scan certify an edge.
+⚠ 2026-11-17: deriving the reason from the inherited status could falsely restore `Ok`.
+
 ⚠ 2026-11-14: the first cursor implementation stopped after one improving final
 and replayed the original with its old iteration count. Neither proves the best
 candidate across later floors or reports the work done. The bank and complete

@@ -117,8 +117,8 @@ internal struct TemperatureBracket
 
     /// <summary>Whether the search stands at a one-sided probe going down, where the data floor of a condensed record may stop it.</summary>
     /// <summary>Both recorded ends are narrow enough for the ordinary final.</summary>
-    /// <summary>A domain edge is an exclusion rather than an unresolved numerical attempt.</summary>
-    public readonly bool GaveUpAtDomainEdge => GiveUpStatus == CaseStatus.TemperatureOutOfRange;
+    /// <summary>The actual stop was a certified domain edge, independently of its reported status.</summary>
+    public bool GaveUpAtDomainEdge { readonly get; private set; }
 
     public readonly bool NarrowEnds => HaveLow && HaveHigh && Math.Abs(HighX - LowX) <= Narrow;
 
@@ -129,6 +129,7 @@ internal struct TemperatureBracket
     {
         Active = true;
         FirstFailure = firstFailure;
+        GaveUpAtDomainEdge = false;
         ProbeX = KernelMath.Log(estimate > 0.0 ? estimate : DefaultStart);
     }
 
@@ -190,12 +191,12 @@ internal struct TemperatureBracket
 
         if (Probes >= MaxProbes)
         {
-            return both ? LeverFinal() : GiveUp(FirstFailure);
+            return both ? LeverFinal() : GiveUp(FirstFailure, domainEdge: false);
         }
 
         if (!both && OutOfDomain())
         {
-            return GiveUp(CaseStatus.TemperatureOutOfRange);
+            return GiveUp(CaseStatus.TemperatureOutOfRange, domainEdge: true);
         }
 
         var next = both ? Inside(step) : Outward(step, floor);
@@ -227,7 +228,7 @@ internal struct TemperatureBracket
     {
         if (!(floor > 0.0))
         {
-            return GiveUp(CaseStatus.TemperatureOutOfRange);
+            return GiveUp(CaseStatus.TemperatureOutOfRange, domainEdge: true);
         }
 
         ProbeX = KernelMath.Log(floor * (1.0 - ScanMargin));
@@ -239,7 +240,7 @@ internal struct TemperatureBracket
     {
         if (!(HaveLow || HaveHigh) || Retreats >= MaxRetreats)
         {
-            return GiveUp(FirstFailure);
+            return GiveUp(FirstFailure, domainEdge: false);
         }
 
         Retreats++;
@@ -259,9 +260,10 @@ internal struct TemperatureBracket
     public readonly double LeverTemperature(double target) =>
         KernelMath.Exp(LowX) + LeverFraction(target) * (KernelMath.Exp(HighX) - KernelMath.Exp(LowX));
 
-    private BracketMove GiveUp(CaseStatus status)
+    private BracketMove GiveUp(CaseStatus status, bool domainEdge)
     {
         GiveUpStatus = status;
+        GaveUpAtDomainEdge = domainEdge;
         return BracketMove.GiveUp;
     }
 

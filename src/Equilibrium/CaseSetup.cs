@@ -33,6 +33,24 @@ internal static class CaseSetup
             ? problem.Temperature
             : (problem.Temperature > 0.0 ? problem.Temperature : DefaultTemperatureEstimate);
 
+    /// <summary>TP assigns its temperature; HP/SP permit zero only as the absent-estimate sentinel.</summary>
+    internal static bool ValidTemperature(in EquilibriumProblem problem) =>
+        problem.Temperature is > 0.0 and < double.PositiveInfinity
+        || (problem.Kind != ProblemKind.AssignedTemperaturePressure && problem.Temperature == 0.0);
+
+    /// <summary>Only HP/SP use a target; it must be finite before starting any numerical work.</summary>
+    internal static bool ValidTarget(in EquilibriumProblem problem) =>
+        problem.Kind == ProblemKind.AssignedTemperaturePressure
+        || problem.Target is > double.NegativeInfinity and < double.PositiveInfinity;
+
+    /// <summary>A failed setup after numerical work is a numerical refusal, not untouched InvalidInput.</summary>
+    internal static void RefuseAfterAttempt(in EquilibriumResult result, int iterations)
+    {
+        result.State[0] = default;
+        result.Iterations[0] = iterations;
+        result.Status[0] = (int)CaseStatus.NotConverged;
+    }
+
     /// <summary>
     /// Checks the input, masks the absent elements and their species, and writes the initial estimate and the carried state.
     /// InvalidInput leaves every output view untouched; the caller has already written that status.
@@ -51,8 +69,7 @@ internal static class CaseSetup
         // (ColdRetryProblem). A *given* (nonzero) hp or sp estimate that is not finite and positive is InvalidInput
         // all the same (the third pass of 2026-09-28, observation O1): +∞, NaN and a negative value all used to
         // reach the Newton loop unchecked (SingularMatrix or NotConverged instead of a clean refusal).
-        var badEstimate = problem.Temperature is not (> 0.0 and < double.PositiveInfinity);
-        if (badEstimate && (problem.Kind == ProblemKind.AssignedTemperaturePressure || problem.Temperature != 0.0))
+        if (!ValidTemperature(problem) || !ValidTarget(problem))
         {
             return CaseStatus.InvalidInput;
         }

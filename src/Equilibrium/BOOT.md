@@ -103,6 +103,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   estimate (the nozzle does). A temperature estimate that is given for hp or sp and is
   not finite and positive is `InvalidInput`, as for the frozen solve (2026-09-28)
   → HISTORY.md#warm-evidence
+  An hp or sp target must be finite before any attempt or probe mutates output. Zero is
+  the absent estimate for hp/sp, including frozen; a given invalid estimate is rejected.
 
   What follows a failed attempt — the cold fallback of a warm start, the gasless verdict
   of a tp attempt, the temperature bracket of an hp or sp case — is the `Recovery` child

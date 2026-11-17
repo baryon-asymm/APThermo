@@ -351,7 +351,7 @@ public sealed class RecoveryCandidateTests
         }
     }
 
-    private static MixtureState State(ProblemKind kind, int rank)
+    internal static MixtureState State(ProblemKind kind, int rank)
     {
         object boxed = default(MixtureState);
         var marker = 20.0 + rank;
@@ -378,7 +378,7 @@ public sealed class RecoveryCandidateTests
             Assert.True(Bits.Same((double)property.GetValue(expected)!, (double)property.GetValue(actual)!), property.Name);
         }
     }
-    private static void WriteCandidate(SpeciesTableView table, EquilibriumResult result, MixtureState state, double marker)
+    internal static void WriteCandidate(SpeciesTableView table, EquilibriumResult result, MixtureState state, double marker)
     {
         result.State[0] = state;
         for (var j = 0; j < table.SpeciesCount; j++)
@@ -392,7 +392,7 @@ public sealed class RecoveryCandidateTests
         }
     }
 
-    private static void AssertCandidate(SpeciesTableView table, EquilibriumResult result, double marker)
+    internal static void AssertCandidate(SpeciesTableView table, EquilibriumResult result, double marker)
     {
         for (var j = 0; j < table.SpeciesCount; j++)
         {
@@ -405,7 +405,7 @@ public sealed class RecoveryCandidateTests
         }
     }
 
-    private static void WithViews(ProblemKind kind, Action<SpeciesTableView, EquilibriumProblem, EquilibriumScratch, EquilibriumResult> inspect)
+    internal static void WithViews(ProblemKind kind, Action<SpeciesTableView, EquilibriumProblem, EquilibriumScratch, EquilibriumResult> inspect)
     {
         var name = kind == ProblemKind.AssignedEnthalpyPressure ? "HP_feasible_higher_S" : "SP_feasible_lower_H";
         var witness = AuditPhaseBranchTests.Data().GetProperty("witnesses").GetProperty(name);
