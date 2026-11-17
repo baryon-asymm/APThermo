@@ -11,6 +11,24 @@ public sealed class DriverIsolationTests
     public void InvalidSentinelIsRejected(string sentinel) =>
         _ = Assert.Throws<InvalidOperationException>(() => DriverIsolation.Parse(sentinel, "auto"));
 
+    /// <summary>A passed row requires a completed and internally consistent TRX summary.</summary>
+    [Theory]
+    [InlineData("Completed", "0", true)]
+    [InlineData("Aborted", "0", false)]
+    [InlineData("Completed", "1", false)]
+    [InlineData("Completed", "invalid", false)]
+    public void ReportRequiresCompletedSummaryAndZeroOtherCounters(string outcome, string errors, bool accepted)
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, $"<TestRun><Results><UnitTestResult testName=\"Example\" outcome=\"Passed\" /></Results><ResultSummary outcome=\"{outcome}\"><Counters total=\"1\" executed=\"1\" passed=\"1\" failed=\"0\" notExecuted=\"0\" error=\"{errors}\" timeout=\"0\" aborted=\"0\" inconclusive=\"0\" passedButRunAborted=\"0\" notRunnable=\"0\" disconnected=\"0\" warning=\"0\" completed=\"0\" inProgress=\"0\" pending=\"0\" /></ResultSummary></TestRun>");
+            var error = Record.Exception(() => DriverIsolation.VerifyReport(path, "Example"));
+            Assert.Equal(accepted, error is null);
+        }
+        finally { File.Delete(path); }
+    }
+
     /// <summary>A generated child sentinel preserves its unique marker identity.</summary>
     [Fact]
     public void ExactSentinelIsParsed()

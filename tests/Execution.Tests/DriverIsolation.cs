@@ -75,18 +75,27 @@ internal static class DriverIsolation
         }
     }
 
-    private static void VerifyReport(string path, string expected)
+    internal static void VerifyReport(string path, string expected)
     {
         var document = XDocument.Load(path);
         var rows = document.Descendants().Where(element => element.Name.LocalName == "UnitTestResult").ToArray();
         _ = Assert.Single(rows);
         Assert.Equal(expected, (string?)rows[0].Attribute("testName"));
         Assert.Equal("Passed", (string?)rows[0].Attribute("outcome"));
-        var counters = Assert.Single(document.Descendants(), element => element.Name.LocalName == "Counters");
+        var summary = Assert.Single(document.Descendants(), element => element.Name.LocalName == "ResultSummary");
+        Assert.Equal("Completed", (string?)summary.Attribute("outcome"));
+        var counters = Assert.Single(summary.Elements(), element => element.Name.LocalName == "Counters");
         Assert.Equal("1", (string?)counters.Attribute("total"));
         Assert.Equal("1", (string?)counters.Attribute("executed"));
         Assert.Equal("1", (string?)counters.Attribute("passed"));
-        Assert.Equal("0", (string?)counters.Attribute("failed"));
-        Assert.Equal("0", (string?)counters.Attribute("notExecuted"));
+        foreach (var name in new[] { "failed", "error", "timeout", "aborted", "inconclusive", "notExecuted" })
+        {
+            Assert.Equal("0", (string?)counters.Attribute(name));
+        }
+
+        foreach (var attribute in counters.Attributes().Where(attribute => attribute.Name.LocalName is not ("total" or "executed" or "passed")))
+        {
+            Assert.Equal("0", attribute.Value);
+        }
     }
 }
