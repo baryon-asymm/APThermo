@@ -54,7 +54,9 @@ facts still exist; actual fresh reports must prove both executed and all case id
 ⚠ 2026-11-15 (R10): the former one-command R16 policy is superseded by the exact
 two-process selection in the ancestor, preserving both shared-sweep facts together.
 
-## Re-audit delivery guards planned 2026-11-16
+## Re-audit delivery guards implemented 2026-11-16
+
+⚠ 2026-11-17: this heading said “planned”; the guards were implemented and the c0 release ran on both GPU runners. The follow-up source still needs its own workflow evidence.
 
 Both CUDA phases must together execute exactly the independently discovered original
 CUDA-or-bit population once, identified by the same `(testId, testName)` pairs in

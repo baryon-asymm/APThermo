@@ -263,7 +263,7 @@ compile/cache observations replace them while the root's upper budget stays.
 Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with its driver for the CUDA category
 (no CUDA Toolkit, 2026-10-05).
 
-## Cold throughput guard planned 2026-11-16
+## Cold throughput guard implemented 2026-11-16
 
 Preserve the original shared sweep, 100,000 cases, five 64-case CUDA warm-ups, three
 ordered timed calls, timing boundaries, medians, existing approved files and all 5×,
@@ -280,7 +280,13 @@ claim. The separate records must identify source and sample count; existing warm
 records are unchanged. The owner-held `cold-reference-frozen-f21a-v1.json` identifies
 both TRX files, values and hashes. This does not establish performance on new code.
 Synthetic controls must reject a slowed cold sample while the warm median still
-passes, and reject a false cold-mode claim. Actual hardware acceptance stays open.
+passes, and reject a false cold-mode claim. Both actual c0 Windows and Linux GPU
+runs passed the cold guard on 2026-11-16 (Release run 43861338174); hardware
+acceptance for the 2026-11-17 follow-up source remains open.
+
+⚠ 2026-11-17: this section was headed “Cold throughput guard planned” and said
+“Actual hardware acceptance stays open”. The guard was implemented and verified
+on c0; that historical evidence does not establish the later source.
 
 After all three measurements and the actual-file write, but before the existing
 throughput comparisons, require the observed composition cold/hit/hit. Check exactly

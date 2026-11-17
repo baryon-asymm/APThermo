@@ -1,5 +1,23 @@
 # HISTORY.md — Fixtures.Tests
 
+<a id="bounded-terminal-2026-11-15"></a>
+
+## 2026-11-17 — from "## Invariants" — bounded terminal observation
+
+⚠ 2026-11-15: immediate post-Run descendant assertions assumed synchronous OS exit.
+The recurring 84e hosted failure did not sample the kernel state. Owned handshake
+controls show the immediate-observation defect on both platforms, while this remedy
+observes the same terminal states within the remaining original budget. No claim
+about PF_EXITING or the historical failed instant is inferred from a later pass.
+
+<a id="pid-recheck-2026-11-15"></a>
+
+## 2026-11-17 — from "## Invariants" — PID recheck
+
+⚠ 2026-11-15: the former wording said a reused PID "is never targeted for teardown".
+The implemented read/recheck predicate excludes observed mismatches and rechecks
+immediately before requesting kill; it does not provide a kernel-atomic guarantee.
+
 <a id="linux-terminal-state"></a>
 
 ## 2026-11-16 — from "## Invariants" — Linux terminal state

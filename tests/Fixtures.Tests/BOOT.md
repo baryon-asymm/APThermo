@@ -116,9 +116,7 @@ UTC start time, and Linux kernel start ticks. Each sample checks that identity;
 a mismatched identity is excluded from teardown, which rechecks the identity
 immediately before requesting kill.
 
-⚠ 2026-11-15: the former wording said a reused PID "is never targeted for teardown".
-The implemented read/recheck predicate excludes observed mismatches and rechecks
-immediately before requesting kill; it does not provide a kernel-atomic guarantee.
+⚠ 2026-11-15: was never target reused PID, now read/recheck is non-atomic → HISTORY.md#pid-recheck-2026-11-15
 
 Windows samples retain one valid Process.SafeHandle before querying HasExited and
 StartTime on that same Process, closing the check/reopen race when a child exits
@@ -145,22 +143,25 @@ The bounded waiter accepts an already running clock, never starts or restarts it
 and makes a final state read at the boundary. Controlled release occurs after the
 first LIVE sample; held and zero-budget controls prove live-state refusal.
 
-⚠ 2026-11-15: immediate post-Run descendant assertions assumed synchronous OS exit.
-The recurring 84e hosted failure did not sample the kernel state. Owned handshake
-controls show the immediate-observation defect on both platforms, while this remedy
-observes the same terminal states within the remaining original budget. No claim
-about PF_EXITING or the historical failed instant is inferred from a later pass.
+⚠ 2026-11-15: was immediate exit assertion, now bounded terminal-state observation → HISTORY.md#bounded-terminal-2026-11-15
 
 ## Acceptance criteria
 
 - [ ] `OwnerPreStartTests` proves actual pre-connect bootstrap cancellation and public
   timeout, a controlled unconnected process with both cancellation modes and a
   possibly partial START guard on Windows and Linux; the baseline leak and write-order
-  mutants must fail while the target never starts and the original token/bytes remain.
-  Windows Release passed 5/5 on 2026-11-16; native Linux and integrated acceptance remain pending.
+  mutants must fail, preserving the original token/bytes. Before START the target
+  never starts; the ambiguous delivered-START control instead starts the target and
+  verifies termination of the owned scope. Windows Release and native Linux c0
+  controls passed on 2026-11-16; acceptance of the follow-up source remains pending.
   The actual bootstrap is held before managed startup by the per-process .NET diagnostic
   suspend option and is verified unconnected. A separate finite ProcessProbe substitutes
   for a non-connecting owner to check exact fixture bytes; the two controls are distinct.
+
+⚠ 2026-11-17: the preceding criterion said “mutants must fail while the target never
+starts” and “native Linux and integrated acceptance remain pending”. The ambiguous
+START-write control does start the target, and native Linux c0 evidence was obtained;
+neither establishes acceptance of the later source.
 
 - [x] 2026-11-16 — `DotnetProcessDirectoryTests` exercises a real child holding the
   private directory as CWD, controlled release after the actual Windows sharing
