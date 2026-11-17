@@ -8,6 +8,42 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="roslyn-guard-2026-11-17"></a>
+
+## 2026-11-17 — from Dependencies — Roslyn guard correction
+
+The current dependencies remain in `BOOT.md`. Original text:
+
+> ⚠ 2026-11-16: Roslyn was listed for the protocol shape check only; Equilibrium.Tests also uses it for the loop-live guard introduced by `ade4d748`. The SDK test platform is bundled, not a new package.
+
+<a id="throughput-mode-2026-11-17"></a>
+
+## 2026-11-17 — from Constraints — performance target measurement mode
+
+The three-call cold/hit/hit measurement and separate cold guard are recorded explicitly;
+the existing 5× target and all original throughput gates remain unchanged. The former
+root wording did not distinguish the timed modes; the execution tests node already
+described them. Original text:
+
+> - Performance target: on a batch of 100 000 states the CUDA path is at least 5× faster
+>   than the CPU accelerator path using all cores. There is no single-case latency target
+>   in version 1.
+
+<a id="diagnostic-examples-2026-11-17"></a>
+
+## 2026-11-17 — from Constraints — diagnostic-resolution examples
+
+The framework/analyzer conflict rule remains current in `BOOT.md`; its examples and
+release chronology are preserved here. Original text:
+
+>   - A rule that conflicts with a framework is resolved in code: test methods are
+>     PascalCase (CA1707) and carry XML documentation like any public member (CS1591); an
+>     awaited call in a test says `ConfigureAwait(true)`, which satisfies both CA2007 and
+>     xUnit1030; public exceptions carry the standard constructors (CA1032); the result
+>     structs `MixtureState`, `PerformanceFigures` and `TransportFigures` expose
+>     properties and value equality (CA1051, CA1815). This breaks the binary surface of
+>     0.1.0, so the next release is 0.2.0 (`CHANGELOG.md`).
+
 <a id="host-code"></a>
 
 ## 2026-11-16 — from Constraints and Taboos — kernel versus host code

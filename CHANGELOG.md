@@ -46,6 +46,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - State the frozen-composition extrapolation limits, failed-state exceptions and
   per-solver threading constraint in the public contracts and guides. Distinguish
   backend reproducibility, independent scientific evidence and policy-only tests.
+- Disclose the cost of fresh CUDA calibration separately from repeat throughput.
+  On the RTX 5070 Ti reference machine, the first timed call of a 100,000-case batch
+  on 2026-11-16 took 2.681e-7 seconds per Newton step on Windows and 2.686e-7 on
+  Linux (one cold observation per platform, Release run 43861338174 at `c0ebe704`).
+  These are about 2.17 times the older approved median references, 1.237e-7 and
+  1.235e-7 respectively; a single cold observation compared with an older median
+  does not establish a controlled cold-to-cold regression or a general device cost.
+  The existing median tripwire uses one cold and two prefix-cache-hit measurements;
+  a separate cold guard uses its own documented reference. Neither establishes that
+  fresh workloads have regained the older performance.
 
 ## [0.3.0] - 2026-10-05
 

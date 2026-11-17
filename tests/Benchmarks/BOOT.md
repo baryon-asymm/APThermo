@@ -4,7 +4,7 @@
 
 Measures how fast the library computes, so that a change of the code, the clean-code
 pass of 2026-09-14/15 first, can be compared against the code before it. The
-bit-for-bit guards prove that the numbers did not change; nothing proves the speed.
+bit-for-bit guards prove that the numbers did not change; this node records speed.
 Extracting kernel stages can change inlining on the CPU accelerator and in the
 the CUDA code. This node is a library of BenchmarkDotNet benchmark classes,
 run by hand through its child node [Runner](Runner/BOOT.md) (2026-09-25), never by
@@ -31,10 +31,12 @@ node `Runner` (CA1515) → HISTORY.md#console-to-library
 Audit A08 exposed the first gap. Finite-value guards and an explicit bit-equality
 flag replace those incomplete diagnostics; the numeric tolerances stay unchanged.
 
-- **Figures are recorded, never asserted.** No test of the tree compares a timing with
-  a bound: a wall-clock assertion reddens on a busy machine for no defect (AGENTS.md
-  §13, a perpetually red check). A regression is found by reading the comparison, and
-  it goes to a design session.
+- **This node records figures without asserting timing bounds.** A regression is
+  found by reading the comparison and goes to a design session. The execution tests
+  separately assert their documented throughput and per-launch budgets.
+
+  ⚠ 2026-11-17: the previous claim that no test in the tree compares a timing with a
+  bound was false; execution tests enforce their own throughput and launch limits.
 - **The same work on both sides of a comparison.** Every benchmark that solves also
   records, once per configuration, the statuses of its cases and a hash of its results
   (the bits of the result structs and moles, the `Harness` bit hash).

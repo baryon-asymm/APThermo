@@ -98,8 +98,8 @@ else
 
 6. **From the command line**: `apthermo devices` reports what this machine offers —
    the CPU accelerator and, when CUDA was tried, either an accelerator description
-   like the CPU's or, when CUDA is unavailable, `available: false` with a message and
-   every path tried. `apthermo schema devices` prints the document's exact shape. The
+   like the CPU's or, when CUDA is unavailable, `available: false` with a diagnostic
+   message. It need not enumerate every path. `apthermo schema devices` prints the document's exact shape. The
    exact values are machine-dependent, so no sample output is shown here; run it on
    your own machine to see its devices. `--accelerator auto|cpu|cuda` overrides a
    document's `engine.accelerator`.

@@ -90,6 +90,16 @@ frame; this file holds the criteria that prove it, read only in the root node.
       7.2 s against 5.3 s for the batch, measured on a machine shared with other test runs
       (the execution node's criterion of that date, which asks for a quiet re-measure).
 
+      ⚠ 2026-11-17: the original wording above did not distinguish a fresh call from
+      repeats. The current tripwire measures three calls in cold/hit/hit order and
+      applies the existing 115% check to the median kernel time and the 5× and 80%
+      checks to the ratio of median CPU and CUDA elapsed times. An additional guard
+      uses a separate reference for the first cold call. At `c0ebe704`, the
+      2026-11-16 Release run 43861338174 recorded ratios of 30.46× on Windows and
+      25.98× on Linux, while the individual cold measurements were about 2.17 times
+      the older approved per-step medians. One cold measurement per platform versus
+      an older median is not a controlled cold-to-cold performance comparison.
+
       ⚠ 2026-09-19: the figures above of 2026-09-12 (56.28×) and the Linux 52.01× were
       Debug measurements, a fact no record stated. The CPU accelerator runs the kernels
       from the assemblies' IL, so the host build configuration changes its speed about

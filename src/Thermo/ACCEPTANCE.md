@@ -196,6 +196,10 @@
       replaced by these two, their evidence dates stay.
       → HISTORY.md#crit-kernelmath-payload
 
+      ⚠ 2026-11-17: the preceding dated record names 104² ordered pairs. The current
+      `Values` builds 49 entries and the same facts exercise every ordered pair of
+      that generated domain. The earlier evidence remains historical for its run.
+
 - [x] 2026-11-14 — A04 species upload: SpeciesBufferOwnershipTests enumerates
   failure boundaries from the reflected array-column inventory, checks ordinary and
   injected OOM cleanup faults, preallocation, retained diagnostics and actual CPU

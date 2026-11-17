@@ -94,7 +94,8 @@ node's shape check (since 2026-09-14) and Equilibrium.Tests' loop-live guard; Be
 `RuntimeMoniker.Net10`, since 0.15.0; pinned in `Directory.Packages.props`); GitHub Actions and nuget.org for
 delivery (2026-09-15, `## Delivery` below).
 
-⚠ 2026-11-16: Roslyn was listed for the protocol shape check only; Equilibrium.Tests also uses it for the loop-live guard introduced by `ade4d748`. The SDK test platform is bundled, not a new package.
+⚠ 2026-11-16: Roslyn was protocol-only, now Equilibrium.Tests uses it too
+→ HISTORY.md#roslyn-guard-2026-11-17
 
 ⚠ 2026-10-05: was a CUDA Toolkit's libnvvm and libdevice too, now the driver alone → HISTORY.md#ilgpu-libdevice-retired
 
@@ -150,13 +151,8 @@ delivery (2026-09-15, `## Delivery` below).
     `NoWarn` and no `WarningsNotAsErrors`; no severity below `warning` in any
     `.editorconfig` or `.globalconfig`; no rule set, that is no `CodeAnalysisRuleSet`
     property and no `*.ruleset` file.
-  - A rule that conflicts with a framework is resolved in code: test methods are
-    PascalCase (CA1707) and carry XML documentation like any public member (CS1591); an
-    awaited call in a test says `ConfigureAwait(true)`, which satisfies both CA2007 and
-    xUnit1030; public exceptions carry the standard constructors (CA1032); the result
-    structs `MixtureState`, `PerformanceFigures` and `TransportFigures` expose
-    properties and value equality (CA1051, CA1815). This breaks the binary surface of
-    0.1.0, so the next release is 0.2.0 (`CHANGELOG.md`).
+  - A rule that conflicts with a framework is resolved in code.
+    ⚠ 2026-11-17: was 0.2.0 examples, now the current rule → HISTORY.md#diagnostic-examples-2026-11-17
   - A conflict that code cannot resolve goes to the owner; no node declares an exception
     of its own.
   - Checked by every build and by the protocol tests node (`DiagnosticsTests`). Decided
@@ -235,9 +231,12 @@ delivery (2026-09-15, `## Delivery` below).
   ⚠ 2026-09-30: was no compile bound (11.2 GB), now one (0.43 GB) → HISTORY.md#compile
 - Batches: structure-of-arrays layout, one case per GPU thread, no dynamic allocation
   during a solve.
-- Performance target: on a batch of 100 000 states the CUDA path is at least 5× faster
-  than the CPU accelerator path using all cores. There is no single-case latency target
-  in version 1.
+- Performance target: on the reference 100 000-state batch the CUDA path is at least
+  5× faster than the CPU accelerator using all cores, measured as the ratio of median
+  elapsed times over three calls. CUDA measurements have cold/hit/hit calibration;
+  a separate cold guard is specified by the execution tests node. There is no
+  single-case latency target in version 1.
+  ⚠ 2026-11-17: root left measurement mode unstated, now explicit → HISTORY.md#throughput-mode-2026-11-17
 - Test time budgets (2026-10-03, owner; the test pyramid): on the reference machine, Debug,
   the fast set (`Category!=LongRunning&Category!=EndToEnd`) runs within 5 minutes and the
   end-to-end set (`Category=EndToEnd`) within 10. A fact that starts a process carries
@@ -313,6 +312,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
 - No `LibDevice.*`, `XMath` or ILGPU.Algorithms in numerical nodes: Algorithms replaces
   double math with CORDIC, and direct bindings bypass the tree's own correctly rounded math.
 - No exceptions, allocations or virtual calls in kernel-reachable numerical routines or views.
+  ⚠ 2026-11-16: was all numerical-node code, now kernel-reachable → HISTORY.md#host-code
 - No unit conversion inside numerical nodes: SI in, SI out.
 - No CUDA type outside the execution node: it would silently remove the CPU path.
 - No text in a language other than English anywhere in the tree.

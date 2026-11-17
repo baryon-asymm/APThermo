@@ -18,6 +18,16 @@ in one solver invocation.
   (16 384 by default); the adaptive launch budget and calibration can select smaller
   launches, especially on a cold or changed workload.
 
+Fresh work can cost more than a repeated batch because its launch calibration cannot
+reuse a matching prefix. On the RTX 5070 Ti reference machine, one first timed call of
+the 100,000-case Release sweep on 2026-11-16 measured 2.681e-7 seconds per Newton step
+on Windows and 2.686e-7 on Linux. Each is about 2.17 times the respective older approved
+median of 1.237e-7 and 1.235e-7. This compares one cold observation per platform with
+an older median, not identical cold-to-cold trials, and is not a prediction for every
+batch or device. The release throughput tripwire's median uses one cold and two
+prefix-cache-hit calls; a separate guard checks the cold call. See the [changelog](../../CHANGELOG.md)
+and [release run 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174).
+
 ## Steps
 
 1. Load the bundled NASA thermodynamic database.

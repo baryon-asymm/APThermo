@@ -55,10 +55,14 @@ hosted runs (`Category!=LongRunning&Category!=BitSnapshot`), now the hosted runs
 - **No copy of what is checked elsewhere**: the schemas are read through `apthermo
   schema`, the snippet regions from the samples' source files, the guide's blocks from
   the markdown itself. This node holds only its approved files and its tests.
-- **Approved files are whole-file comparisons**; on a mismatch the actual bytes are
-  written as `<name>.actual.txt` beside the approved one (git-ignored) and the test
-  fails naming both paths. No tolerance, no numeric parsing: the numbers are the
-  library's, and this node guards that what is shown is what runs.
+- **Approved files have two comparison paths**: the bit-snapshot facts check whole
+  files exactly; every runner also compares JSON fields with the harness's numeric
+  tolerance. Mismatches write `<name>.actual.txt` beside the approved file
+  (git-ignored) and name the paths. This node guards what is shown against what runs.
+
+  ⚠ 2026-11-17: the old wording said "No tolerance, no numeric parsing" for approved
+  files. `CommandLineExampleTests` also parses JSON and uses `JsonFieldComparison`;
+  the independent exact-byte path remains in place.
 - **A level fails loudly on an empty population**: an early return that turns "nothing
   to check" into a pass is a standing loophole (AGENTS.md §13); every level of the
   table above asserts its own population is non-empty before checking anything in it.

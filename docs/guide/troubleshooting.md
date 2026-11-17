@@ -101,7 +101,7 @@ Command-line exit codes:
 | 0 | Every case and station solved successfully. |
 | 1 | At least one case or station failed numerically or ended `noGasPhase`; the document is still written with a per-case and per-station `status`. |
 | 2 | Invalid input document, unknown option, bad database path, unknown reactant, a mass-tolerance refusal, or an unknown schema name. A message on standard error names the problem. |
-| 3 | Accelerator unavailable, or an unexpected infrastructure failure. Every library and device path tried is named. |
+| 3 | Accelerator unavailable, or an unexpected infrastructure failure. The diagnostic reports the cause available; it need not enumerate every library or device path. |
 
 Per-case `CaseStatus` values, read off a `Station`, a `RocketResult` or an
 `EquilibriumResult`:
@@ -148,7 +148,7 @@ Refusals raised before any kernel runs (exceptions, not statuses):
 | Invalid mixture rule (a ratio without an oxidizer and a fuel, oxidizers and fuels without a ratio, a named reactant with a ratio), a reactant temperature out of range, a non-positive pressure or chamber pressure | `ArgumentException`, at `Build` or `Solve` |
 | A state record with none or more than one target, exits without an enthalpy, a flow named without exits, a record given to the wrong batch method | `StateRecordException`, naming the record's index and reason |
 | A mixture's element moles do not weigh one kilogram with the database's atomic weights, within the tolerance in force (1 % by default, `--mass-tolerance` on the command line; in C#, the `massTolerance` argument of `ElementalMixture.Create` or `StateBatchOptions.MassTolerance`, read back afterwards from the mixture's own get-only `MassTolerance`) | `MixtureMassException`, naming the mixture, the mass found and the tolerance |
-| The accelerator requested cannot be bound (see [GPU acceleration](gpu.md)) | `AcceleratorUnavailableException`, naming every path tried |
+| The accelerator requested cannot be bound (see [GPU acceleration](gpu.md)) | `AcceleratorUnavailableException` with the reported reason |
 
 ## See also
 
