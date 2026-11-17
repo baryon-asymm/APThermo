@@ -1,5 +1,16 @@
 # HISTORY.md — Harness
 
+<a id="consumer-inventory-2026-11-17"></a>
+
+## 2026-11-17 — from Invariants — consumer inventory correction
+
+Original text:
+
+>   ⚠ 2026-11-14: was "as of this task only Problems.Tests does" and a list of consumers
+>   said not to pass fields. That cross-node inventory becomes stale when a consumer
+>   adopts diagnostics independently (T16). Harness now states the shared mechanism's
+>   scope; global named-field coverage is verified by the owning consumer checks.
+
 Append-only store of what `BOOT.md` no longer needs to state as current truth
 (`AGENTS.md`, §15). Newest entry first. Every entry names the date it was moved, the
 `BOOT.md` section it came from, and carries the original text in full, unedited. The

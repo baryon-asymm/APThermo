@@ -259,4 +259,3 @@
       Each rule shown red once by removing it (counts in the nodes' own criteria); no line of a
       `Bits*.approved.txt` moved on Windows. `dotnet test tests/Equilibrium.Tests`: 1 798 facts (1 797 of the fast
       set and the scan fact), green.
-

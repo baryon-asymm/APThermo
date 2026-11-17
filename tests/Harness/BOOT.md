@@ -136,10 +136,7 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   in each consumer node's own API/criteria, not a fixed caller inventory here.
   `BitHash.cs`, `ApprovedSnapshot.cs`.
 
-  ⚠ 2026-11-14: was "as of this task only Problems.Tests does" and a list of consumers
-  said not to pass fields. That cross-node inventory becomes stale when a consumer
-  adopts diagnostics independently (T16). Harness now states the shared mechanism's
-  scope; global named-field coverage is verified by the owning consumer checks.
+  ⚠ 2026-11-14: was a fixed consumer inventory, now shared scope → HISTORY.md#consumer-inventory-2026-11-17
 - **One bit record per node, picked in one place** (2026-10-05, owner decision O5).
   `ApprovedSnapshot.RecordPathFor` names `<name>.approved.txt` on every platform, and every
   consumer's Bits level calls it, so the record of a node is one file. The tree's own correctly
