@@ -22,9 +22,15 @@ internal static class Program
     /// </summary>
     public static int Main(string[] args)
     {
-        Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var error = Console.Error;
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Environment.Exit((int)Failures.Unhandled((Exception)e.ExceptionObject, error));
+        if (Console.IsOutputRedirected)
+        {
+            using var output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
+            return Run(args, output, error);
+        }
+
+        Console.OutputEncoding = new UTF8Encoding(false);
         return Run(args, Console.Out, error);
     }
 

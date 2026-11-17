@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="APThermo.Cli.Tests" />
+    <InternalsVisibleTo Include="APThermo.Cli.Tests.OemProbe" />
     <InternalsVisibleTo Include="APThermo.Docs.Tests" />
   </ItemGroup>
 

@@ -171,7 +171,10 @@ internal sealed class SolverCache : IDisposable   // warm solvers kept across in
 ```
 
 The bookkeeping records also form the internal test contract consumed by the CLI
-output boundary checks; they do not become public package API.
+output boundary checks; they do not become public package API. The test-only
+`APThermo.Cli.Tests.OemProbe` friend invokes `Program.Main` with a controlled initial
+writer encoding; its [contract](../../tests/Cli.Tests/OemProbe/API.md) is not a
+public package interface.
 
 The cache key is the database's own content (`Provenance.ThermoSha256` and `TransSha256`) and the
 requested `AcceleratorKind`, so a database directory of another content, or an `auto` request next to a `cpu`
@@ -199,6 +202,9 @@ own `InternalsVisibleTo` grant and a caller of `Program.Run` on 2026-09-16, for 
 `schema` command's validation; the readers of this tree contract are now this node's
 own tests and `tests/Docs.Tests`, both declared consumers under root `BOOT.md`,
 Delivery: Tree contracts. Found by the CLI audit's finding C6, fixed in `68f540a`.
+
+⚠ 2026-11-17: the reader list above predated the test-only `OemProbe` friend;
+the controlled writer check now invokes the same entry point from that executable.
 
 ## Input document ✅
 
@@ -491,6 +497,8 @@ engine. No other file, no network.
 ⚠ 2026-11-17: the real process previously inherited the console code page for standard
 output, so redirected output under a non-UTF-8 Windows console could not be decoded as
 UTF-8. `--output` already used UTF-8; the process now uses it for standard output too.
+When redirected it writes through a UTF-8 stream without changing the attached console's
+code page; on an interactive console it selects UTF-8 so that text displays correctly.
 
 ## Out of scope
 

@@ -28,6 +28,7 @@
     <ProjectReference Include="..\Benchmarks\APThermo.Benchmarks.csproj" />
     <ProjectReference Include="..\Benchmarks\Runner\APThermo.Benchmarks.Runner.csproj" />
     <ProjectReference Include="..\Cli.Tests\APThermo.Cli.Tests.csproj" />
+    <ProjectReference Include="..\Cli.Tests\OemProbe\APThermo.Cli.Tests.OemProbe.csproj" />
     <ProjectReference Include="..\Data.Tests\APThermo.Data.Tests.csproj" />
     <ProjectReference Include="..\Docs.Tests\APThermo.Docs.Tests.csproj" />
     <ProjectReference Include="..\Equilibrium.Tests\APThermo.Equilibrium.Tests.csproj" />

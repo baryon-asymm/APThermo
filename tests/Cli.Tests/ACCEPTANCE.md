@@ -1,9 +1,17 @@
 # ACCEPTANCE.md — Cli.Tests
 
 - [ ] Input-schema/reader controls independently require the documented sweep axes and
-  custom-reactant fields. An actual redirected process under a Windows OEM code page
-  emits UTF-8 without a BOM and preserves a non-ASCII input path. Existing output and
-  numerical snapshots remain unchanged.
+  custom-reactant fields. An owned process starts the real entry point with a .NET
+  output writer using code page 866; it emits UTF-8 without a BOM and preserves a
+  non-ASCII input path. Separate physical Windows-console evidence is recorded.
+  Existing output and numerical snapshots remain unchanged.
+
+  ⚠ 2026-11-17: was "Input-schema/reader controls independently require the documented
+  sweep axes and custom-reactant fields. An actual redirected process under a Windows
+  OEM code page emits UTF-8 without a BOM and preserves a non-ASCII input path. Existing
+  output and numerical snapshots remain unchanged." The original Windows test process
+  escaped the owned runner, so the automated control now uses the owned writer probe;
+  the separate physical console check retains the original operating-system evidence.
 - [ ] The reported O/F 1, 10 kPa, pressure-ratio 1.0000000000001 rocket input is run
   through a real process. An `ok` exit has finite area and vacuum impulse; a numerical
   refusal reports a failed station and exit 1. The report's baseline output is retained.

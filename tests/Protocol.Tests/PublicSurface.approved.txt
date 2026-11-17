@@ -79,6 +79,8 @@ class APThermo.Benchmarks.UserStatesBenchmarks
 
 == APThermo.Cli
 
+== APThermo.Cli.Tests.OemProbe
+
 == APThermo.Data
 
 sealed class APThermo.Data.DatabaseFormatException : Exception, ISerializable
