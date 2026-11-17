@@ -1,0 +1,8 @@
+<Project>
+  <!-- A complete build keeps solution VSTest tasks from blocking reference builds.
+       Explicit no-build retains its ordinary meaning, including GPU jobs. -->
+  <Target Name="APThermoBuildBeforeSolutionTests"
+          BeforeTargets="VSTest"
+          DependsOnTargets="Build"
+          Condition="'$(VSTestNoBuild)' != 'true'" />
+</Project>

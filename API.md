@@ -162,7 +162,8 @@ Tooling that is part of the tree but not of the product:
 [protocol-lint](./tools/protocol-lint/API.md) (the language-independent checks of
 AGENTS.md §13), [merge-guard](./tools/merge-guard/API.md) (the orchestrator's acceptance
 gate for a coder's branch), [coder-scope](./tools/coder-scope/API.md) (the hook holding a
-coder to its nodes, enabled by the owner) and [.github](./.github/API.md) (the workflows, actions and scripts).
+coder to its nodes, enabled by the owner), [solution-order](./tools/solution-order/API.md)
+(solution test-build sequencing) and [.github](./.github/API.md) (the workflows, actions and scripts).
 
 ⚠ 2026-10-05: was `.github` with its child `diagnostics/IsaProbe`, now without it (the owner removed the
 runner-diagnostics step) → .github/HISTORY.md#isaprobe-removed
