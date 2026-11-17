@@ -6,7 +6,17 @@
   guard; four syntax controls pass, including a fresh copy passed by reference. The
   syntax guard checks this specific call, not arbitrary NoInlining methods.
 
-- [x] 2026-11-16 — `RecoveryCandidateTests.PhysicalRecoveryReturnsCondensedSlotsConsistentWithItsWinningComposition` checks the Mg-H-O-S SP case on cold and seeded host solves; both fail when bank-to-live condensed-slot restoration is removed and pass with it. `RestoringAnEarlierWinnerRestoresItsCondensedSlots` isolates selection and transfer. `RecoveryStorageTests.CondensedBanksStayWithinTheirCasesAndLeaveEarlierRegionsUnchanged` checks two adjacent banks and guards; the original C0 fixture is unchanged. CUDA evidence remains pending.
+- [x] 2026-11-16 — `RecoveryCandidateTests.PhysicalRecoveryReturnsCondensedSlotsConsistentWithItsWinningComposition`
+  checks the Mg-H-O-S SP case on cold and seeded host solves; both fail when
+  bank-to-live condensed-slot restoration is removed and pass with it.
+  `RestoringAnEarlierWinnerRestoresItsCondensedSlots` isolates selection and transfer.
+  `RecoveryStorageTests.CondensedBanksStayWithinTheirCasesAndLeaveEarlierRegionsUnchanged`
+  checks two adjacent banks and guards; the original C0 fixture is unchanged. CUDA
+  evidence remains pending.
+  ⚠ 2026-11-17: the 2026-11-16 record ended "CUDA evidence remains pending."
+  `RecoverySlotsCudaTests.PhysicalRecoverySlotsOnActualCudaMatchCpuForColdAndSeededSolves`
+  passed on both reference platforms at `c0ebe704` in Release run 43861338174.
+  That proof is historical for c0; the current follow-up source needs new CUDA runs.
 
 - [x] 2026-11-14 — R10: RecoveryStorageTests checks generated state size/alignment,
   the frozen RecoveryLayoutC0.json region inventory and isolated typed case banks in
