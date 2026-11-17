@@ -4,7 +4,11 @@ using APThermo.Thermo;
 
 namespace APThermo.Performance.Tests;
 
-/// <summary>Independently reconstructs the reference's gas-only frozen heat capacity from its composition and NASA fits.</summary>
+/// <summary>
+/// Reconstructs the CEA transport/condensed frozen heat-capacity signature from the reported composition and NASA fits.
+/// Cp is the gas-phase capacity per unit gas mass. CEA's corresponding Cv subtracts R divided by the reported
+/// mixture mass per mole of gas, so it is the reference's convention, not a physical gas-only Cv.
+/// </summary>
 internal static class ReferenceTransportHeatCapacity
 {
     public static bool HasGasPhaseSignature(JsonElement reference, SpeciesTable table, string name, double expected,
