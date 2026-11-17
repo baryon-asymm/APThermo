@@ -310,7 +310,7 @@ is checked after connection before START or immediately before a pre-START signa
 An unavailable pre-exec nonce never authorizes a signal; the existing bounded
 rendezvous applies instead. The original deadline and cleanup budget are unchanged.
 
-## Session-observation test seam ⏳
+## Session-observation test seam ✅
 
 `APThermo.Harness.OwnedProcessGroup.HasLiveMembers(int identity,
 IEnumerable<string> directories, Func<string, string> readStat)` is an internal,

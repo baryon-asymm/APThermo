@@ -125,8 +125,9 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 
 ## Acceptance criteria
 
-- [ ] `GeneralExponentTests` evaluates the 400 K synthetic interval and a normal
-  exponent through a real CPU table view; a compiled NaN general-power mutant fails.
+- [x] 2026-11-17 — `GeneralExponentTests` evaluates the 400 K synthetic interval and a normal
+  exponent through a real CPU table view; a compiled NaN general-power mutant fails
+  independently for Cp, H and S. This is a CPU control, not a GPU execution claim.
 
 - [x] Constructor-failure rollback and primary-error preservation pass on a real
   `SpeciesTableBuffers` upload; a compiling omitted-cleanup mutation fails.

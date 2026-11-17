@@ -5,14 +5,17 @@ namespace APThermo.Harness;
 /// <summary>Observes live members of the owner's Linux session without signalling a numeric PID.</summary>
 internal static class OwnedProcessGroup
 {
-    internal static bool HasLiveMembers(int identity)
+    internal static bool HasLiveMembers(int identity) =>
+        HasLiveMembers(identity, Directory.EnumerateDirectories("/proc"), File.ReadAllText);
+
+    internal static bool HasLiveMembers(int identity, IEnumerable<string> directories, Func<string, string> readStat)
     {
-        foreach (var directory in Directory.EnumerateDirectories("/proc"))
+        foreach (var directory in directories)
         {
             if (!int.TryParse(Path.GetFileName(directory), NumberStyles.None, CultureInfo.InvariantCulture, out _)) { continue; }
             string stat;
-            try { stat = File.ReadAllText(Path.Combine(directory, "stat")); }
-            catch (Exception problem) when (problem is FileNotFoundException or DirectoryNotFoundException) { continue; }
+            try { stat = readStat(Path.Combine(directory, "stat")); }
+            catch (IOException problem) when (problem is FileNotFoundException or DirectoryNotFoundException || problem.HResult == 3) { continue; }
             var end = stat.LastIndexOf(')');
             if (end < 0) { throw new InvalidDataException("malformed Linux process identity"); }
             var fields = stat[(end + 2)..].Split(' ', StringSplitOptions.RemoveEmptyEntries);

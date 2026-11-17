@@ -2,10 +2,11 @@
 
 ## Acceptance criteria
 
-- [ ] `OwnedProcessGroup` skips a simulated ESRCH stat read and continues to a live
+- [x] 2026-11-17 — `OwnedProcessGroupObservationTests` skips a simulated ESRCH stat read and continues to a live
   owned session member, treats gone/foreign/terminal members correctly, and preserves
-  non-ESRCH read, enumeration and malformed-stat errors. Frozen controls must reject
-  both an omitted ESRCH handler and an overbroad I/O handler.
+  non-ESRCH read, enumeration and malformed-stat errors. Frozen Windows CPU controls
+  reject both an omitted ESRCH handler and an overbroad I/O handler; they simulate
+  the race and do not claim an observed Linux kernel race.
 
 - [x] 2026-11-16 — The shared owned-process mechanism passes real exited-target/live-descendant,
   timeout, cancellation, assignment failure, output and exit-code controls on Windows
