@@ -49,6 +49,7 @@ internal static class IntervalReader
 
     private static void ReadFirstCoefficients(string line, double[] coefficients)
     {
+        FixedColumns.RequireWidth(line, RecordColumns.CoefficientStride * 5);
         for (var k = 0; k < 5; k++)
         {
             coefficients[k] = FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.CoefficientStart + RecordColumns.CoefficientStride * k, RecordColumns.CoefficientLength));
@@ -57,6 +58,7 @@ internal static class IntervalReader
 
     private static (double B1, double B2) ReadSecondCoefficients(string line, double[] coefficients)
     {
+        FixedColumns.RequireWidth(line, RecordColumns.B2Start + RecordColumns.B2Length - 1);
         coefficients[5] = FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.CoefficientStart, RecordColumns.CoefficientLength));
         coefficients[6] = FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.CoefficientStart + RecordColumns.CoefficientStride, RecordColumns.CoefficientLength));
         var b1 = FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.B1Start, RecordColumns.B1Length));

@@ -145,6 +145,12 @@ namespace APThermo.Cli;
 
 internal enum ExitCode { Ok = 0, CaseFailed = 1, InvalidInput = 2, Infrastructure = 3 }
 
+internal sealed record DatabaseInfo(string ThermoPath, string? TransPath, string ThermoSha256, string? TransSha256);
+internal sealed record Timings(double Database, double Solve);
+internal sealed record RunLimits(double Threshold, double MassTolerance);
+internal sealed record RunInfo(string Command, IReadOnlyList<string> Inputs, DatabaseInfo? Database,
+    AcceleratorInfo? Accelerator, Timings Timings, RunLimits? Limits);
+
 internal static class Program
 {
     public const string ToolName = "apthermo";
@@ -163,6 +169,9 @@ internal sealed class SolverCache : IDisposable   // warm solvers kept across in
     public void Dispose();                        // disposes every solver the cache created
 }
 ```
+
+The bookkeeping records also form the internal test contract consumed by the CLI
+output boundary checks; they do not become public package API.
 
 The cache key is the database's own content (`Provenance.ThermoSha256` and `TransSha256`) and the
 requested `AcceleratorKind`, so a database directory of another content, or an `auto` request next to a `cpu`
@@ -302,6 +311,9 @@ Fields:
   more than 1,000,000 values (`SweepValues.MaxAxisValues`), and the batch's product may
   not exceed 10,000,000 cases (`SweepDocumentReader.MaxCases`); both are refused before
   any solve (the second hidden-defect audit of 2026-09-28, finding F4).
+  ⚠ 2026-11-17: the input schema admitted axes inappropriate for the problem and
+  incomplete custom reactants that the reader refused; the schema now expresses these
+  existing conditional reader requirements too.
 - `engine.accelerator`: `auto`, `cpu` or `cuda`; the command line's `--accelerator`
   wins.
 
@@ -472,9 +484,13 @@ For a caller of the command, the table above is unchanged. An in-process caller 
 ## Side effects
 
 Reads the input documents and the database files and, for `schema`, the schema embedded
-in the assembly; writes the output document to the given path (UTF-8, no byte-order
-mark) or to standard output; `devices` creates a CPU engine and tries to create a CUDA
+in the assembly; writes the output document to the given path or to standard output
+(UTF-8, no byte-order mark for both); `devices` creates a CPU engine and tries to create a CUDA
 engine. No other file, no network.
+
+⚠ 2026-11-17: the real process previously inherited the console code page for standard
+output, so redirected output under a non-UTF-8 Windows console could not be decoded as
+UTF-8. `--output` already used UTF-8; the process now uses it for standard output too.
 
 ## Out of scope
 

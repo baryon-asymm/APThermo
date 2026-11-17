@@ -70,6 +70,14 @@ them from the files they read.
 
 ## Acceptance criteria
 
+- [x] 2026-11-17 — `StrictInputIntegrityTests`: the real parser rejects each truncated thermo coefficient line and transport
+  fit line at its source line, while complete fixed-width blanks keep their meaning.
+  It also rejects a missing or prefixed transport terminator, invalid tail, and
+  duplicate species or unordered pair, while accepting valid comments and fixtures.
+  The frozen old parser gave eight failures and one positive; fixed controls and the
+  full `Data.Tests` pass 70/70. Raw TRX and frozen source hashes are in the owner-held
+  `fix-evidence/reaudit17-data-cli` archive; no numeric approval changed.
+
 - [x] Exercise the real thermo parser with blank/comment-only tails and with non-comment
   content after `END REACTANTS`, asserting the exception's source line. A compiling
   mutation removing trailer validation must fail the negative control.

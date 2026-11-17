@@ -129,6 +129,8 @@ The definition of what "`Cli` is ready" means.
 - [Cli](../../src/Cli/API.md) — what is being checked.
 - [Cli.Syntax](../../src/Cli/Syntax/API.md) — `CommandLine.Parse`, `CommandTable`, `CommandOptions`, `Invocation`, `OutputFormat`, exercised directly by `CommandLineTests`.
 - [Cli.Documents](../../src/Cli/Documents/API.md) — `ProblemDocumentReader`, `StateRecordReader`, `SweepValues`, the document shapes, exercised directly by `InputDocumentTests` and `BitSnapshotTests`.
+- [Cli.Cases](../../src/Cli/Cases/API.md) — `CaseOutput` used by output boundary controls.
+- [Cli.Output](../../src/Cli/Output/API.md) — `DocumentWriter.Write` used by output boundary controls.
 - [Problems](../../src/Problems/API.md) — the library result the document is compared with.
 - [Data](../../src/Data/API.md) — the database.
 - [Fixtures](../Fixtures/API.md) — the reference cases the documents encode, and the repository paths.
@@ -171,6 +173,14 @@ so a numeric mismatch had no readable actual values. Both paths now retain named
 raw documents for the existing optional `Problem` fields parameter.
 
 ## Acceptance criteria
+
+- [ ] Input-schema/reader controls independently require the documented sweep axes and
+  custom-reactant fields. An actual redirected process under a Windows OEM code page
+  emits UTF-8 without a BOM and preserves a non-ASCII input path. Existing output and
+  numerical snapshots remain unchanged.
+- [ ] The reported O/F 1, 10 kPa, pressure-ratio 1.0000000000001 rocket input is run
+  through a real process. An `ok` exit has finite area and vacuum impulse; a numerical
+  refusal reports a failed station and exit 1. The report's baseline output is retained.
 
 - [x] 2026-11-16 — `FailedStationOutputTests.InventoryRejectsNewUnsupportedMembers`
   detects omitted nonnumeric properties and fields; both omission mutants are red.

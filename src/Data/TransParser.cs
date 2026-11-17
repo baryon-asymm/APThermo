@@ -10,6 +10,7 @@ internal static class TransParser
     public static IReadOnlyList<TransportEntry> Parse(string[] lines, string? fileName)
     {
         var entries = new List<TransportEntry>();
+        var keys = new HashSet<(string, string?)>();
         var i = 1; // line 1 is the title
         while (i < lines.Length)
         {
@@ -20,14 +21,40 @@ internal static class TransParser
                 continue;
             }
 
-            if (line.StartsWith("end", StringComparison.Ordinal))
+            if (line.Trim().Equals("end", StringComparison.Ordinal))
             {
-                break;
+                ValidateTrailer(lines, i + 1, fileName);
+                return entries;
             }
 
-            entries.Add(TransportBlockReader.Read(lines, ref i, fileName));
+            var headerLine = i + 1;
+            var entry = TransportBlockReader.Read(lines, ref i, fileName);
+            var key = Key(entry);
+            if (!keys.Add(key))
+            {
+                throw new DatabaseFormatException(fileName, headerLine, "duplicate transport entry");
+            }
+
+            entries.Add(entry);
         }
 
-        return entries;
+        throw new DatabaseFormatException(fileName, lines.Length, "file ends before 'end'");
+    }
+
+    private static (string, string?) Key(TransportEntry entry) => entry.Partner is null ||
+        string.CompareOrdinal(entry.Species, entry.Partner) <= 0
+            ? (entry.Species, entry.Partner)
+            : (entry.Partner, entry.Species);
+
+    private static void ValidateTrailer(string[] lines, int start, string? fileName)
+    {
+        for (var i = start; i < lines.Length; i++)
+        {
+            var line = lines[i].Trim();
+            if (line.Length > 0 && !line.StartsWith('!'))
+            {
+                throw new DatabaseFormatException(fileName, i + 1, "unexpected content after 'end'");
+            }
+        }
     }
 }

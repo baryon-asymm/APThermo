@@ -12,6 +12,13 @@ static class APThermo.Samples.Program
 
 == src/Cli
 
+sealed class (record) APThermo.Cli.DatabaseInfo : IEquatable<DatabaseInfo>
+    .ctor(String ThermoPath, String? TransPath, String ThermoSha256, String? TransSha256)
+    String ThermoPath { get; init; }
+    String ThermoSha256 { get; init; }
+    String? TransPath { get; init; }
+    String? TransSha256 { get; init; }
+
 enum APThermo.Cli.ExitCode : Int32
     CaseFailed = 1
     Infrastructure = 3
@@ -25,12 +32,31 @@ static class APThermo.Cli.Program
     static Int32 RunCached(String[] args, TextWriter output, TextWriter error, SolverCache solvers)
     static String Version { get; }
 
+sealed class (record) APThermo.Cli.RunInfo : IEquatable<RunInfo>
+    .ctor(String Command, IReadOnlyList<String> Inputs, DatabaseInfo? Database, AcceleratorInfo? Accelerator, Timings Timings, RunLimits? Limits)
+    AcceleratorInfo? Accelerator { get; init; }
+    DatabaseInfo? Database { get; init; }
+    IReadOnlyList<String> Inputs { get; init; }
+    RunLimits? Limits { get; init; }
+    String Command { get; init; }
+    Timings Timings { get; init; }
+
+sealed class (record) APThermo.Cli.RunLimits : IEquatable<RunLimits>
+    .ctor(Double Threshold, Double MassTolerance)
+    Double MassTolerance { get; init; }
+    Double Threshold { get; init; }
+
 sealed class APThermo.Cli.SolverCache : IDisposable
     .ctor()
     Int32 Count { get; }
     Void Dispose()
     internal Lock Gate { get; }
     internal Solver SolverFor(SpeciesDatabase database, AcceleratorKind accelerator)
+
+sealed class (record) APThermo.Cli.Timings : IEquatable<Timings>
+    .ctor(Double Database, Double Solve)
+    Double Database { get; init; }
+    Double Solve { get; init; }
 
 == src/Equilibrium
 

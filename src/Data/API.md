@@ -93,6 +93,15 @@ Any other trailing content is rejected with `DatabaseFormatException` naming its
 source line. ⚠ 2026-11-16: this existing validation was omitted from the contract;
 the independent re-audit identified that omission.
 
+Thermo coefficient lines and transport fit lines contain all 80 fixed columns; a
+short line fails at that source line. Blank fields retain their existing numeric
+semantics, including the unused thermo coefficient gap. A transport input ends with
+an exact lower-case `end` line; only blank lines and `!` comments may follow it.
+Duplicate species blocks and duplicate unordered species pairs are refused with a
+source location instead of choosing one silently. ⚠ 2026-11-17: EOF and `end` prefixes
+were accepted, trailing content ignored and duplicates preserved with first lookup;
+the new strict policy makes the parsed collection and lookup agree.
+
 ⚠ 2026-09-12: the `Intervals` comment stood "file order, ascending temperature".
 Eleven condensed records of the committed file carry a first interval written with an
 upper bound not above the lower one (`Br2(cr)` 300..265.9); the node stores such

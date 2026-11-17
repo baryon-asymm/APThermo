@@ -4,6 +4,33 @@
   "type": "object",
   "additionalProperties": false,
   "required": ["propellant", "problem"],
+  "anyOf": [
+    {
+      "properties": {
+        "problem": { "$ref": "#/$defs/rocketProblem" },
+        "sweep": { "not": { "anyOf": [{ "required": ["pressure"] }, { "required": ["temperature"] }] } }
+      }
+    },
+    {
+      "properties": {
+        "problem": { "$ref": "#/$defs/tpProblem" },
+        "sweep": { "not": { "required": ["chamberPressure"] } }
+      }
+    },
+    {
+      "properties": {
+        "problem": { "anyOf": [{ "$ref": "#/$defs/hpProblem" }, { "$ref": "#/$defs/spProblem" }] },
+        "sweep": { "not": { "anyOf": [{ "required": ["chamberPressure"] }, { "required": ["temperature"] }] } }
+      }
+    }
+  ],
+  "not": {
+    "required": ["sweep"],
+    "properties": {
+      "sweep": { "required": ["oxidizerToFuel"] },
+      "propellant": { "not": { "required": ["mixture"] } }
+    }
+  },
   "properties": {
     "propellant": { "oneOf": [{ "$ref": "#/$defs/reactantPropellant" }, { "$ref": "#/$defs/elementalPropellant" }] },
     "problem": { "oneOf": [{ "$ref": "#/$defs/rocketProblem" }, { "$ref": "#/$defs/equilibriumProblem" }] },
@@ -38,6 +65,10 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "role", "amount"],
+      "anyOf": [
+        { "not": { "anyOf": [{ "required": ["formula"] }, { "required": ["enthalpy"] }, { "required": ["molarMass"] }] } },
+        { "required": ["formula", "enthalpy", "temperature"] }
+      ],
       "properties": {
         "name": { "type": "string" },
         "role": { "enum": ["oxidizer", "fuel", "named"] },

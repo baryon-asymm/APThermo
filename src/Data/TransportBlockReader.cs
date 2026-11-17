@@ -78,11 +78,15 @@ internal static partial class TransportBlockReader
             : (viscosity, conductivity);
     }
 
-    private static TransportFit ReadFit(string line) => new(
-        FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitTLowStart, RecordColumns.FitTLowLength)),
-        FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitTHighStart, RecordColumns.FitTHighLength)),
-        FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitAStart, RecordColumns.FitALength)),
-        FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitBStart, RecordColumns.FitBLength)),
-        FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitCStart, RecordColumns.FitCLength)),
-        FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitDStart, RecordColumns.FitDLength)));
+    private static TransportFit ReadFit(string line)
+    {
+        FixedColumns.RequireWidth(line, RecordColumns.FitDStart + RecordColumns.FitDLength - 1);
+        return new TransportFit(
+            FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitTLowStart, RecordColumns.FitTLowLength)),
+            FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitTHighStart, RecordColumns.FitTHighLength)),
+            FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitAStart, RecordColumns.FitALength)),
+            FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitBStart, RecordColumns.FitBLength)),
+            FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitCStart, RecordColumns.FitCLength)),
+            FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FitDStart, RecordColumns.FitDLength)));
+    }
 }

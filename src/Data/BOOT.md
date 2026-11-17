@@ -167,6 +167,19 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   This hardening preserves the declared raw finite bound anomalies and the supported
   Fortran exponent spellings rather than normalizing the NASA files.
 
+### Input integrity follow-up of 2026-11-17
+
+- Each thermo interval coefficient line and each transport fit line must contain all
+  80 fixed columns. A short line is refused at its own source line before any field is
+  interpreted; existing blank-field parsing and the unused thermo gap are unchanged.
+- A transport file has one exact lower-case `end` marker, with only whitespace around
+  it; blank lines and `!` comments may follow it. EOF before it, other trailing content,
+  and duplicated single-species or unordered-pair entries are format errors naming the
+  responsible line. Lookup and the ordered entries therefore cannot disagree.
+  ⚠ 2026-11-17: the transport reader accepted EOF or an `end` prefix, ignored the
+  trailer, and retained duplicates while indexing only the first. No prior duplicate
+  policy was documented; rejecting duplicates makes the lookup unambiguous.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). Each
