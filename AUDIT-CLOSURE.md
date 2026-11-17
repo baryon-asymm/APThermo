@@ -8,26 +8,32 @@ retains the original reproductions; these stable IDs preserve the mapping.
 ## Accepted re-audit corrections — 2026-11-17
 
 The tested implementation is `779eeacee40cadabec3a2647ddf4b043309c37b4`. The owner-held
-`fix-evidence-20261117/root/final-proof-index-779-v1.json` binds the runtime receipts to this commit
-(SHA-256 `c8fa7ccf5a2305a372b9cd0de030a0fa151dfd4eb916a7961d4b9b288218cac5`). The archive retains the original reproductions, failed runs and controls under their own source identities.
+`fix-evidence-20261117/root/final-proof-index-779-v1.json` binds the runtime receipts to
+this commit (SHA-256
+`c8fa7ccf5a2305a372b9cd0de030a0fa151dfd4eb916a7961d4b9b288218cac5`). The archive retains
+the original reproductions, failed runs and controls under their own source identities.
 
-The fast suite passed 7,796/7,796 in 247.28 s. The end-to-end suite passed 121 cases in 286.38 s, with the
-same one optional CORE-MATH case skipped as on ec01. The [CI](https://github.com/baryon-asymm/APThermo/actions/runs/44048478640)
-and [Release](https://github.com/baryon-asymm/APThermo/actions/runs/44048539081) hosted matrices each passed 15,834 cases without skips.
-[Trace](https://github.com/baryon-asymm/APThermo/actions/runs/44048478774) passed both expected cases on each OS.
-Each GPU job passed 452 selected cases on the RTX 5070 Ti. The initial Linux launcher exited before receiving a job;
-the recovered listener ran the original job once. Both listeners exited and the temporary Linux network closed.
+The fast suite passed 7,796/7,796 in 247.28 s. The end-to-end suite passed 121 cases in
+286.38 s, with the same one optional CORE-MATH case skipped as on ec01. The
+[CI](https://github.com/baryon-asymm/APThermo/actions/runs/44048478640) and
+[Release](https://github.com/baryon-asymm/APThermo/actions/runs/44048539081) hosted
+matrices each passed 15,834 cases without skips.
+[Trace](https://github.com/baryon-asymm/APThermo/actions/runs/44048478774) passed both
+expected cases on each OS. Each GPU job passed 452 selected cases on the RTX 5070 Ti.
+The initial Linux launcher exited before receiving a job; the recovered listener ran the
+original job once. Both listeners exited and the temporary Linux network closed.
 
-Pack produced two package/symbol pairs. The inspector verified 15 packaged project PE/PDB pairs, 262 tracked source URLs
-and 49 generated documents embedded in PDBs. On each OS all twelve samples and the installed CLI matched approved outputs
-when run from the packaged feed. The dispatch skipped both publishing jobs.
+Pack produced two package/symbol pairs. The inspector verified 15 packaged project
+PE/PDB pairs, 262 tracked source URLs and 49 generated documents embedded in PDBs. On
+each OS all twelve samples and the installed CLI matched approved outputs when run from
+the packaged feed. The dispatch skipped both publishing jobs.
 
 | Finding | Correction and retained evidence |
 |---|---|
 | N1 | Cold and median throughput have separate records. Release 44048539081 measured both against their existing platform references. The original one-observation cold references and the former medians do not establish cold-to-cold recovery. |
 | N2 | The near-unity CLI witness failed on the review baseline. The corrected return guard passed the public regression and CPU and actual-CUDA binary64 classification on 779. |
 | N3 | The readers reject physically truncated required columns. A full-width blank numeric field retains the original Fortran zero interpretation. The malformed-row controls and the complete Data suite exercise the distinction. |
-| N4 | The actual CP866 console experiment failed at 1a9 and passed at 1368 with the original code page restored and redirected UTF-8 output without a BOM. The 779 CLI and owned-process suites passed separately. |
+| N4 | The actual CP866 console experiment failed at 1a9 and passed at 1368 with the original code page preserved and redirected UTF-8 output without a BOM. The 779 CLI and owned-process suites passed separately. |
 | N5 | The test calls the area-iteration residual calculation and detects a compiled guard bypass. Its input is a synthetic residual witness. |
 | N6 | HP/SP reject nonfinite targets before writing output. The frozen estimate retains the zero sentinel. The focused controls and full CPU suites passed. |
 | N7 | The attempt records the domain-edge cause independently of its return status. A synthetic bank exercises the actual selection path and its compiled negative control. |
@@ -42,7 +48,8 @@ when run from the packaged feed. The dispatch skipped both publishing jobs.
 | N16/Z3 | The public API, reflection dependencies and documentation describe the implemented boundary and the diagnostics channels the guard checks. The Protocol suite and strict tree lint passed. |
 | N17 | The coder-scope guard covers ordinary implicit directories, searches and Git path arguments. The permitted stdin case and rejected out-of-scope cases are in the frozen controls. The hook remains a heuristic. |
 
-N18 concerns choosing a version before a future publication. It is outside this correction.
+N18 concerns choosing a version before a future publication. It is outside this
+correction.
 
 ## Reopening before follow-up verification — 2026-11-17
 

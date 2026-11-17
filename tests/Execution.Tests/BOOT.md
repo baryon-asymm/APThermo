@@ -282,10 +282,13 @@ records are unchanged. The owner-held `cold-reference-frozen-f21a-v1.json` ident
 both TRX files, values and hashes. This does not establish performance on new code.
 Synthetic controls must reject a slowed cold sample while the warm median still
 passes, and reject a false cold-mode claim. Both actual c0 Windows and Linux GPU
-runs passed the cold guard on 2026-11-16 (Release run 43861338174); the 2026-11-17 follow-up `779eeace` passed on both platforms in Release 44048539081.
+runs passed the cold guard on 2026-11-16 (Release run 43861338174); the 2026-11-17
+follow-up `779eeace` passed on both platforms in Release 44048539081.
 Windows recorded 2.731e-7 cold and 1.290e-7 median seconds per step. Linux recorded
-2.728e-7 cold and 1.298e-7 median. Both receipts are under `fix-evidence-20261117/root/cloud-779/release/`
-(`windows-verified.json`, `linux-verified.json`). The earlier `ec016a76` Windows median failed its gate.
+2.728e-7 cold and 1.298e-7 median. Both receipts are under
+`fix-evidence-20261117/root/cloud-779/release/`
+(`windows-verified.json`, `linux-verified.json`). The earlier `ec016a76` Windows median
+failed its gate.
 
 ⚠ 2026-11-17: this section was headed “Cold throughput guard planned” and said
 “Actual hardware acceptance stays open”. The guard was implemented and verified

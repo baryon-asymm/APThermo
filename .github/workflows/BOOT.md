@@ -56,7 +56,9 @@ two-process selection in the ancestor, preserving both shared-sweep facts togeth
 
 ## Re-audit delivery guards implemented 2026-11-16
 
-⚠ 2026-11-17: this heading said “planned”; the guards were implemented and the c0 release ran on both GPU runners. The follow-up source still needs its own workflow evidence.
+⚠ 2026-11-17: this heading said “planned”. After c0 passed both GPU jobs, the handoff
+recorded “The follow-up source still needs its own workflow evidence.” Release 44048539081
+subsequently passed both GPU jobs and Pack on `779eeace`.
 
 Both CUDA phases must together execute exactly the independently discovered original
 CUDA-or-bit population once, identified by the same `(testId, testName)` pairs in
@@ -81,7 +83,12 @@ values passed to shell commands use environment data and literal comparisons.
   empty, missing, duplicate and truncated-result mutations fail with actual-device
   evidence required. Release event/dependency mutations and version wiring fail local
   guards, followed by actual GitHub workflow evidence at the integrated source.
-  (2026-11-17: `test_gpu_evidence.py` checks missing, duplicate, truncated and marker-refusal inputs. `test_delivery.py` checks event, dependency and version mutations. Release 44048539081 on `779eeace` passed both GPU jobs and Pack. Both publication jobs were skipped on dispatch. See `fix-evidence-20261117/root/cloud-779/release/windows-verified.json` and `linux-verified.json`.)
+  (2026-11-17: `test_gpu_evidence.py` checks missing, duplicate, truncated and
+  marker-refusal inputs. `test_delivery.py` checks event, dependency and version
+  mutations. Release 44048539081 on `779eeace` passed both GPU jobs and Pack. Both
+  publication jobs were skipped on dispatch. See
+  `fix-evidence-20261117/root/cloud-779/release/windows-verified.json` and
+  `linux-verified.json`.)
 
 - [x] 2026-11-15 — R10 local wiring proof: delivery guards pass 25 tests, including
   both commands under native PowerShell 5.1/Bash. Frozen current/source1a8 wiring

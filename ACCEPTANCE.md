@@ -25,7 +25,9 @@ frame; this file holds the criteria that prove it, read only in the root node.
   (2026-11-16: source `c0ebe704`; [CI 43861325471](https://github.com/baryon-asymm/APThermo/actions/runs/43861325471),
   [Trace 43861325374](https://github.com/baryon-asymm/APThermo/actions/runs/43861325374) and
   [Release 43861338174](https://github.com/baryon-asymm/APThermo/actions/runs/43861338174); independent hosted, GPU, package/consumer and process-mutant receipts in the owner-held audit archive.)
-  (2026-11-17: implementation `779eeace`, owner-held `fix-evidence-20261117/root/final-proof-index-779-v1.json`, N1–N17 in `AUDIT-CLOSURE.md`.)
+  (2026-11-17: implementation `779eeace`, owner-held
+  `fix-evidence-20261117/root/final-proof-index-779-v1.json`, N1–N17 in
+  `AUDIT-CLOSURE.md`.)
   ⚠ 2026-11-15 (earlier in the sequence, before the f21ac451 acceptance above):
   the formerly checked aggregate is reopened after the actual
   final-head Linux tree assertion failed. Its requirement and earlier proof are
@@ -172,7 +174,11 @@ frame; this file holds the criteria that prove it, read only in the root node.
       in the owner-held audit archive: both OSes pass all twelve samples and installed
       tool; package/DLL bytes match; all 262 tracked URLs and 49 embedded generated
       documents match their PDB checksums.)
-      (2026-11-17: Release 44048539081, source `779eeace`, `fix-evidence-20261117/root/cloud-779/package-inspection/combined-package-source-receipt.json` and `consumer/independent-consumer-receipt.json`: two package/symbol pairs, 262 tracked documents, 49 embedded generated documents, all twelve samples and the installed tool on each OS.)
+      (2026-11-17: Release 44048539081, source `779eeace`,
+      `fix-evidence-20261117/root/cloud-779/package-inspection/combined-package-source-receipt.json`
+      and `consumer/independent-consumer-receipt.json`: two package/symbol pairs, 262
+      tracked documents, 49 embedded generated documents, all twelve samples and the
+      installed tool on each OS.)
 
       ⚠ 2026-11-16: the previous checked criterion (`[x]`) and its complete dated evidence
       were:

@@ -10,7 +10,10 @@
   The actual bootstrap is held before managed startup by the per-process .NET diagnostic
   suspend option and is verified unconnected. A separate finite ProcessProbe substitutes
   for a non-connecting owner to check exact fixture bytes; the two controls are distinct.
-  (2026-11-17: Follow-up `779eeace`, five cases passed on each OS in CI 44048478640 and Release 44048539081. See `fix-evidence-20261117/astra/hosted-windows-prestart-779.json` and `hosted-native-cases-779.json` for exact identities. The earlier baseline leak and START-order mutant retain their original evidence.)
+  (2026-11-17: Follow-up `779eeace`, five cases passed on each OS in CI 44048478640 and
+  Release 44048539081. See `fix-evidence-20261117/astra/hosted-windows-prestart-779.json`
+  and `hosted-native-cases-779.json` for exact identities. The earlier baseline leak and
+  START-order mutant retain their original evidence.)
 
 ⚠ 2026-11-17: the former criterion was: `OwnerPreStartTests` proves actual pre-connect bootstrap cancellation and public
 timeout, a controlled unconnected process with both cancellation modes and a

@@ -25,8 +25,12 @@ The existing phase commands, selection, order, time budgets and throughput check
 
 ## Acceptance criteria
 
-- [x] Windows and Linux actual release GPU jobs supply complete passing inventory and evidence at the final runtime commit.
-  (2026-11-17: Release 44048539081, commit `779eeace`, owner-held `fix-evidence-20261117/root/cloud-779/release/windows-verified.json` and `linux-verified.json`. Each runner passed 450 remainder and two sweep cases. Each supplied 88 completed hardware markers and four driver-only markers.)
+- [x] Windows and Linux actual release GPU jobs supply complete passing inventory and
+  evidence at the final runtime commit.
+  (2026-11-17: Release 44048539081, commit `779eeace`, owner-held
+  `fix-evidence-20261117/root/cloud-779/release/windows-verified.json` and
+  `linux-verified.json`. Each runner passed 450 remainder and two sweep cases. Each
+  supplied 88 completed hardware markers and four driver-only markers.)
 - [x] Controlled valid, missing, duplicate, unexpected, truncated and marker-refusal cases pass or fail as appropriate (2026-11-16, `test_gpu_evidence.py`).
 - [x] Native Windows and Linux fact/theory identity and trait probe matched TRX (2026-11-16, owner-held `fix-evidence/root/linux-discovery-poc-receipt.json` and Windows `discovery-win.out`); actual release discovery remains an independent acceptance condition.
 

@@ -16,8 +16,10 @@
   ⚠ 2026-11-17: the 2026-11-16 record ended "CUDA evidence remains pending."
   `RecoverySlotsCudaTests.PhysicalRecoverySlotsOnActualCudaMatchCpuForColdAndSeededSolves`
   passed on both reference platforms at `c0ebe704` in Release run 43861338174.
-  That proof is historical for c0. On 2026-11-17 the same fact passed on both reference devices at `779eeace` with completed hardware markers in
-  `fix-evidence-20261117/root/cloud-779/release/windows-verified.json` and `linux-verified.json` (Release 44048539081).
+  That proof is historical for c0. On 2026-11-17 the same fact passed on both reference
+  devices at `779eeace` with completed hardware markers in
+  `fix-evidence-20261117/root/cloud-779/release/windows-verified.json` and
+  `linux-verified.json` (Release 44048539081).
 
 - [x] 2026-11-14 — R10: RecoveryStorageTests checks generated state size/alignment,
   the frozen RecoveryLayoutC0.json region inventory and isolated typed case banks in
