@@ -6,7 +6,7 @@ frame; this file holds the criteria that prove it, read only in the root node.
 
 ## Acceptance criteria
 
-- [ ] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
+- [x] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
       verification in [AUDIT-CLOSURE.md](AUDIT-CLOSURE.md) has dated evidence; the
       prior criteria and historical measurements remain discoverable.
   (2026-11-15: Exact-source `0f7ecb6f4fff` CI `43691428901`, hosted trace
@@ -50,6 +50,12 @@ frame; this file holds the criteria that prove it, read only in the root node.
   properties still load, and the confirmed test, scope-hook and document gaps remain.
   V1–V6 in `AUDIT-CLOSURE.md` track correction and source-bound re-verification;
   earlier successful receipts retain their original source and limited scope.
+  ⚠ 2026-11-17: was reopened after the 5f2b53be review; now V1–V6 are closed
+  at implementation `d7cc333a` after current local and hosted verification.
+  Local fast/E2E: 7,818/121 passed, with one declared optional corpus skip.
+  CI `44114557750` and Trace `44113823079` passed on both operating systems.
+  Owner-held `closure-opus55-5f-20261117/root/runtime-proof-d7-v1.json`
+  binds that source and its receipts; the prior GPU proof retains source 779eeace.
 
 - [x] 2026-09-12 — For LOX/LH2, LOX/RP-1, N2O4/UDMH and AP/HTPB/Al the chamber,
       throat and exit states and the performance figures, in equilibrium and in frozen

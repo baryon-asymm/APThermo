@@ -11,8 +11,9 @@ retains the original reproductions; these stable IDs preserve the mapping.
 closure. Independent verification at `5f2b53be569fd63d15f0f30d6666d5b1fea503ec`
 reproduced accepted truncated thermo headers and species properties. N3's whole-record
 claim and N17's ordinary-command coverage were broader than their actual guards.
-The root aggregate is reopened; earlier measurements remain evidence for their named
-sources, without being relabelled as proof of these follow-up corrections.
+At the start of this follow-up the root aggregate was reopened; earlier measurements
+remain evidence for their named sources, without being relabelled as proof of these
+follow-up corrections.
 
 The owner-held archive contains the verified scope at
 `fix-evidence-20261117/review-opus55-5f/VERIFIED-REMAINING.md`. Follow-up receipts live
@@ -20,12 +21,47 @@ under `fix-evidence-20261117/closure-opus55-5f-20261117/` in the same archive na
 
 | Follow-up | Required correction | Current state |
 |---|---|---|
-| V1 / F1 / N3 | Reject physically incomplete required thermo header/property fields; retain complete blank-to-zero semantics and located errors. | Pending implementation and Data controls. |
-| V2 / F4 | Protect separately nonfinite Mach and vacuum impulse at the actual station writer, without duplicating algebraically identical figures. | Pending focused positive/negative controls. |
-| V3 / F10 / N13 | Cover unsupported public fields and later elements of the declared result arrays. Existing later-index controls remain in force. | Pending comparison controls. |
-| V4 / F2–F5 | Reconcile the five open leaf criteria, actual clean/incremental builds, changed guards and source-bound evidence before closing this aggregate. | Open; historical proofs retain their actual commits. |
-| V5 / F6 / N17 | Check ordinary unscoped Git content/history commands and find roots/nested reads; retain safe scoped and metadata operations. | Pending real-hook controls. |
-| V6 / F8 | Correct the numerical/metadata comparison wording, production chunk traversal and repeated XML summaries. | Pending source/document reconciliation. |
+| V1 / F1 / N3 | Reject physically incomplete required thermo header/property fields; retain complete blank-to-zero semantics and located errors. | Passed: Data 88/88; old source fails twelve cases, individual guard removals fail eight/four. Project and freshly packaged CLI reject both archived malformed inputs at their own source lines. |
+| V2 / F4 | Protect separately nonfinite Mach and vacuum impulse at the actual station writer, without duplicating algebraically identical figures. | Passed: two isolated synthetic station controls; each compiling guard-removal mutant fails its corresponding assertion. No physical public-input failure is claimed. |
+| V3 / F10 / N13 | Cover unsupported public fields and later elements of the declared result arrays. Existing later-index controls remain in force. | Passed: six comparison controls, unsupported-field and first-Cp-only mutants rejected; every generated array element is independently changed and restored. |
+| V4 / F2–F5 | Reconcile the five open leaf criteria, actual clean/incremental builds, changed guards and source-bound evidence before closing this aggregate. | Accepted: all five leaf records identify actual evidence. Rebuild/incremental builds and generated populations pass; exact local and same-platform hosted comparisons retain all original identities and add 22 source-derived cases. |
+| V5 / F6 / N17 | Check ordinary unscoped Git content/history commands and find roots/nested reads; retain safe scoped and metadata operations. | Passed: 59 self-tests; nine pre-fix failing subcases. The real-hook replay now refuses all six archived gaps while retaining all eight earlier control decisions. |
+| V6 / F8 | Correct the numerical/metadata comparison wording, production chunk traversal and repeated XML summaries. | Reconciled: Execution test/API messages name numerical outputs, statuses and iterations, chunk documentation names production traversal, and XML summaries describe their actual members. |
+
+Follow-up acceptance, 2026-11-17: the implementation is
+`d7cc333ab8d22a9223bc8078ef1c72cc279ad9c6`. The owner-held
+`closure-opus55-5f-20261117/root/runtime-proof-d7-v1.json` binds the source, raw
+reports, controls and independent readbacks (SHA-256
+`7ea6a5de8a7628a984a630f38135f9e73cd7bf93d556f57fe02654309513d31a`).
+The local fast and end-to-end selectors passed 7,818 and 121 cases in 256.33 and
+261.66 seconds, within the unchanged 300/600-second limits. The one pre-existing
+optional CORE-MATH corpus case remains explicitly skipped, as on the baseline.
+
+[CI 44114557750](https://github.com/baryon-asymm/APThermo/actions/runs/44114557750)
+passed all six hosted lanes: 7,939 cases per operating system, without skips. The
+independent artifact parser checked all eleven discovered projects per OS and all
+raw outcomes. [Trace 44113823079](https://github.com/baryon-asymm/APThermo/actions/runs/44113823079)
+passed both full CPU scan facts on each OS. These are new d7 results, not relabelled
+779 results.
+
+Fresh CI packages identify d7. All fifteen project PE/PDB pairs, tracked Git source
+checksums and embedded generated source pass the reused read-only inspector. The
+library/tool Data assembly and symbols agree, and the extracted packaged CLI refuses
+both malformed databases. This is a new offline package check; HTTP SourceLink
+availability was not re-fetched. The CI consumer and installed-tool steps also pass.
+
+No new GPU timing campaign was needed: the generated runtime-scope record compares
+immutable Git inputs and identifies only the host Data guards, software controls,
+Python scope guard and XML/log changes. Numerical/kernel code, committed data,
+fixtures, approvals and workflow gates remain unchanged. Actual hardware and timing
+receipts retain 779 as their source, without asserting binary identity to new packages.
+
+The Fable N3 recommendation to reject blank coefficients is refined: physically
+absent columns fail, while complete blank fields retain the existing zero semantics.
+Its N1 cold/warm ratio is not a controlled historical cold-to-cold regression. F3's
+late defensive solver refusal and F11's large finite vacuum impulse do not justify
+an artificial injection seam or a new model floor. The detailed distinctions remain
+in the verified review and `closure-opus55-5f-20261117/root/FABLE-RECONCILIATION.md`.
 
 The verified observations do not justify a new near-unity model floor, an artificial
 solver injection seam, changed numerical approvals or relaxed performance limits.

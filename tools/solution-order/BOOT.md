@@ -40,7 +40,14 @@ the latter is checked separately from generated real discovery/TRX and build log
 - [x] The synthetic solution's positive and frozen negative controls prove ordering,
   build failure propagation, no recursion, and `--no-build` preservation.
   (2026-11-17: `test_solution_order.py` and source-frozen `workers/solution-order/sdk-pinned/controls.json`.)
-- [ ] Real solution clean/incremental builds and selected populations are accepted separately.
+- [x] Real solution clean/incremental builds and selected populations are accepted separately.
+  (2026-11-17: Debug `Rebuild` and the following incremental build succeeded for the full
+  solution at `d7cc333a`. The Windows software run passed 7,818 fast cases and 121 end-to-end
+  cases. One optional CORE-MATH case retained its earlier skip. Against the same local paths
+  at `779eeace`, the project, test ID, name and outcome comparison retained every original
+  result and added 22 passing cases. The owner-held `closure-opus55-5f-20261117/root/`
+  contains `rebuild.json`, `incremental.json`, their binary logs, and
+  `population-check-independent-final.json`.)
 
 ## Taboos
 
