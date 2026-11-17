@@ -42,7 +42,7 @@ internal struct TemperatureBracket
     public readonly double ProbeTemperature { get; }
     public readonly bool NeedsFloor { get; }
     public readonly bool NarrowEnds { get; }
-    public readonly bool GaveUpAtDomainEdge { get; }
+    public bool GaveUpAtDomainEdge { readonly get; private set; }
     public readonly EndKind NearerKind { get; }
     public void Start(CaseStatus firstFailure, double estimate);
     public readonly bool NearerIsLow(double x);
@@ -55,6 +55,8 @@ internal struct TemperatureBracket
     public readonly double LeverTemperature(double target);
 }
 ```
+
+⚠ 2026-11-17: `GaveUpAtDomainEdge` was documented as `public readonly bool ... { get; }`; its actual accessor has a readonly getter and a private setter. The declaration check exposed the mismatch.
 
 ## The recheck below a dead-end floor ✅
 

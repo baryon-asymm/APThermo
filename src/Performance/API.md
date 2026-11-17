@@ -214,5 +214,8 @@ None.
 
 - Transport properties at the stations: `Transport`, from temperature and `Moles`.
 - Reactant enthalpy and element moles from a propellant definition: `Problems`.
-- Finite-area chamber, subsonic exits, the report's stop 50 K below a condensed
-  species' range in frozen flow: not in version 1.
+- Finite-area chamber, area-assigned subsonic exits, the report's stop 50 K below a condensed
+  species' range in frozen flow: not in version 1. Pressure-assigned finite exits may be subsonic.
+
+⚠ 2026-11-17: the previous wording excluded all “subsonic exits”; the implementation and
+`BOOT.md` distinguish area-assigned exits from pressure-assigned finite exits.
