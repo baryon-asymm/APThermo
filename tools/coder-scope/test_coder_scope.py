@@ -297,11 +297,15 @@ class ShellTests(HookCase):
     """Bash and PowerShell, judged by the paths of the command text."""
 
     def test_search_dot_roots_follow_the_current_node_scope(self):
-        for command in ("grep -r X .", "rg X .", "grep -r X .."):
+        for command in ("grep -r X .", "rg X .", "grep -r X ..", "rg X", "grep -r X"):
             with self.subTest(command=command):
                 self.assertRefused("Bash", {"command": command})
         self.assertAllowed("Bash", {"command": "rg . src/Alpha"})
         self.assertAllowed("Bash", {"command": "rg X ."}, cwd=self.wpath("src/Alpha"))
+        self.assertAllowed("Bash", {"command": "rg X"}, cwd=self.wpath("src/Alpha"))
+        self.assertAllowed("Bash", {"command": "cat src/Alpha/Alpha.cs | grep X"})
+        self.assertAllowed("Bash", {"command": "rg --files src/Alpha"})
+        self.assertRefused("Bash", {"command": "rg --files"})
 
     def test_bare_directory_and_git_content_require_a_scoped_path(self):
         """Directory tokens and implicit Git pathspecs cannot expand the read set."""
