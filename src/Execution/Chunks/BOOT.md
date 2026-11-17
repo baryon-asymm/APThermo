@@ -16,8 +16,14 @@ A child node of `src/Execution` (its `BOOT.md`, the child-nodes decision of
   the shape `ChunkBuffers` holds them by; `ChunkTransfer` names the direction; `Chunk`
   is one launch's slice of a batch (its offset and length).
 
-The rest of `src/Execution` reaches this through `ChunkPlan.For`/`.Chunks()`,
-`ChunkBuffers`'s six declaration methods (one per `ChunkTransfer`), `Allocate`, `UploadChunk`, `DownloadChunk`,
+The production pipelines construct the plan with `ChunkPlan.For`. `BatchRun` uses the plan
+limits and calibration results to choose each launch length. `ChunkPlan.Chunks()` enumerates
+fixed-size slices for the planning tests.
+
+⚠ 2026-11-17: this section previously named `.Chunks()` as a production caller path. The call-site inventory found it only in planning tests.
+
+The production pipelines use `ChunkBuffers`'s six declaration methods (one per `ChunkTransfer`),
+`Allocate`, `UploadChunk`, `DownloadChunk`,
 `BytesPerCase` and `MaxElementsPerCase` (2026-09-26, the audit's F4), and
 `ChunkBuffer<T>.View` on what a declaration returns — a
 contract far narrower than the six types behind it: `IChunkBuffer`, `ChunkTransfer`

@@ -270,6 +270,12 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
 
 ## Acceptance criteria
 
+- [x] 2026-11-17 — An exhausted numerical attempt retains its own stop reason when the first
+  attempt reported an out-of-range status. Both cases of `RecoveryStopReasonTests.AnExhaustedNumericalProbeCannotReuseAnInheritedOutOfRangeStatus`
+  passed on Windows and Ubuntu in CI 44071670563 at `5f2b53be`. The compiled M2b mutation
+  restored the old reason and failed both cases. The raw reports and mutation are identified
+  in the owner-held `closure-opus55-5f-20261117/coordinator/prior-verification.json`.
+
 - [x] 2026-11-14 — R10 CPU storage: `RecoveryStorageTests` verifies generated type size/alignment,
   unchanged C0 double-region offsets/lengths and per-case typed bank isolation;
   `RecoveryCandidateTests` proves full-bit state restoration from poisoned global

@@ -14,6 +14,8 @@ consider proven about `Performance`.
 | an exit station that never leaves the subsonic side is `NotConverged` and its neighbours are `Ok` | L0 over the `AreaRatioIteration` stage (`SubsonicStationTests`, 2026-09-14) | ✅ |
 | no result of any rocket fixture changes a bit on the CPU accelerator without `Bits.approved.txt` moving in the same commit (a tripwire, not a contract) | Bits level (`BitSnapshotTests`, `Bits.approved.txt`) | ✅ (2026-09-14) |
 
+The two `StationFiniteGuardTests` controls check single-output refusals at the station writer on the host.
+
 ## What the tests rely on
 
 - The fixtures node's loader and tolerance table; reflection over the result structs

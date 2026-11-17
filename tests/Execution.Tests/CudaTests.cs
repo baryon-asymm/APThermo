@@ -206,8 +206,8 @@ public sealed class CudaTests(ITestOutputHelper output)
     /// <summary>
     /// A family of the 0.2.2 trace-gas pass (<see cref="TraceGasFamilies"/>) on cuda matches the cpu accelerator: tp, hp and sp states of
     /// mixtures with a trace excess or deficit of one element, of the magnesite carbon dioxide walk and of the data junction of KCl, each kept
-    /// because the host solver ended it <c>Ok</c> through the pass or <c>NoGasPhase</c> through the verdict; every field, the iteration counts of
-    /// the pass included, equal bit for bit. <see cref="TraceGasFamiliesTests"/> proves on the CPU that the cases reach the pass.
+    /// because the host solver ended it <c>Ok</c> through the pass or <c>NoGasPhase</c> through the verdict; numerical outputs, statuses and
+    /// iteration counts equal bit for bit. <see cref="TraceGasFamiliesTests"/> proves on the CPU that the cases reach the pass.
     /// </summary>
     [Theory]
     [MemberData(nameof(TraceGasFamilyNames))]
@@ -304,7 +304,7 @@ public sealed class CudaTests(ITestOutputHelper output)
 
         var mismatches = ExactComparison.Equilibrium(cpu, gpu, k => labels[k]);
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches));
-        output.WriteLine($"{batch.Count} cases, {cpu.Iterations.Sum(i => (long)i)} Newton steps, every field equal bit for bit");
+        output.WriteLine($"{batch.Count} cases, {cpu.Iterations.Sum(i => (long)i)} Newton steps, numerical outputs, statuses and iteration counts equal bit for bit");
     }
 
     /// <summary>The sweep of 100000 cases on cuda equals the cpu accelerator bit for bit and is deterministic.</summary>
@@ -329,7 +329,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         var repeated = ExactComparison.Rocket(sweep.Cuda, sweep.CudaAgain, k => $"case {k}");
         Assert.True(repeated.Count == 0, "two CUDA runs differ:\n" + string.Join("\n", repeated));
         Assert.True(sweep.Cpu.Status.All(s => s == CaseStatus.Ok), $"{sweep.Cpu.Status.Count(s => s != CaseStatus.Ok)} cases failed on the CPU accelerator");
-        output.WriteLine($"{sweep.Cpu.Stations.Length} stations, {sweep.Cpu.Iterations.Sum(i => (long)i)} Newton steps, every field equal bit for bit");
+        output.WriteLine($"{sweep.Cpu.Stations.Length} stations, {sweep.Cpu.Iterations.Sum(i => (long)i)} Newton steps, numerical outputs, statuses and iteration counts equal bit for bit");
         CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 

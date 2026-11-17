@@ -28,10 +28,14 @@ recorded separately. The executable is test-only and is not packed.
 
 ## Acceptance criteria
 
-- [ ] The controlled entry-point process reports a code page 866 writer before invocation;
+- [x] The controlled entry-point process reports a code page 866 writer before invocation;
   a Unicode database path survives strict UTF-8 decoding without a BOM after `Main`.
   Restoring the old `Main` path through `Console.Out` makes the same frozen process
   test fail.
+  (2026-11-17: `Utf8OutputProcessTests.RedirectedOutputIsUtf8WithoutBomForUnicodeDatabasePath`
+  passed in both lanes of CI 44071670563 at `5f2b53be`. M8 on that base restored the old
+  writer and failed strict decoding. The owner-held `closure-opus55-5f-20261117/coordinator/prior-verification.json`
+  identifies the raw CI reports, mutation patch and failing process log.)
 
 ## Taboos
 

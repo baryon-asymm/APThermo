@@ -93,9 +93,15 @@ Any other trailing content is rejected with `DatabaseFormatException` naming its
 source line. ⚠ 2026-11-16: this existing validation was omitted from the contract;
 the independent re-audit identified that omission.
 
-Thermo coefficient lines and transport fit lines contain all 80 fixed columns; a
-short line fails at that source line. Blank fields retain their existing numeric
-semantics, including the unused thermo coefficient gap. A transport input ends with
+Thermo species-properties lines, interval headers, coefficient lines and transport
+fit lines contain their fixed columns through column 80; a short line fails at that
+source line. Explicitly present blank fields retain their existing numeric semantics,
+including the unused thermo coefficient gap. Identity comments and the unused tail
+after a no-interval assigned-temperature token are optional.
+⚠ 2026-11-17: the previous width policy omitted interval headers and species
+properties, whose missing numeric tails could silently become zeros; their physical
+extent is now required without changing complete blank fields.
+A transport input ends with
 an exact lower-case `end` line; only blank lines and `!` comments may follow it.
 Duplicate species blocks and duplicate unordered species pairs are refused with a
 source location instead of choosing one silently. ⚠ 2026-11-17: EOF and `end` prefixes

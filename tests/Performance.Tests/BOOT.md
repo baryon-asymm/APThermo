@@ -143,6 +143,8 @@ approved bytes; labels are diagnostic text only, never extra hash input.
 
 ### Audit closure (2026-11-14)
 
+Separate host cases in `StationFiniteGuardTests` exercise the station output guard for an isolated nonfinite Mach or vacuum impulse. They use synthetic state and call the writer directly.
+
 The `AreaRatioDispatchTests` boundary uses a synthetic scaled throat mass flux and
 nineteen subsonic steps followed by one frozen supersonic pass. The actual iteration
 must reject a residual beyond `1e-6` even when its correction meets the report's

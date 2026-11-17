@@ -24,12 +24,20 @@ Claude Code treats as a refusal with the error text.
 Shell-path judgment treats existing bare directory names as paths. Git content reads
 through `grep` or `diff` require one or more explicit paths following `--`, each within
 the read set; unscoped, empty, foreign and pathspec-magic selections are refused.
-The same applies to patch-form Git logs and blame. `git show REV:path` is judged by
-its path; unscoped patch output and unjudgeable `cat-file` content are refused.
+The same applies to patch-form or content-filtered (`-S`, `-G`, pickaxe/find-object)
+Git logs, blame, archive, format-patch and whatchanged. `git show REV:path` is judged
+by its path; unscoped content output and unjudgeable `cat-file` content are refused.
 Metadata-only status and log, `git show --stat` for HEAD and `cat-file -t/-s` remain available.
+`find` judges explicit roots, including `.` and `..`, or the current directory when no
+root is stated. Its nested execution/confirmation actions (`-exec`, `-execdir`, `-ok`,
+`-okdir`) are refused as unjudgeable; scoped name searches remain usable. Permitted
+stdin pipelines and neighbour API reads retain their existing read-set policy.
 The shell parser is heuristic and is not an operating-system isolation boundary.
 
 ⚠ 2026-11-17: bare directory tokens and implicit Git selections were not judged as reads.
+⚠ 2026-11-17: the former content-command list missed exports, content-filtered history
+and `find` roots/actions; real-CLI controls of the archived review strings exposed
+those omissions. The checked command families above replace that incomplete list.
 
 ## The scope file ✅
 

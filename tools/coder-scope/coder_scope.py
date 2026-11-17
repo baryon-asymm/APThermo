@@ -219,6 +219,8 @@ class Scope:
             cwd = self.enter(target, cwd)
         self.judge_git_content(words, cwd)
         executable = os.path.basename(words[0]).lower()
+        if executable in ("find", "find.exe"):
+            self.judge_find(words, cwd)
         if executable in ("grep", "grep.exe", "rg", "rg.exe"):
             operands = [word for word in words[1:] if not word.startswith("-")]
             recursive = executable in ("rg", "rg.exe") or any(
@@ -242,12 +244,28 @@ class Scope:
             self.judge_token(text, mode, cwd)
         return cwd
 
+    def judge_find(self, words, cwd):
+        """Judge search roots and refuse nested actions whose paths cannot be determined."""
+        if any(word in ("-exec", "-execdir", "-ok", "-okdir") for word in words[1:]):
+            raise Refusal("coder-scope: find nested execution cannot be judged. " + HEURISTIC)
+        roots = []
+        for word in words[1:]:
+            if word.startswith("-") or word in ("!", "("):
+                break
+            roots.append(word)
+        for root in roots or ["."]:
+            if root in (".", ".."):
+                self.check_read_path(resolve(root, cwd))
+            else:
+                self.judge_token(root, "arg", cwd)
+
     def judge_git_content(self, words, cwd):
         """Content-reading Git commands must name an explicit, scoped pathspec."""
         if os.path.basename(words[0]).lower() not in ("git", "git.exe"):
             return
         commands = [i for i, word in enumerate(words[1:], 1)
-                    if word in ("grep", "diff", "show", "log", "blame", "cat-file")]
+                    if word in ("grep", "diff", "show", "log", "blame", "cat-file",
+                                "archive", "format-patch", "whatchanged")]
         if not commands:
             return
         start = commands[0]
@@ -257,7 +275,8 @@ class Scope:
                 return
             raise Refusal("coder-scope: git cat-file content has no judgeable path. " + HEURISTIC)
         patch = any(arg == "-p" or arg.startswith("--patch") for arg in arguments)
-        if command == "log" and not patch:
+        content_search = any(arg.startswith(("-S", "-G", "--pickaxe", "--find-object")) for arg in arguments)
+        if command == "log" and not patch and not content_search:
             return
         if command == "show" and "--" not in arguments:
             revisions = [arg for arg in arguments if not arg.startswith("-")]

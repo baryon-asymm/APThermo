@@ -1,8 +1,19 @@
 # ACCEPTANCE.md — tests/Execution.Tests
 
-- [ ] `StationFiniteKernelTests` checks the actual station guard on CPU and CUDA over
+- [x] `StationFiniteKernelTests` checks the actual station guard on CPU and CUDA over
   binary64 exponent classes and representative mantissas, against an independent
   bit oracle; compiling guard-removal and inclusive-infinity mutants are rejected.
+  (2026-11-17: `CpuStationGuardClassifiesBinary64` passed at `5f2b53be` and rejected M5k/M5i.
+  `CudaStationGuardClassifiesBinary64` completed in both hardware jobs at `779eeace`
+  in Release 44048539081. The raw TRX reports and failing mutation logs are identified by
+  `closure-opus55-5f-20261117/coordinator/prior-verification.json`.)
+
+- [x] 2026-11-17 — `BitsUnsupportedTests` detects an unsupported public field.
+  `ResultComparisonCoverageTests.EveryNumericalMemberDetectsAnIndependentChange`
+  detects differences beyond the first array element. All six host controls passed.
+  Skipping unsupported fields and limiting the CpOverR comparison to the first element
+  each failed its own assertion. The positive and mutation TRX reports are indexed in
+  `closure-opus55-5f-20261117/tests/RECEIPT-V2-V3.md`.
 
 - [x] 2026-11-16 — The throughput fact explicitly verifies cold/hit/hit after writing its actual
   record, and rejects cold/hit/cold and cold/cold/hit with the affected sample and

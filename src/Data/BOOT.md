@@ -169,9 +169,15 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 ### Input integrity follow-up of 2026-11-17
 
-- Each thermo interval coefficient line and each transport fit line must contain all
-  80 fixed columns. A short line is refused at its own source line before any field is
-  interpreted; existing blank-field parsing and the unused thermo gap are unchanged.
+- Thermo species-properties lines, interval headers, interval coefficient lines and
+  transport fit lines must contain their full fixed-column extent through column 80.
+  A short line is refused at its own source line before any field is interpreted;
+  explicitly present blank numeric fields retain their zero value. Identity comments
+  and the unused tail after a no-interval assigned-temperature token stay optional.
+  ⚠ 2026-11-17: the previous width rule named only coefficient and transport-fit
+  lines. Interval headers and species properties still padded missing exponents or
+  enthalpy with zeros, contradicting the whole-record invariant. The same width
+  rule now covers their last stored fields; no numeric blank policy changes.
 - A transport file has one exact lower-case `end` marker, with only whitespace around
   it; blank lines and `!` comments may follow it. EOF before it, other trailing content,
   and duplicated single-species or unordered-pair entries are format errors naming the
@@ -343,6 +349,15 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
 - [x] 2026-09-12 — A truncated or corrupted record fails the load with the line
       number of the bad field in the message (mutation tests on an in-memory copy of
       one record): `CorruptionTests`, six tests.
+      ⚠ 2026-11-17: this blanket claim was guarded only by the named corruption
+      controls; truncated interval headers and properties still reached the model.
+      `FixedWidthHeaderTests` now covers both missing tails and complete blanks.
+- [x] 2026-11-17 — Header and properties width controls pass 18/18, including six
+  positive controls; the frozen old source fails all twelve truncation controls.
+  Removing only the header guard fails eight cases; removing only the properties
+  guard fails four. Restored full `Data.Tests`: 88/88, no skips, including the unchanged
+  committed files, fixture values and bundled bytes. Raw TRX, source hashes and
+  commands: owner-held `closure-opus55-5f-20261117/V1/receipt.json`.
 - [x] 2026-09-12 — `AtomicWeight("AL")` equals the molar mass of the record `AL`;
       `AtomicWeight` of a symbol without a monatomic record throws:
       `ThermoLoadTests.AtomicWeightsComeFromTheMonatomicSpecies`.

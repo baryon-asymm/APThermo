@@ -1,10 +1,15 @@
 # ACCEPTANCE.md — Cli.Tests
 
-- [ ] Input-schema/reader controls independently require the documented sweep axes and
+- [x] Input-schema/reader controls independently require the documented sweep axes and
   custom-reactant fields. An owned process starts the real entry point with a .NET
   output writer using code page 866; it emits UTF-8 without a BOM and preserves a
   non-ASCII input path. Separate physical Windows-console evidence is recorded.
   Existing output and numerical snapshots remain unchanged.
+  (2026-11-17: `ConditionalInputSchemaTests`, `ConditionalInputPositiveTests` and the UTF-8
+  process test passed on both operating systems in CI 44071670563 at `5f2b53be`. M10 fails
+  the missing condition. The separate redirected Windows console receipt is at `13688d2f`.
+  The owner-held `closure-opus55-5f-20261117/coordinator/prior-verification.json` and
+  `prior-cli-witness.json` identify the raw reports and unchanged output snapshots.)
 
   ⚠ 2026-11-17: was "Input-schema/reader controls independently require the documented
   sweep axes and custom-reactant fields. An actual redirected process under a Windows
@@ -12,9 +17,12 @@
   output and numerical snapshots remain unchanged." The original Windows test process
   escaped the owned runner, so the automated control now uses the owned writer probe;
   the separate physical console check retains the original operating-system evidence.
-- [ ] The reported O/F 1, 10 kPa, pressure-ratio 1.0000000000001 rocket input is run
+- [x] The reported O/F 1, 10 kPa, pressure-ratio 1.0000000000001 rocket input is run
   through a real process. An `ok` exit has finite area and vacuum impulse; a numerical
   refusal reports a failed station and exit 1. The report's baseline output is retained.
+  (2026-11-17: `NearUnityPressureProcessTests.NearUnityPressureCannotReturnSuccessfulNonfinitePerformance`
+  passed on both operating systems in CI 44071670563 at `5f2b53be`. The original
+  `1a9ac02f` stdout and its digest are located by the same `prior-cli-witness.json`.)
 
 - [x] 2026-11-16 — `FailedStationOutputTests.InventoryRejectsNewUnsupportedMembers`
   detects omitted nonnumeric properties and fields; both omission mutants are red.

@@ -27,6 +27,11 @@ Each next level makes sense only when the previous one is green.
   from the `H2O` record and parsed from a string); the committed data files are never
   touched.
 
+- **Synthetic format controls carry no reference coefficients.** Fixed-width header
+  tests construct minimal records from the documented columns and blank coefficient
+  fields. Their arbitrary field values test storage and source locations only;
+  fixture comparisons remain the oracle for the committed database's numbers.
+
   ⚠ 2026-09-12: stood "mutate a copy in the test's temporary directory". A minimal
   in-memory file proved enough, keeps the line numbers small and leaves nothing on
   disk; changed when the corruption tests were written.
@@ -69,6 +74,15 @@ them from the files they read.
 | `Records.IntervalRecord.IntervalRecord` | parameters | 7 | a temperature interval of the same records, field for field; built by the deserializer only |
 
 ## Acceptance criteria
+
+- [x] 2026-11-17 — `FixedWidthHeaderTests`: both interval headers and species properties at zero
+  and nonzero interval counts reject missing required numeric tails at their exact
+  source line. Full-width blank fields, short identity comments and the optional
+  assigned-temperature tail remain accepted. Frozen old source: twelve failures and
+  six positive passes. Removing the header guard alone fails eight cases; removing
+  the properties guard alone fails four. Restored full `Data.Tests`: 88/88, no skips.
+  Raw TRX, source hashes and commands: owner-held
+  `closure-opus55-5f-20261117/V1/receipt.json`; no data or numeric approval changed.
 
 - [x] 2026-11-17 — `StrictInputIntegrityTests`: the real parser rejects each truncated thermo coefficient line and transport
   fit line at its source line, while complete fixed-width blanks keep their meaning.

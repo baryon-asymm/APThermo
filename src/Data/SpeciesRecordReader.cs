@@ -70,6 +70,7 @@ internal static class SpeciesRecordReader
 
     private static Properties ReadProperties(string line)
     {
+        FixedColumns.RequireWidth(line, RecordColumns.FormationEnthalpyStart + RecordColumns.FormationEnthalpyLength - 1);
         var intervalCount = FortranNumber.ParseInt(FixedColumns.Field(line, RecordColumns.IntervalCountStart, RecordColumns.IntervalCountLength));
         if (intervalCount < 0)
         {

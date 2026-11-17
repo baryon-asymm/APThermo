@@ -6,7 +6,7 @@ frame; this file holds the criteria that prove it, read only in the root node.
 
 ## Acceptance criteria
 
-- [x] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
+- [ ] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
       verification in [AUDIT-CLOSURE.md](AUDIT-CLOSURE.md) has dated evidence; the
       prior criteria and historical measurements remain discoverable.
   (2026-11-15: Exact-source `0f7ecb6f4fff` CI `43691428901`, hosted trace
@@ -45,6 +45,11 @@ frame; this file holds the criteria that prove it, read only in the root node.
   `1a9ac02f` re-audit found confirmed remaining product and guard defects. Its prior
   completion evidence remains historical for the sources named above; current closure
   requires the fixes and fresh source-bound checks recorded in `AUDIT-CLOSURE.md`.
+  ⚠ 2026-11-17: was accepted after the 779eeace verification; now reopened after
+  independent verification of the 5f2b53be review. Incomplete thermo headers and
+  properties still load, and the confirmed test, scope-hook and document gaps remain.
+  V1–V6 in `AUDIT-CLOSURE.md` track correction and source-bound re-verification;
+  earlier successful receipts retain their original source and limited scope.
 
 - [x] 2026-09-12 — For LOX/LH2, LOX/RP-1, N2O4/UDMH and AP/HTPB/Al the chamber,
       throat and exit states and the performance figures, in equilibrium and in frozen

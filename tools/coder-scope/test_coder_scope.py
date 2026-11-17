@@ -329,6 +329,33 @@ class ShellTests(HookCase):
             with self.subTest(command=command):
                 self.assertAllowed("Bash", {"command": command})
 
+    def test_unscoped_exports_and_content_searches_are_refused(self):
+        """Archived review strings are classified only, never run as shell commands."""
+        for command in ("git archive HEAD | tar -xO", "git format-patch -1 --stdout",
+                        "git whatchanged -p", "git log -S Beta", "git log -G Beta --oneline"):
+            with self.subTest(command=command):
+                self.assertRefused("Bash", {"command": command}, "explicit paths")
+
+    def test_scoped_exports_and_content_searches_preserve_read_access(self):
+        """Explicit readable paths remain usable alongside ordinary history metadata."""
+        for command in ("git archive HEAD -- src/Alpha | tar -xO",
+                        "git format-patch -1 --stdout -- src/Alpha",
+                        "git whatchanged -p -- src/Alpha", "git log -S Beta -- src/Alpha",
+                        "git log -G Beta --oneline -- src/Alpha", "git log --oneline -1",
+                        "git show HEAD:src/Beta/API.md", "cat src/Alpha/Alpha.cs | grep X"):
+            with self.subTest(command=command):
+                self.assertAllowed("Bash", {"command": command})
+
+    def test_find_search_roots_are_checked_and_nested_execution_is_refused(self):
+        """Find's root is judged; nested actions cannot be inferred from their template."""
+        for command in ("find . -name '*.cs' -exec cat {} +", "find . -name '*.cs'",
+                        "find -name '*.cs'", "find src/Beta -name '*.cs'",
+                        "find src/Alpha -name '*.cs' -exec cat {} +"):
+            with self.subTest(command=command):
+                self.assertRefused("Bash", {"command": command})
+        self.assertAllowed("Bash", {"command": "find src/Alpha -name '*.cs'"})
+        self.assertAllowed("Bash", {"command": "find . -name '*.cs'"}, cwd=self.wpath("src/Alpha"))
+
     def test_cat_of_own_node_is_allowed_and_of_a_foreign_source_refused(self):
         """The case the audit of 2026-09-29 found."""
         self.assertAllowed("Bash", {"command": "cat src/Alpha/Alpha.cs"})

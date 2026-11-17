@@ -5,7 +5,34 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
-## Accepted re-audit corrections — 2026-11-17
+## Current follow-up after the 5f2b53be review — 2026-11-17
+
+⚠ 2026-11-17: the previous acceptance for 779eeace below did not establish complete
+closure. Independent verification at `5f2b53be569fd63d15f0f30d6666d5b1fea503ec`
+reproduced accepted truncated thermo headers and species properties. N3's whole-record
+claim and N17's ordinary-command coverage were broader than their actual guards.
+The root aggregate is reopened; earlier measurements remain evidence for their named
+sources, without being relabelled as proof of these follow-up corrections.
+
+The owner-held archive contains the verified scope at
+`fix-evidence-20261117/review-opus55-5f/VERIFIED-REMAINING.md`. Follow-up receipts live
+under `fix-evidence-20261117/closure-opus55-5f-20261117/` in the same archive namespace.
+
+| Follow-up | Required correction | Current state |
+|---|---|---|
+| V1 / F1 / N3 | Reject physically incomplete required thermo header/property fields; retain complete blank-to-zero semantics and located errors. | Pending implementation and Data controls. |
+| V2 / F4 | Protect separately nonfinite Mach and vacuum impulse at the actual station writer, without duplicating algebraically identical figures. | Pending focused positive/negative controls. |
+| V3 / F10 / N13 | Cover unsupported public fields and later elements of the declared result arrays. Existing later-index controls remain in force. | Pending comparison controls. |
+| V4 / F2–F5 | Reconcile the five open leaf criteria, actual clean/incremental builds, changed guards and source-bound evidence before closing this aggregate. | Open; historical proofs retain their actual commits. |
+| V5 / F6 / N17 | Check ordinary unscoped Git content/history commands and find roots/nested reads; retain safe scoped and metadata operations. | Pending real-hook controls. |
+| V6 / F8 | Correct the numerical/metadata comparison wording, production chunk traversal and repeated XML summaries. | Pending source/document reconciliation. |
+
+The verified observations do not justify a new near-unity model floor, an artificial
+solver injection seam, changed numerical approvals or relaxed performance limits.
+Interactive console side-effect wording and manual GPU-evidence prerequisite messages
+are usability clarifications, not newly demonstrated runtime failures.
+
+## Historical re-audit acceptance for 779eeace — 2026-11-17
 
 The tested implementation is `779eeacee40cadabec3a2647ddf4b043309c37b4`. The owner-held
 `fix-evidence-20261117/root/final-proof-index-779-v1.json` binds the runtime receipts to

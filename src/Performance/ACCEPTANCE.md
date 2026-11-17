@@ -153,6 +153,10 @@
   distinct-set, ordinary-throat and frozen-failure controls; NoGasPhase's T,p
   exception is checked separately at the finalization boundary. Exact identities
   include every scratch slot and the largest species-table keys.
+  ⚠ 2026-11-17: the 2026-11-14 tests did not distinguish a disabled residual check at the
+  actual dispatch. `AreaRatioDispatchTests.AFinalReportTolerancePassWithExcessAreaResidualIsRejected`
+  passed on both operating systems in CI 44071670563 at `5f2b53be`. The compiled M12 mutation
+  failed that assertion (`closure-opus55-5f-20261117/coordinator/prior-verification.json`).
 - [x] 2026-11-16 — `UpstreamExhaustionTests.VerifyRefusesAnUnresolvedFinalBoundary`
   reaches the real `Verify` and physical locator from a controlled seventh-boundary
   starting count, synthetic endpoint fingerprints and chamber enthalpy. Its original
@@ -172,6 +176,10 @@
   and every other approval stay as reviewed.  external snapshot-approval and
   `final-candidate/c0df7b146ffd-windows-cuda/result.json` and
   `final-candidate/c0df7b146ffd-linux-cuda/result.json` retain the actual source.)
+  (2026-11-17: Release 44048539081 at `779eeace` executed `AuditPhaseCudaTests`, the
+  architecture/physical-device equality case, the CPU/CUDA sweep and bit snapshots on
+  Windows and Linux. The owner-held `closure-opus55-5f-20261117/coordinator/previous-cuda-comparisons.json`
+  enumerates the matching test results and raw report digests. The older c0df measurements remain dated above.)
 
 - [x] 2026-11-14 — Integration coupling corrections: the full ShapeTests run reports
   no Performance violation after PhaseBoundaryEnd encapsulation and moving station

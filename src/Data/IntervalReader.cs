@@ -21,6 +21,7 @@ internal static class IntervalReader
 
     private static (double TLow, double THigh, double[] Exponents, double EnthalpyOffset) ReadHeader(string line)
     {
+        FixedColumns.RequireWidth(line, RecordColumns.EnthalpyOffsetStart + RecordColumns.EnthalpyOffsetLength - 1);
         var tLow = FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.TLowStart, RecordColumns.TLowLength));
         var tHigh = FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.THighStart, RecordColumns.THighLength));
         var coefficientCount = FortranNumber.ParseInt(FixedColumns.Field(line, RecordColumns.CoefficientCountStart, RecordColumns.CoefficientCountLength));

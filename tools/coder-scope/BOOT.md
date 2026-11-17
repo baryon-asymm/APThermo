@@ -57,6 +57,17 @@ Unscoped content-producing `show`, patch-form `log`, `blame` and content `cat-fi
 are also refused; safe metadata and a checked `show REV:path` remain available.
 ⚠ 2026-11-17: bare directories and unscoped Git reads previously escaped path judgment.
 
+Git `archive`, `format-patch`, `whatchanged` and logs filtered by content (`-S`, `-G`,
+pickaxe/find-object options) also require explicit read-set-checked paths after `--`.
+`find` searches judge their stated root, including `.` and `..`, or the current directory
+when omitted. Nested `find` execution/confirmation actions are refused because the
+template does not establish the paths the child operation will access. Scoped name
+searches, ordinary Git metadata, a neighbour's API and permitted stdin pipelines remain
+available; this is bounded command classification, not arbitrary-shell isolation.
+⚠ 2026-11-17: the earlier Git list omitted exports/content-filtered history and `find`
+did not judge implicit roots or nested actions; the archived review inputs exposed
+these omissions through the real hook interface.
+
 - **Which worktree.** The coder's worktree is the hook input's `cwd` when it lies under
   `<repo>/.claude/worktrees/<name>/`; `<name>` keys the scope file
   `<repo>/.claude/scopes/<name>.json`. A coder call whose `cwd` is elsewhere is refused.
@@ -123,6 +134,17 @@ are also refused; safe metadata and a checked `show REV:path` remain available.
 
 ## Acceptance criteria
 
+- [x] 2026-11-17 — The archived export/history/search command strings are classified
+      through the real hook CLI without executing their shell contents:
+      `test_unscoped_exports_and_content_searches_are_refused`,
+      `test_scoped_exports_and_content_searches_preserve_read_access` and
+      `test_find_search_roots_are_checked_and_nested_execution_is_refused` reject
+      unscoped content reads and unjudgeable nested actions while preserving scoped
+      paths, metadata, neighbour API and stdin controls. The three facts exposed nine
+      failing subtests before the change; the node's complete generated unittest run
+      then passed 59 tests. Evidence:
+      `fix-evidence-20261117/closure-opus55-5f-20261117/V5/before.log`, `after.log`,
+      `V5-receipt.json`; these are software hook decisions, not OS isolation evidence.
 - [x] 2026-10-02: The self-test `python -X utf8 tools/coder-scope/test_coder_scope.py`
       feeds recorded hook inputs to the script and checks every decision: an orchestrator
       call allowed unread; a coder's read of its node, of an ancestor's `BOOT.md`, of a

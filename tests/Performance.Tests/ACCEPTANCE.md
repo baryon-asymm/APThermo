@@ -1,5 +1,11 @@
 # Acceptance criteria
 
+- [x] 2026-11-17 — `StationFiniteGuardTests.AnIndividualNonfiniteFigureIsRefused` runs two
+  synthetic host cases through the station result writer. Each case checks that only the
+  selected output becomes nonfinite and the writer refuses it. Removing just the selected
+  Mach or vacuum-impulse check failed that case and left the other case green.
+  The raw positive and mutation TRX reports are indexed by `closure-opus55-5f-20261117/tests/RECEIPT-V2-V3.md`.
+
 - [x] 2026-09-14 — L0 green: `InvariantTests.TheThroatIsSonic`,
       `EntropyIsConstantAlongTheNozzle`, `VelocityFollowsTheEnergyEquation`,
       `AssignedAreaAndPressureRatiosAreMet`,

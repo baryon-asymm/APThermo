@@ -8,7 +8,7 @@ namespace APThermo.Execution.Tests;
 /// <summary>Proves each reflected numerical result member affects the exact comparison.</summary>
 public sealed class ResultComparisonCoverageTests
 {
-    /// <summary>Every result array and every nested numerical field rejects an isolated change.</summary>
+    /// <summary>Every element of every result array and nested numerical member rejects an isolated change.</summary>
     [Fact]
     public void EveryNumericalMemberDetectsAnIndependentChange()
     {
@@ -25,8 +25,11 @@ public sealed class ResultComparisonCoverageTests
             foreach (var member in arrays)
             {
                 var array = Assert.IsType<Array>(Read(member, actual), exactMatch: false);
-                Assert.True(array.Length > 0, $"{type.Name}.{member.Name} is empty");
-                CheckArray(type, member, array, expected, actual, check);
+                Assert.True(array.Length > 1, $"{type.Name}.{member.Name} must exercise an element after index zero");
+                for (var index = 0; index < array.Length; index++)
+                {
+                    CheckElement(type, member, array, index, (expected, actual, check));
+                }
             }
         }
     }
@@ -52,15 +55,18 @@ public sealed class ResultComparisonCoverageTests
         Assert.Equal(7, scalarCounts);
     }
 
-    private static void CheckArray(Type type, MemberInfo member, Array array, object expected, object actual, Func<object, object, List<string>> check)
+    private static void CheckElement(Type type, MemberInfo member, Array array, int index,
+        (object Expected, object Actual, Func<object, object, List<string>> Check) comparison)
     {
-        var original = array.GetValue(0)!;
+        var (expected, actual, check) = comparison;
+        var original = array.GetValue(index)!;
         var element = MemberType(member).GetElementType()!;
         if (element.IsPrimitive || element.IsEnum)
         {
-            array.SetValue(Different(original), 0);
-            Assert.True(check(expected, actual).Count > 0, $"{type.Name}.{member.Name} was ignored");
-            array.SetValue(original, 0);
+            array.SetValue(Different(original), index);
+            Assert.True(check(expected, actual).Count > 0, $"{type.Name}.{member.Name}[{index}] was ignored");
+            array.SetValue(original, index);
+            Assert.Empty(check(expected, actual));
             return;
         }
 
@@ -68,11 +74,12 @@ public sealed class ResultComparisonCoverageTests
         Assert.NotEmpty(fields);
         foreach (var field in fields)
         {
-            var changed = array.GetValue(0)!;
+            var changed = array.GetValue(index)!;
             Write(field, changed, Different(Read(field, changed)!));
-            array.SetValue(changed, 0);
-            Assert.True(check(expected, actual).Count > 0, $"{type.Name}.{member.Name}.{field.Name} was ignored");
-            array.SetValue(original, 0);
+            array.SetValue(changed, index);
+            Assert.True(check(expected, actual).Count > 0, $"{type.Name}.{member.Name}[{index}].{field.Name} was ignored");
+            array.SetValue(original, index);
+            Assert.Empty(check(expected, actual));
         }
     }
 
@@ -113,10 +120,11 @@ public sealed class ResultComparisonCoverageTests
     {
         var accelerator = new AcceleratorInfo(AcceleratorKind.Cpu, "test", "test", 1);
         var timings = new RunTimings(TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero);
-        EquilibriumBatchResult Equilibrium() => new(1, [new MixtureState()], [1.0], [CaseStatus.Ok], [1], timings, accelerator);
-        RocketBatchResult Rocket() => new(1, 1, [new MixtureState()], [1.0], [new PerformanceFigures()], [CaseStatus.Ok], [1], [CaseStatus.Ok], timings, accelerator);
-        TransportBatchResult Transport() => new([new TransportFigures()], [CaseStatus.Ok], timings, accelerator);
-        SpeciesFunctionBatchResult Functions() => new([1.0], [1.0], [1.0], [true], timings, accelerator);
+        EquilibriumBatchResult Equilibrium() => new(2, new MixtureState[2], [1.0, 2.0, 3.0, 4.0], [CaseStatus.Ok, CaseStatus.Ok], [1, 2], timings, accelerator);
+        RocketBatchResult Rocket() => new(2, 2, new MixtureState[4], [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], new PerformanceFigures[4],
+            [CaseStatus.Ok, CaseStatus.Ok, CaseStatus.Ok, CaseStatus.Ok], [1, 2, 3, 4], [CaseStatus.Ok, CaseStatus.Ok], timings, accelerator);
+        TransportBatchResult Transport() => new(new TransportFigures[2], [CaseStatus.Ok, CaseStatus.Ok], timings, accelerator);
+        SpeciesFunctionBatchResult Functions() => new([1.0, 2.0], [1.0, 2.0], [1.0, 2.0], [true, true], timings, accelerator);
         return new()
         {
             [typeof(EquilibriumBatchResult)] = () => (Equilibrium(), Equilibrium(), (a, b) => ExactComparison.Equilibrium((EquilibriumBatchResult)a, (EquilibriumBatchResult)b, i => $"{i}")),
