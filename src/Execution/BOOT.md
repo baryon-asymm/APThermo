@@ -84,7 +84,9 @@ Linux → HISTORY.md#dependencies-libnvvm-on-linux-2026-09-15
 
 Resource ownership is transactional: partial uploads roll back, every owned resource
 gets a cleanup attempt, and cleanup never replaces a propagating primary failure.
-Secondary cleanup failures remain diagnosable. A lost session stays unusable. ⚠ 2026-11-14: ILGPU allocate-and-copy can throw before returning ownership; register length-based probe input buffers before host copy.
+Secondary cleanup failures remain diagnosable. A lost session stays unusable.
+⚠ 2026-11-14: ILGPU allocate-and-copy can throw before returning ownership;
+register length-based probe input buffers before host copy → HISTORY.md#cleanup-warning-line-2026-11-17
 ⚠ 2026-11-14: was sticky-only cleanup, now primary-aware ownership and diagnostics → HISTORY.md#primary-aware-cleanup-2026-11-14
 Reject an undefined `AcceleratorKind` before binding a driver or allocating a session.
 
@@ -125,8 +127,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Reference figures of 2026-09-12 (probe within 4 ULP of the CPU; sweep 56 to 65 times
   faster on CUDA; expectations) → HISTORY.md#reference-figures-2026-09-12
 
-- **The audit's findings F2 and F3 and its observations** (the hidden-defect audit of
-  2026-09-26; decided that day, F3 by the owner):
+- **Audit F2/F3 and observations (2026-09-26)** → HISTORY.md#audit-intro-2026-11-17
   - **All cores (F3).** The CPU accelerator runs `Environment.ProcessorCount` threads,
     through a `CPUDevice` sized for it rather than ILGPU's predefined 16-thread device.
     The layout rounds down to the nearest multiple of 4 not above the count, and the
@@ -147,8 +148,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - **Every CUDA context of a process binds under WSL** (2026-09-27): the workaround
   and its rule → [Ptx/BOOT.md](Ptx/BOOT.md)
 
-- **Audit fixes of 2026-09-28** (the second hidden-defect audit, Execution findings F1
-  and F2 and observations 1 to 8; the guards part's F7, F8 and O2).
+- **Audit fixes (2026-09-28)** → HISTORY.md#second-audit-intro-2026-11-17
   - **The probe runs `KernelMath` with the constant first (F1).** `Kernels.Probe`
     gains `KernelMath.Min(1.0, v)` and `KernelMath.Max(1.0, v)`, and `MathProbe`
     names the two functions; the root's third ILGPU bullet records the defect covered.

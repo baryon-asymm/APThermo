@@ -1,5 +1,32 @@
 # HISTORY.md — Execution
 
+<a id="cleanup-warning-line-2026-11-17"></a>
+
+## 2026-11-17 — from Constraints — cleanup warning line
+
+The current ownership rule and warning remain in BOOT.md, on separate lines. The
+original physical line joined them:
+
+> Secondary cleanup failures remain diagnosable. A lost session stays unusable. ⚠ 2026-11-14: ILGPU allocate-and-copy can throw before returning ownership; register length-based probe input buffers before host copy.
+
+<a id="second-audit-intro-2026-11-17"></a>
+
+## 2026-11-17 — from Constraints — second-audit introduction
+
+The associated rules remain in BOOT.md. Original text:
+
+> - **Audit fixes of 2026-09-28** (the second hidden-defect audit, Execution findings F1
+>   and F2 and observations 1 to 8; the guards part's F7, F8 and O2).
+
+<a id="audit-intro-2026-11-17"></a>
+
+## 2026-11-17 — from Constraints — first-audit introduction
+
+The associated rules remain in BOOT.md. Original text:
+
+> - **The audit's findings F2 and F3 and its observations** (the hidden-defect audit of
+>   2026-09-26; decided that day, F3 by the owner):
+
 
 
 <a id="stride-2026-09-14"></a>

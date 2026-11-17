@@ -127,6 +127,7 @@ above read files only until the NASA files were embedded the same day.
   [Transport.Tests](./tests/Transport.Tests/API.md), [Execution.Tests](./tests/Execution.Tests/API.md),
   [Problems.Tests](./tests/Problems.Tests/API.md), [Cli.Tests](./tests/Cli.Tests/API.md) — what each node proves.
 - [Harness](./tests/Harness/API.md) — the scaffolding the test nodes share: listed in its `API.md`.
+- [GPU evidence](./tests/GpuEvidence/API.md) — discovery and verification of the release GPU test population.
 - [Benchmarks](./tests/Benchmarks/API.md) — the speed benchmarks (BenchmarkDotNet), run by hand; figures recorded, never asserted.
 - [Docs.Tests](./tests/Docs.Tests/API.md) — the documentation tests: the guide's snippets against the samples, the approved outputs of the samples and of the command-line examples, the links, the schemas, the guide pages' shape.
 - [Protocol.Tests](./tests/Protocol.Tests/API.md) — the documents against the code (AGENTS.md §13) and the root invariants that need reflection.
@@ -154,6 +155,8 @@ holds a pair of documents of its own:
   benchmarks.
 - `Fixtures`: [generate](./tests/Fixtures/generate/API.md), the Python generator of the
   reference outputs.
+- `Harness`: [ProcessOwner](./tests/Harness/ProcessOwner/API.md), the owned-process bootstrap contract.
+- `Fixtures.Tests`: [ProcessProbe](./tests/Fixtures.Tests/ProcessProbe/API.md), the controlled process used by runner tests.
 
 Tooling that is part of the tree but not of the product:
 [protocol-lint](./tools/protocol-lint/API.md) (the language-independent checks of
