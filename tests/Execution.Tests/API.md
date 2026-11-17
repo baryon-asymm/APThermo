@@ -34,6 +34,14 @@ and a real device run; a forbidden-CPU result is not GPU verification.
 ⚠ 2026-11-17: the earlier marker accepted `scenarioExecuted=null` after binding;
 it did not itself establish that the CUDA scenario reached its assertions.
 
+## Station finiteness probe ✅
+
+`StationFiniteKernelTests.CpuStationGuardClassifiesBinary64` and
+`StationFiniteKernelTests.CudaStationGuardClassifiesBinary64` exercise the real
+`StationFigures.Write` against a binary64 exponent-bit oracle across 16,384 inputs.
+The CUDA fact emits hardware completion only after its assertions; an actual device
+run is required as separate evidence. The test kernel is not the full rocket kernel.
+
 ## Calibration decision diagnosis ✅
 
 The original throughput path retains three post-return internal value observations
