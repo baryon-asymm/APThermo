@@ -84,13 +84,7 @@ frame; this file holds the criteria that prove it, read only in the root node.
       `Category=Cuda` 80 of 81 on Windows in Debug, the one other the throughput fact,
       which refuses a Debug run by design, and 81 of 81 under WSL2 in Release.
 
-      ⚠ 2026-10-05: was "within the tolerance table", ticked 2026-09-12 and re-verified
-      2026-09-15 at `62cd99e` on the reference machine with
-      `CudaTests.TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`,
-      the list of compared fields produced by reflection over the result type and the
-      table's second tier for mole fractions described under the invariant
-      (HISTORY.md#gpu-tier). The tree's own math made the comparison exact, and the
-      tolerance table is gone (HISTORY.md#gpu-exact).
+      ⚠ 2026-11-17: was tolerance-based GPU comparison, now exact → HISTORY.md#gpu-criterion-correction-2026-10-05
 - [x] 2026-09-12 — On the reference machine the CUDA path is at least 5× faster than
       the CPU accelerator path with all cores on the 100 000-state batch; the measured
       figure is recorded in the benchmark's approved file
@@ -220,9 +214,7 @@ frame; this file holds the criteria that prove it, read only in the root node.
 
       ⚠ 2026-09-18: a recorded manual debugger step was replaced by verification that packed PDB documents resolve to the pinned commit → HISTORY.md#source-link-proof-2026-09-18
 
-      ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
-      package restore into the samples (the ⚠ of that date, now at
-      [HISTORY.md#restored](HISTORY.md#restored)).
+      ⚠ 2026-11-17: was package-restore proof omitted, now restored → HISTORY.md#package-criterion-restoration-2026-09-17
 - [x] 2026-11-16 — Hosted TraceGas scans at `c0ebe704` passed both matrix facts on
       each operating system; [Trace run 43861325374](https://github.com/baryon-asymm/APThermo/actions/runs/43861325374)
       and the owner-held `fix-evidence/root/cloud-c0/trace/independent-trace-receipt.json`
@@ -288,11 +280,7 @@ frame; this file holds the criteria that prove it, read only in the root node.
       - the workflow's scratch program compiled a public Harness type into an
         executable (CA1515), fixed in `.github/workflows/ci.yml`.
 
-      ⚠ 2026-09-25: the surface sentence named only the structs and the four library
-      exceptions. Fixing the test nodes and the benchmarks node moved three more entries
-      for the same constraint (CA1032, xUnit1042/1045, and CA1515 with the owner's
-      split of the benchmarks node). Found by the coder of the last step, who raised it
-      rather than editing the root.
+      ⚠ 2026-11-17: was surface changes limited to library types, now test/benchmark changes included → HISTORY.md#surface-criterion-correction-2026-09-25
 - [x] 2026-09-26 — Every GPU architecture (2026-09-26): the CUDA path runs on every architecture
       ILGPU 1.5.3 declares from compute capability 7.5 up, and an engine that binds
       CUDA has loaded a kernel carrying every wrapper of the math list. The list of

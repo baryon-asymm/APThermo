@@ -1,5 +1,35 @@
 # HISTORY.md — AerospacePropellantThermodynamics (tree root)
 
+<a id="gpu-criterion-correction-2026-10-05"></a>
+
+## 2026-11-17 — from "ACCEPTANCE.md", Acceptance criteria — GPU comparison correction
+
+      ⚠ 2026-10-05: was "within the tolerance table", ticked 2026-09-12 and re-verified
+      2026-09-15 at `62cd99e` on the reference machine with
+      `CudaTests.TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`,
+      the list of compared fields produced by reflection over the result type and the
+      table's second tier for mole fractions described under the invariant
+      (HISTORY.md#gpu-tier). The tree's own math made the comparison exact, and the
+      tolerance table is gone (HISTORY.md#gpu-exact).
+
+<a id="surface-criterion-correction-2026-09-25"></a>
+
+## 2026-11-17 — from "ACCEPTANCE.md", Acceptance criteria — surface correction
+
+      ⚠ 2026-09-25: the surface sentence named only the structs and the four library
+      exceptions. Fixing the test nodes and the benchmarks node moved three more entries
+      for the same constraint (CA1032, xUnit1042/1045, and CA1515 with the owner's
+      split of the benchmarks node). Found by the coder of the last step, who raised it
+      rather than editing the root.
+
+<a id="package-criterion-restoration-2026-09-17"></a>
+
+## 2026-11-17 — from "ACCEPTANCE.md", Acceptance criteria — package proof restoration
+
+      ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
+      package restore into the samples (the ⚠ of that date, now at
+      [HISTORY.md#restored](HISTORY.md#restored)).
+
 <a id="throughput-build-config-2026-09-19"></a>
 
 ## 2026-11-17 — from "ACCEPTANCE.md", Acceptance criteria — throughput-build-config-2026-09-19
