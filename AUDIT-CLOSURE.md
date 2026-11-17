@@ -31,8 +31,27 @@ Local verification, 2026-11-17: a fresh 0.3.1 Debug build has zero warnings/erro
 protocol lint is 0/0, and delivery guards pass 28/28. The owner-held
 `fix-36c28fb4-abcd-e/integration-dotnet-receipt-v1.json`, coordinator acceptance v2
 and `root/root-hook-replay-v2.json` bind the actual checked file bytes and results.
-Hosted verification and release rehearsal are still pending; these local results
-do not relabel earlier GPU or hosted runs as checks of the new source.
+These local results do not relabel earlier GPU runs as checks of the new source.
+
+Hosted acceptance, 2026-11-17: implementation `aaa8b4a3896e2eaea805eed35b28914578b449a8`
+passes [CI 44151381848](https://github.com/baryon-asymm/APThermo/actions/runs/44151381848),
+attempt 1, all six jobs. Each OS runs the generated eleven-project partition:
+core 7,697, CLI 229 and Docs 42, totalling 7,968 passed with no other outcomes.
+The independent receipt checks actual TRX counters and identities within each
+manifest; path-derived Windows/Linux theory identities are not equated.
+[Trace 44151381715](https://github.com/baryon-asymm/APThermo/actions/runs/44151381715),
+attempt 1, passes both full scan facts per OS, with nonempty discovery/results.
+The CI package artifact also passes the offline version/source/PE/PDB inspection:
+two 0.3.1 package pairs, fifteen project-owned PE/PDB pairs, every tracked document
+matched to the Git source and generated documents checked from embedded content.
+The actual package-consumer and installed-tool steps pass on both hosted OSes.
+This is offline SourceLink structure/content proof, not a fresh HTTP fetch.
+
+The owner-held `fix-36c28fb4-abcd-e/coordinator-ci-aaa/` retains
+`hosted/hosted-aaa-final-receipt.json`, `trace/trace-aaa-independent-receipt.json`
+and `packages/package-acceptance-aaa.json`, with fresh API/ZIP/file hashes and explicit
+source/run/attempt boundaries. Release rehearsal and publication remain separate;
+the final documentation commit will identify its unchanged implementation explicitly.
 
 F does not establish a missing date: the actual proof date is present in each
 criterion's paragraph, and the protocol does not require a single physical line.
