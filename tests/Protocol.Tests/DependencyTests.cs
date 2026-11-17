@@ -50,7 +50,9 @@ public sealed class DependencyTests
         var usedNodes = new Dictionary<string, Node>(StringComparer.Ordinal);
         foreach (var type in NodeAssemblies.TypesOf(node))
         {
-            foreach (var referenced in TypeShape.ReferencedTypes(type))
+            var references = TypeShape.ReferencedTypes(type)
+                .Concat(TypeShape.MethodsOf(type).SelectMany(ReflectedTypeReferences.Types));
+            foreach (var referenced in references)
             {
                 var target = NodeAssemblies.NodeOf(referenced);
                 if (target is null || target == node || target.IsDescendantOf(node))

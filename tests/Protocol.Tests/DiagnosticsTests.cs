@@ -15,6 +15,7 @@ namespace APThermo.Protocol.Tests;
 public sealed class DiagnosticsTests
 {
     private static readonly string[] BelowWarningSeverities = ["none", "silent", "suggestion", "refactoring"];
+    private static readonly string[] BannedWarningProperties = ["WarningsNotAsErrors", "MSBuildWarningsAsMessages", "MSBuildWarningsNotAsErrors"];
 
     private static readonly string[] BannedRootOnlyProperties =
     [
@@ -116,19 +117,19 @@ public sealed class DiagnosticsTests
         foreach (var element in document.Descendants())
         {
             var name = element.Name.LocalName;
-            if (name == "NoWarn" && !(isRootTargets && element.Value.Trim().Length == 0))
+            if (name.Equals("NoWarn", StringComparison.OrdinalIgnoreCase) && !(isRootTargets && element.Value.Trim().Length == 0))
             {
                 yield return $"{Tree.Relative(path)}: sets NoWarn to '{element.Value}'";
             }
-            else if (name == "WarningsNotAsErrors")
+            else if (BannedWarningProperties.Contains(name, StringComparer.OrdinalIgnoreCase))
             {
-                yield return $"{Tree.Relative(path)}: sets WarningsNotAsErrors";
+                yield return $"{Tree.Relative(path)}: sets {name}";
             }
-            else if (name == "CodeAnalysisRuleSet")
+            else if (name.Equals("CodeAnalysisRuleSet", StringComparison.OrdinalIgnoreCase))
             {
                 yield return $"{Tree.Relative(path)}: sets CodeAnalysisRuleSet to '{element.Value}'";
             }
-            else if (BannedItemNames.Contains(name, StringComparer.Ordinal))
+            else if (BannedItemNames.Contains(name, StringComparer.OrdinalIgnoreCase))
             {
                 yield return $"{Tree.Relative(path)}: brings in a {name} item";
             }
@@ -139,8 +140,8 @@ public sealed class DiagnosticsTests
         }
     }
 
-    private static bool IsRootOnlyProperty(string name) => BannedRootOnlyProperties.Contains(name, StringComparer.Ordinal)
-        || name.StartsWith("AnalysisMode", StringComparison.Ordinal) || name.StartsWith("AnalysisLevel", StringComparison.Ordinal);
+    private static bool IsRootOnlyProperty(string name) => BannedRootOnlyProperties.Contains(name, StringComparer.OrdinalIgnoreCase)
+        || name.StartsWith("AnalysisMode", StringComparison.OrdinalIgnoreCase) || name.StartsWith("AnalysisLevel", StringComparison.OrdinalIgnoreCase);
 
     private static bool PathsEqual(string left, string right) =>
         string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);

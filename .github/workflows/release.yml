@@ -92,6 +92,9 @@ jobs:
       - name: Hosted runner guard tests
         run: python -X utf8 .github/scripts/test_hosted_tests.py
 
+      - name: Fixture document-comparison guard tests
+        run: python -X utf8 tests/Fixtures/generate/test_document_comparison.py
+
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
 

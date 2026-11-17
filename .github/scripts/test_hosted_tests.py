@@ -34,6 +34,12 @@ def workflow_steps(body):
 
 def verify_wiring(text, job):
     body = hosted_job(text, job)
+    if re.search(r"(?m)^\s*continue-on-error\s*:", body):
+        raise AssertionError("hosted job and steps cannot mask failures")
+    if re.search(r"(?im)(?:-p:|/p:|--property:)(?:NoWarn|WarningsNotAsErrors|MSBuildWarningsAsMessages|MSBuildWarningsNotAsErrors)\s*=", body):
+        raise AssertionError("hosted commands cannot suppress diagnostics")
+    if re.search(r"(?m)^\s*run:.*(?:\|\|\s*true|--discover-only)", body):
+        raise AssertionError("hosted commands must execute and preserve failure")
     for key, expected in (("os", ["windows-latest", "ubuntu-latest"]), ("lane", list(hosted.LANES))):
         match = re.search(r"^        " + key + r": \[([^\]]*)\]$", body, re.M)
         if match is None or [item.strip() for item in match[1].split(",")] != expected:
@@ -47,12 +53,16 @@ def verify_wiring(text, job):
     steps = workflow_steps(body)
     runner = steps["Hosted test lane"]
     command = "run: python -X utf8 .github/scripts/hosted_tests.py --lane ${{ matrix.lane }} --results-dir artifacts/hosted-tests"
-    if command not in runner or body.count(".github/scripts/hosted_tests.py --lane") != 1:
+    if ("        " + command + "\n") not in runner or body.count(".github/scripts/hosted_tests.py --lane") != 1:
         raise AssertionError("every lane must call the single runner exactly once")
     if "APTHERMO_NO_CUDA: '1'" not in runner or "        if:" in runner:
         raise AssertionError("all hosted lanes must run on CPU unconditionally")
     if "run: python -X utf8 .github/scripts/test_hosted_tests.py" not in steps["Hosted runner guard tests"]:
         raise AssertionError("actual hosted wiring must run its guards")
+    documents = steps.get("Fixture document-comparison guard tests", "")
+    if ("        run: python -X utf8 tests/Fixtures/generate/test_document_comparison.py\n" not in documents
+            or "        if:" in documents):
+        raise AssertionError("fixture document-comparison guards must run unconditionally")
     if "dotnet test " in body or "dotnet build APThermo.sln --configuration Release" not in steps["Build"]:
         raise AssertionError("hosted tests must use one runner after building the solution")
     artifacts = steps["Upload hosted test evidence"]
@@ -170,6 +180,13 @@ class HostedRunnerGuards(unittest.TestCase):
         self.assertEqual(0, code)
         self.assertIn(project, manifest["selected_projects"])
         self.assertEqual(3, len(manifest["executions"]))
+
+    def test_solution_cannot_omit_a_test_project_present_in_tree(self):
+        missing = "tests/First.Tests/APThermo.First.Tests.csproj"
+        code, manifest = self.execute(discovery=[p for p in self.projects if p != missing])
+        self.assertEqual(1, code)
+        self.assertEqual("failed", manifest["status"])
+        self.assertEqual([], manifest["executions"])
 
     def test_discovery_rejects_empty_duplicate_outside_missing_and_missing_designations(self):
         invalid = [[], self.projects + [hosted.CLI], self.projects + ["../Outside.Tests.csproj"],
@@ -296,10 +313,34 @@ class HostedRunnerGuards(unittest.TestCase):
 
 
 class HostedWorkflowGuards(unittest.TestCase):
+    def test_workflows_reject_masking_and_changed_runner_commands(self):
+        for file, job in (("ci.yml", "build"), ("release.yml", "matrix")):
+            text = (hosted.ROOT / ".github/workflows" / file).read_text(encoding="utf-8-sig")
+            changes = [text.replace("    runs-on: ${{ matrix.os }}", "    continue-on-error: true\n    runs-on: ${{ matrix.os }}", 1),
+                       text.replace("dotnet build APThermo.sln --configuration Release", "dotnet build APThermo.sln --configuration Release -p:NoWarn=CS1591", 1),
+                       text.replace("--results-dir artifacts/hosted-tests", "--results-dir artifacts/hosted-tests --discover-only", 1),
+                       text.replace("--results-dir artifacts/hosted-tests", "--results-dir artifacts/hosted-tests || true", 1)]
+            for changed in changes:
+                with self.subTest(file=file, changed=changed == text):
+                    self.assertNotEqual(text, changed)
+                    with self.assertRaises(AssertionError):
+                        verify_wiring(changed, job)
     def test_actual_workflows_have_all_lanes_and_correct_artifact_package_and_binding_conditions(self):
         for file, job in (("ci.yml", "build"), ("release.yml", "matrix")):
             with self.subTest(file=file):
                 verify_wiring((hosted.ROOT / ".github/workflows" / file).read_text(encoding="utf-8-sig"), job)
+
+    def test_fixture_document_comparison_guards_run_in_both_workflows(self):
+        for file, job in (("ci.yml", "build"), ("release.yml", "matrix")):
+            text = (hosted.ROOT / ".github/workflows" / file).read_text(encoding="utf-8-sig")
+            self.assertIn("\n        run: python -X utf8 tests/Fixtures/generate/test_document_comparison.py\n",
+                          workflow_steps(hosted_job(text, job))["Fixture document-comparison guard tests"])
+            step = "      - name: Fixture document-comparison guard tests\n"
+            self.assertIn(step, text)
+            with self.assertRaises(AssertionError):
+                verify_wiring(text.replace(step, step + "        if: false\n", 1), job)
+            with self.assertRaises(AssertionError):
+                verify_wiring(text.replace(step, "      - name: Removed document-comparison guard\n", 1), job)
 
     def test_actual_command_preserves_test_population_and_serial_execution(self):
         verify_command(hosted.test_command(hosted.ROOT, hosted.CLI, Path("evidence")))

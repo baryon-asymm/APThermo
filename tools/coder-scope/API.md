@@ -21,6 +21,16 @@ nothing printed. A refused call: exit 0 and, on standard output,
 separated) defaults to `sonnet-coder`. An invocation error (unreadable input) exits 2, which
 Claude Code treats as a refusal with the error text.
 
+Shell-path judgment treats existing bare directory names as paths. Git content reads
+through `grep` or `diff` require one or more explicit paths following `--`, each within
+the read set; unscoped, empty, foreign and pathspec-magic selections are refused.
+The same applies to patch-form Git logs and blame. `git show REV:path` is judged by
+its path; unscoped patch output and unjudgeable `cat-file` content are refused.
+Metadata-only status and log, `git show --stat` for HEAD and `cat-file -t/-s` remain available.
+The shell parser is heuristic and is not an operating-system isolation boundary.
+
+⚠ 2026-11-17: bare directory tokens and implicit Git selections were not judged as reads.
+
 ## The scope file ✅
 
 `<repo>/.claude/scopes/<worktree-name>.json`, written by the orchestrator after launching

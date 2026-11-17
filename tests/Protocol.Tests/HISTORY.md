@@ -1,5 +1,14 @@
 # HISTORY.md — Protocol.Tests
 
+<a id="signatures-2026-11-17"></a>
+
+## 2026-11-17 — from Declaration verification — signature check
+
+> ⚠ 2026-11-14: the former declaration check compared names only and incorrectly treated
+> the surface snapshot as verification of API signatures. The snapshot compares compiled
+> versions, not documentation; A21 requires direct semantic comparison. Existing name
+> coverage and package/tree-contract section rules remain separate checks.
+
 <a id="bases-2026-11-17"></a>
 
 ## 2026-11-17 — from Declaration verification — written bases

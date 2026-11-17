@@ -84,8 +84,10 @@ internal static class IlBody
                 }
             }
 
+            var literal = opcode.OperandType == OperandType.InlineString
+                ? module.ResolveString(BitConverter.ToInt32(il, offset)) : null;
             offset += width;
-            yield return new Instruction(opcode, operand);
+            yield return new Instruction(opcode, operand) { Literal = literal };
         }
     }
 

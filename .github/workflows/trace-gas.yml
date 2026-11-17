@@ -5,6 +5,7 @@ on:
     branches: ['**']
     paths:
       - 'src/**'
+      - 'data/**'
       - 'tests/Equilibrium.Tests/**'
       - 'tests/Fixtures/**'
       - 'tests/Harness/**'
@@ -16,6 +17,7 @@ on:
   pull_request:
     paths:
       - 'src/**'
+      - 'data/**'
       - 'tests/Equilibrium.Tests/**'
       - 'tests/Fixtures/**'
       - 'tests/Harness/**'

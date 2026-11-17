@@ -62,11 +62,14 @@ dependencies against the real ones.
 - **Dependencies are read from method bodies too**: the members every instruction
   names, with the types in their signatures; an enum used only through its literals is
   an integer in the IL and is caught through the property or parameter it is assigned to.
-- Exact full names in IL string literals count as dependencies when resolved to real
-  types in the complete assembly inventory. Partial or unknown names never create edges.
+- Exact full names passed as literals directly to `Assembly.GetType` or `Type.GetType`
+  count when resolved to real types in the complete assembly inventory. Diagnostic
+  text, partial names and unknown names never create edges; other dynamic lookup forms
+  are not inferred by this check.
 - EndToEnd reachability includes xUnit constructors and declared fixture constructors,
   as well as the test method. Diagnostic guards include both MSBuild warning channels
-  `MSBuildWarningsAsMessages` and `MSBuildWarningsNotAsErrors`.
+  `MSBuildWarningsAsMessages` and `MSBuildWarningsNotAsErrors`, case-insensitively.
+- Test and fixture `IAsyncLifetime` callbacks and `IDisposable.Dispose` are included.
 ⚠ 2026-11-17: reflection names, setup paths and these MSBuild channels were omitted.
 - **The shape check measures syntax, not text**: sizes, nesting, parameters, `partial`
   and `#region` from the C# syntax trees, coupling from the assemblies through the same
@@ -80,8 +83,10 @@ dependencies against the real ones.
 ## Dependencies
 
 [Data](../../src/Data/API.md)
+[Benchmarks](../Benchmarks/API.md)
 [Execution](../../src/Execution/API.md)
 [Fixtures](../Fixtures/API.md)
+[GpuEvidence](../GpuEvidence/API.md)
 [Harness](../Harness/API.md)
 [Performance](../../src/Performance/API.md)
 [Problems](../../src/Problems/API.md)
@@ -188,10 +193,7 @@ constraints. Diagnostics name the API path, Markdown line, documented signature 
 available compiled candidates. Planned blocks are ignored; foreign fences cannot
 change status. Unlabelled declaration-like blocks must identify their language.
 
-⚠ 2026-11-14: the former declaration check compared names only and incorrectly treated
-the surface snapshot as verification of API signatures. The snapshot compares compiled
-versions, not documentation; A21 requires direct semantic comparison. Existing name
-coverage and package/tree-contract section rules remain separate checks.
+⚠ 2026-11-14: was names only, now direct API signature comparison → HISTORY.md#signatures-2026-11-17
 
 ## Structure
 

@@ -375,6 +375,10 @@ def check_criteria(repo, base, branch, prefixes, allow_updates):
 
 def main():
     arguments = sys.argv[1:]
+    if arguments == ["--help"]:
+        print("Usage: python history_guard.py <repo> <base> <branch> <node> [<node> ...]")
+        print("       python history_guard.py --criteria-only <repo> <before> <after>")
+        return 0
     if arguments[:1] == ["--criteria-only"]:
         repo, base, branch = arguments[1:]
         paths = git(repo, "diff", "--no-renames", "--name-only", "-z", base, branch, "--",

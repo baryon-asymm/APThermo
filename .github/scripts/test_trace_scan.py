@@ -157,7 +157,7 @@ class TraceWorkflowGuards(unittest.TestCase):
                     paths.append(line.strip()[2:].strip("'\""))
             self.assertTrue(paths, event)
             for affected in ["src/Equilibrium/TraceGas/Rule.cs", "src/Equilibrium/Recovery/Rule.cs",
-                             "tests/Equilibrium.Tests/Scan.cs", "tests/Fixtures/tolerances.json",
+                             "tests/Equilibrium.Tests/Scan.cs", "tests/Fixtures/tolerances.json", "data/thermo.inp",
                              "Directory.Build.props", ".github/scripts/trace_scan.py"]:
                 self.assertTrue(any(fnmatch.fnmatchcase(affected, pattern) for pattern in paths), affected)
         self.assertIn("workflow_dispatch:", text)

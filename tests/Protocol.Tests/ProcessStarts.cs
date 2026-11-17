@@ -17,7 +17,9 @@ internal static class ProcessStarts
 
     private const string TraitAttribute = "Xunit.TraitAttribute";
 
-    private static readonly Lazy<HashSet<MethodKey>> ReachingLazy = new(MethodsReachingAProcess);
+    private static readonly Lazy<Assembly[]> AssembliesLazy = new(() => [.. TestsNodeAssemblies()]);
+    private static readonly Lazy<HashSet<MethodKey>> ReachingLazy = new(() => MethodsReachingAProcess(AssembliesLazy.Value));
+    private static readonly Lazy<ProcessSetup> SetupLazy = new(() => new ProcessSetup(AssembliesLazy.Value));
 
     /// <summary>Every test method (<c>[Fact]</c>, <c>[Theory]</c> and the attributes derived from them) of every test assembly of the tree.</summary>
     public static IEnumerable<MethodBase> TestMethods() =>
@@ -27,7 +29,17 @@ internal static class ProcessStarts
             .Where(IsTestMethod);
 
     /// <summary>Whether the test method reaches a call of <c>Process.Start</c> or a <c>ProcessStartInfo</c> construction.</summary>
-    public static bool StartsAProcess(MethodBase test) => ReachingLazy.Value.Contains(Key(test));
+    public static bool StartsAProcess(MethodBase test) =>
+        Reaches(test, ReachingLazy.Value, SetupLazy.Value);
+
+    internal static bool StartsAProcess(MethodBase test, Assembly extraAssembly)
+    {
+        var assemblies = AssembliesLazy.Value.Append(extraAssembly).Distinct().ToArray();
+        return Reaches(test, MethodsReachingAProcess(assemblies), new ProcessSetup(assemblies));
+    }
+
+    private static bool Reaches(MethodBase test, HashSet<MethodKey> reaching, ProcessSetup setup) =>
+        reaching.Contains(Key(test)) || setup.Methods(test.DeclaringType).Any(method => reaching.Contains(Key(method)));
 
     /// <summary>Whether the method, its type, an enclosing type or a base type carries <c>[Trait("Category", category)]</c>.</summary>
     public static bool CarriesCategory(MethodBase test, string category)
@@ -68,11 +80,11 @@ internal static class ProcessStarts
     }
 
     /// <summary>The methods of the tests nodes' assemblies from which a process start is reachable: the callers of the sinks, closed backwards.</summary>
-    private static HashSet<MethodKey> MethodsReachingAProcess()
+    private static HashSet<MethodKey> MethodsReachingAProcess(IEnumerable<Assembly> assemblies)
     {
         var callersOf = new Dictionary<MethodKey, List<MethodKey>>();
         var reaching = new HashSet<MethodKey>();
-        foreach (var method in TestsNodeAssemblies().SelectMany(assembly => assembly.GetTypes()).SelectMany(TypeShape.MethodsOf))
+        foreach (var method in assemblies.SelectMany(assembly => assembly.GetTypes()).SelectMany(TypeShape.MethodsOf))
         {
             foreach (var callee in Callees(method))
             {

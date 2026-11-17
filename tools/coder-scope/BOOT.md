@@ -53,6 +53,8 @@ Shell reads recognize existing bare directory names as paths. `git grep` and `gi
 must provide a `--`-separated nonempty pathspec, every path judged by the ordinary read
 set. Missing, foreign, root, or otherwise unjudgeable pathspecs are refused; approved
 scoped paths stay usable. The shell parser remains a heuristic, not OS isolation.
+Unscoped content-producing `show`, patch-form `log`, `blame` and content `cat-file`
+are also refused; safe metadata and a checked `show REV:path` remain available.
 ⚠ 2026-11-17: bare directories and unscoped Git reads previously escaped path judgment.
 
 - **Which worktree.** The coder's worktree is the hook input's `cwd` when it lies under

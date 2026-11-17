@@ -86,6 +86,16 @@ class Repo:
         return result.returncode, result.stdout + result.stderr
 
 
+class HelpTest(unittest.TestCase):
+    def test_help_documents_both_forms_without_a_repository(self):
+        result = subprocess.run([sys.executable, str(GUARD), "--help"],
+                                capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--criteria-only", result.stdout)
+        self.assertIn("<node>", result.stdout)
+        self.assertNotIn("Traceback", result.stderr)
+
+
 class HistoryGuardTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()

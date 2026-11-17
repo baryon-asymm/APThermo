@@ -92,6 +92,7 @@ point is `lint`: findings are easier to assert on than to parse from the text ou
 ```console
 $ python -X utf8 tools/protocol-lint/history_guard.py <repo> <base> <branch> <node> [<node> ...]
 $ python -X utf8 tools/protocol-lint/history_guard.py --criteria-only <repo> <before> <after>
+$ python -X utf8 tools/protocol-lint/history_guard.py --help
 ```
 
 The first form checks a document move: lost/stray text, append-only history,
@@ -104,6 +105,9 @@ revision with a concrete successor are allowed; merely adding a date or a vague
 replacement is not. Missing criteria or malformed pointers print `GUARD:` lines
 and exit 1, otherwise the command exits 0. Semantic adequacy of the replacement
 and evidence remains the reviewer's responsibility.
+
+`--help` prints both checking forms and exits successfully without opening a repository.
+⚠ 2026-11-17: the option formerly raised `ValueError` while unpacking positional arguments.
 
 ⚠ 2026-11-14: the old form checks accepted date-shaped invalid dates, directory
 link targets and extra masked content beside an acceptance pointer (audit A24).

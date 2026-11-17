@@ -217,6 +217,7 @@ class Scope:
         target = directory_target(words)
         if target is not None:
             cwd = self.enter(target, cwd)
+        self.judge_git_content(words, cwd)
         skipped = target is None
         for text, mode in segment:
             if not skipped and text == target:
@@ -224,6 +225,44 @@ class Scope:
                 continue
             self.judge_token(text, mode, cwd)
         return cwd
+
+    def judge_git_content(self, words, cwd):
+        """Content-reading Git commands must name an explicit, scoped pathspec."""
+        if os.path.basename(words[0]).lower() not in ("git", "git.exe"):
+            return
+        commands = [i for i, word in enumerate(words[1:], 1)
+                    if word in ("grep", "diff", "show", "log", "blame", "cat-file")]
+        if not commands:
+            return
+        start = commands[0]
+        command, arguments = words[start], words[start + 1:]
+        if command == "cat-file":
+            if len(arguments) == 2 and arguments[0] in ("-t", "-s"):
+                return
+            raise Refusal("coder-scope: git cat-file content has no judgeable path. " + HEURISTIC)
+        patch = any(arg == "-p" or arg.startswith("--patch") for arg in arguments)
+        if command == "log" and not patch:
+            return
+        if command == "show" and "--" not in arguments:
+            revisions = [arg for arg in arguments if not arg.startswith("-")]
+            if revisions and all(re.fullmatch(r"[^/\\:]{2,}:.+", arg) for arg in revisions):
+                return
+            if (any(arg in ("--stat", "--name-only", "--name-status") for arg in arguments) and not patch
+                    and (not revisions or revisions == ["HEAD"])):
+                return
+        if "--" not in words[start + 1:]:
+            raise Refusal("coder-scope: git content read needs explicit paths after --. " + HEURISTIC)
+        paths = words[words.index("--", start + 1) + 1:]
+        if not paths:
+            raise Refusal("coder-scope: git content read has an empty pathspec. " + HEURISTIC)
+        for path in paths:
+            if path.startswith(("-", ":")):
+                raise Refusal("coder-scope: git pathspec magic cannot be judged: %s. " % path + HEURISTIC)
+            candidate = path_candidate(path, cwd)
+            if candidate is None:
+                self.check_read_path(resolve(path, cwd))
+            else:
+                self.judge_token(path, "arg", cwd)
 
     def enter(self, target, cwd):
         """Return the directory a cd-like word or `git -C` moves to, refusing one outside."""
@@ -382,7 +421,7 @@ def path_candidate(text, cwd):
     revision = re.fullmatch(r"([^/\\:]{2,}):(.+)", text)
     text = revision.group(2) if revision else text
     named = "/" in text or "\\" in text
-    if not named and not (text not in (".", "..") and os.path.isfile(os.path.join(cwd, text))):
+    if not named and not (text not in (".", "..") and os.path.exists(os.path.join(cwd, text))):
         return None
     if "$" in text or "%" in text:
         raise Refusal("coder-scope: path built from a variable: %s. %s" % (text, HEURISTIC))

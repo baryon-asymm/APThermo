@@ -296,6 +296,28 @@ class SearchTests(HookCase):
 class ShellTests(HookCase):
     """Bash and PowerShell, judged by the paths of the command text."""
 
+    def test_bare_directory_and_git_content_require_a_scoped_path(self):
+        """Directory tokens and implicit Git pathspecs cannot expand the read set."""
+        for command in ("grep -r needle src", "rg needle src", "git grep needle",
+                        "git diff", "git diff -- .", "git grep needle -- src/Beta"):
+            with self.subTest(command=command):
+                self.assertRefused("Bash", {"command": command})
+        for command in ("grep -r needle src/Alpha", "git grep needle -- src/Alpha",
+                        "git diff -- src/Alpha", "git diff -- src/Alpha/Alpha.cs"):
+            with self.subTest(command=command):
+                self.assertAllowed("Bash", {"command": command})
+
+    def test_git_history_content_needs_paths_but_metadata_remains_readable(self):
+        for command in ("git show HEAD", "git show HEAD HEAD:src/Alpha/Alpha.cs", "git show --stat arbitrary-object",
+                        "git log -p", "git log --patch", "git log --patch-with-raw", "git blame", "git cat-file -p HEAD"):
+            with self.subTest(command=command):
+                self.assertRefused("Bash", {"command": command})
+        for command in ("git show --stat HEAD", "git status", "git log --oneline",
+                        "git log --patch -- src/Alpha", "git blame -- src/Alpha/Alpha.cs",
+                        "git show HEAD:src/Alpha/Alpha.cs", "git cat-file -t HEAD"):
+            with self.subTest(command=command):
+                self.assertAllowed("Bash", {"command": command})
+
     def test_cat_of_own_node_is_allowed_and_of_a_foreign_source_refused(self):
         """The case the audit of 2026-09-29 found."""
         self.assertAllowed("Bash", {"command": "cat src/Alpha/Alpha.cs"})

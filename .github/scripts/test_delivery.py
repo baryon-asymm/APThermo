@@ -337,6 +337,8 @@ class PublicationContractGuards(unittest.TestCase):
                     actual = actual.replace(" ", "")
                 if actual != expected:
                     errors.append(name + ":" + key)
+        if one_value(gpu_job(text, "publish"), "environment", 4) != "release":
+            errors.append("publish:environment")
         events = text.split("\nconcurrency:", 1)[0]
         if not re.search(r"(?m)^  push:\n    tags: \['v\*'\]$", events) or "  workflow_dispatch:" not in events or "  pull_request:" in events or "    branches:" in events:
             errors.append("release events")
@@ -353,6 +355,13 @@ class PublicationContractGuards(unittest.TestCase):
             with self.subTest(mutation=before):
                 self.assertIn(before, original)
                 self.assertTrue(self.violations(original.replace(before, after, 1)))
+
+    def test_publication_environment_is_required(self):
+        original = RELEASE.read_text(encoding="utf-8")
+        self.assertEqual([], self.violations(original))
+        changed = original.replace("    environment: release\n", "", 1)
+        self.assertNotEqual(original, changed)
+        self.assertTrue(self.violations(changed))
 
     def test_ci_version_is_shell_environment_data(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

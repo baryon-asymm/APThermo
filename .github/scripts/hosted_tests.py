@@ -69,6 +69,12 @@ def discover_projects(root, output):
     tests = sorted(project for project in projects if Path(project).name.endswith(".Tests.csproj"))
     if not tests or CLI not in tests or DOCS not in tests:
         raise RuntimeError("test discovery is empty or lacks the designated CLI/Docs project")
+    tree = sorted(path.relative_to(root).as_posix() for path in (root / "tests").rglob("*.Tests.csproj")
+                  if not any(part in ("bin", "obj") or part.startswith(".")
+                             for part in path.relative_to(root / "tests").parts))
+    if tests != tree:
+        raise RuntimeError("solution and tree test-project inventories differ: "
+                           + repr({"solution": tests, "tree": tree}))
     return sorted(projects), tests
 
 

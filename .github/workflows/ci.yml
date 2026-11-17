@@ -53,6 +53,9 @@ jobs:
       - name: Hosted runner guard tests
         run: python -X utf8 .github/scripts/test_hosted_tests.py
 
+      - name: Fixture document-comparison guard tests
+        run: python -X utf8 tests/Fixtures/generate/test_document_comparison.py
+
       # The fixtures' provenance hashes bind an output to the scripts that produced it, never to the reference
       # package's own answer (tests/Fixtures/ACCEPTANCE.md, "The outputs are bound to the generator"): a hand-edited
       # expected value passes every other guard. This step regenerates a sample with the pinned `cea` package in a
