@@ -309,3 +309,12 @@ The Linux bootstrap proc identity is retained immediately after spawn, but its n
 is checked after connection before START or immediately before a pre-START signal.
 An unavailable pre-exec nonce never authorizes a signal; the existing bounded
 rendezvous applies instead. The original deadline and cleanup budget are unchanged.
+
+## Session-observation test seam ⏳
+
+`APThermo.Harness.OwnedProcessGroup.HasLiveMembers(int identity,
+IEnumerable<string> directories, Func<string, string> readStat)` is an internal,
+per-call test contract reached by Fixtures.Tests through reflection. It shares the
+production parser and returns whether a nonterminal member belongs to the session.
+An ESRCH read (IOException HResult 3) or a missing file/directory is skipped; all
+other read errors, enumeration failures and malformed stat records propagate.

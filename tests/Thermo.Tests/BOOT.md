@@ -99,6 +99,12 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 
 ## Constraints
 
+- Test an independent synthetic interval at 400 K with a single coefficient 1,
+  exponent 0.5 and zero integration constants: Cp/R = 20, H/RT = 40/3 and S/R = 40.
+  Exercise the real kernel-compatible species-table view; an ordinary exponent is
+  a positive control and a compiling mutation of the general power branch must fail.
+  These coefficients are test-only and are not NASA reference data.
+
 - Exercise rollback through the actual `SpeciesTableBuffers` construction path: force
   an upload/copy failure after owned buffers exist, and observe their disposal without
   calling the owner cleanup from the test. The original exception remains primary.
@@ -118,6 +124,9 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
   git-ignored (2026-09-14; until that day the node wrote nothing).
 
 ## Acceptance criteria
+
+- [ ] `GeneralExponentTests` evaluates the 400 K synthetic interval and a normal
+  exponent through a real CPU table view; a compiled NaN general-power mutant fails.
 
 - [x] Constructor-failure rollback and primary-error preservation pass on a real
   `SpeciesTableBuffers` upload; a compiling omitted-cleanup mutation fails.

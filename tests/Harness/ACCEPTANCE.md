@@ -2,6 +2,11 @@
 
 ## Acceptance criteria
 
+- [ ] `OwnedProcessGroup` skips a simulated ESRCH stat read and continues to a live
+  owned session member, treats gone/foreign/terminal members correctly, and preserves
+  non-ESRCH read, enumeration and malformed-stat errors. Frozen controls must reject
+  both an omitted ESRCH handler and an overbroad I/O handler.
+
 - [x] 2026-11-16 — The shared owned-process mechanism passes real exited-target/live-descendant,
   timeout, cancellation, assignment failure, output and exit-code controls on Windows
   and Linux. All three runners use it; red mutations fail, cleanup stays bounded, and

@@ -251,10 +251,12 @@ A platform's result is not evidence for the other.
   No mutable global override or process-wide test hook is introduced. Update this
   node's API and the Protocol surface tripwire together; package APIs are unchanged.
 
-⚠ 2026-11-15 (R18/R19): source review found that the tree-kill/cleanup filters
-omitted documented AggregateException, and Docs repeated policy literals in its
-log. Preserve primary diagnostics and expose the actual immutable policy rather
-than imply the duplicated values can never drift. Historical failures are separate.
+⚠ 2026-11-15: was incomplete cleanup filters and duplicate policy, now corrected → HISTORY.md#r18-r19-review-2026-11-17
+
+- Linux session observation skips a vanished process's stat read (missing file,
+  missing directory or IOException HResult 3/ESRCH). Other read and all enumeration
+  errors propagate; malformed stat still fails. Per-call directory and read inputs
+  enable deterministic controls; ordinary calls enumerate `/proc`.
 
 - A library assembly (`APThermo.Harness`) referenced by test
   projects only; it references no test framework, so its public surface enters the

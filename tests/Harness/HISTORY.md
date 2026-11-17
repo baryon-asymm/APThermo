@@ -9,6 +9,17 @@ used to stand.
 
 ---
 
+<a id="r18-r19-review-2026-11-17"></a>
+
+## 2026-11-17 — from Constraints — R18/R19 review
+
+Original text:
+
+> ⚠ 2026-11-15 (R18/R19): source review found that the tree-kill/cleanup filters
+> omitted documented AggregateException, and Docs repeated policy literals in its
+> log. Preserve primary diagnostics and expose the actual immutable policy rather
+> than imply the duplicated values can never drift. Historical failures are separate.
+
 <a id="a16-a17-schema-audit-2026-11-14"></a>
 
 ## 2026-11-16 — from "## Invariants" — A16/A17 schema audit
