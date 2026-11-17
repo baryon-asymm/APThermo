@@ -1,5 +1,14 @@
 # HISTORY.md — Protocol.Tests
 
+<a id="r17-readiness-race-2026-11-15"></a>
+
+## 2026-11-17 — from Constraints — readiness race
+
+> ⚠ 2026-11-15: source5d09 CI/Release fail in Acknowledge before the helper assertion:
+> the two-second ready bound, active three-second helper timer and twelve-second
+> probe watchdog raced ownership capture. The failed instants remain unknown;
+> controlled readiness/expiry must prove the remedy without a retry or dropped case.
+
 <a id="signatures-2026-11-17"></a>
 
 ## 2026-11-17 — from Declaration verification — signature check

@@ -112,10 +112,7 @@ teardown is separate, and self-stop is at least sixty seconds. These fixture bou
 replace the former post-ACK-only sixteen-second outer guard, not a caller deadline.
 Normal value checks use that fixture guard; retain a direct System-clock wiring
 control. Invalid/dead identities, nonce/stage or spent budgets fail setup explicitly.
-⚠ 2026-11-15: source5d09 CI/Release fail in Acknowledge before the helper assertion:
-the two-second ready bound, active three-second helper timer and twelve-second
-probe watchdog raced ownership capture. The failed instants remain unknown;
-controlled readiness/expiry must prove the remedy without a retry or dropped case.
+⚠ 2026-11-15: was racing readiness bounds, now controlled readiness → HISTORY.md#r17-readiness-race-2026-11-15
 
 - R17: the supplied Python timeout covers process exit AND completion of both
   redirected streams. A descendant holding a pipe after parent exit must not
@@ -387,7 +384,8 @@ The facts of `DiagnosticsTests`, each failing on an empty set:
 4. `NoAnalyzerConfigurationLowersASeverity`: every `.editorconfig` and `.globalconfig`
    gives every key ending in `.severity` the value `warning` or `error`, and every option
    value has no `:severity` suffix below warning; the root `.editorconfig` holds
-   `dotnet_analyzer_diagnostic.severity = warning`.
+   `dotnet_analyzer_diagnostic.severity = warning`. Analyzer `api_surface` options may only be `all`; nonempty `excluded_symbol_names` options are refused.
+   ⚠ 2026-11-17: severity alone missed restricted analyzer reach; SDK probes verified `api_surface` (CA1822) and `excluded_symbol_names` (CA1062).
 5. `TheRootBuildRunsAtTheMaximum`: the root `Directory.Build.props` sets
    `TreatWarningsAsErrors` true, `WarningLevel` 9999, `Features` `strict`, `AnalysisLevel`
    `latest-all`, `EnforceCodeStyleInBuild` and `GenerateDocumentationFile` true; the root

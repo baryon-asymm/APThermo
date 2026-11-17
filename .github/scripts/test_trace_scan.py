@@ -2,6 +2,7 @@
 """Non-degeneracy controls for CPU scan selection and evidence; no numerical scan runs here."""
 import fnmatch
 import json
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -143,7 +144,28 @@ class TraceRunnerGuards(unittest.TestCase):
         self.assertEqual(b"partial discovery", (self.artifacts / "discovery.log").read_bytes())
 
 
+def verify_trace_command(text):
+    pattern = r"(?ms)^      - name: Discover and run documented CPU scans\n(.*?)(?=^      - name: |\Z)"
+    matches = re.findall(pattern, text)
+    command = "        run: python -X utf8 .github/scripts/trace_scan.py --results-dir artifacts/trace-gas\n"
+    if (len(matches) != 1 or matches[0] != command
+            or text.count(".github/scripts/trace_scan.py --results-dir") != 1):
+        raise AssertionError("trace scan must run unconditionally with the original command")
+
+
 class TraceWorkflowGuards(unittest.TestCase):
+    def test_trace_command_cannot_be_discovery_only(self):
+        text = (scan.ROOT / ".github/workflows/trace-gas.yml").read_text(encoding="utf-8")
+        command = "python -X utf8 .github/scripts/trace_scan.py --results-dir artifacts/trace-gas"
+        self.assertIn(command, text)
+        mutations = (text.replace(command, command + " --discover-only", 1),
+                     text.replace(command, command + " || true", 1),
+                     text.replace(command, command + "\n        if: false", 1))
+        for changed in mutations:
+            self.assertNotEqual(text, changed)
+            with self.assertRaises(AssertionError):
+                verify_trace_command(changed)
+
     def test_each_affected_event_is_hosted_and_collects_scan_evidence(self):
         text = (scan.ROOT / ".github/workflows/trace-gas.yml").read_text(encoding="utf-8")
         for event in ["push", "pull_request"]:
@@ -167,7 +189,7 @@ class TraceWorkflowGuards(unittest.TestCase):
         self.assertIn("APTHERMO_NO_CUDA: '1'", text)
         self.assertIn("if: always()", text)
         self.assertIn("if-no-files-found: error", text)
-        self.assertIn(".github/scripts/trace_scan.py --results-dir artifacts/trace-gas", text)
+        verify_trace_command(text)
 
 
 if __name__ == "__main__":

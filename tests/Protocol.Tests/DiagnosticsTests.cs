@@ -177,6 +177,15 @@ public sealed class DiagnosticsTests
                 yield return $"{Tree.Relative(path)}:{i + 1}: '{key}' is '{value}', not warning or error";
             }
 
+            if (key.StartsWith("dotnet_code_quality.", StringComparison.OrdinalIgnoreCase)
+                && ((key.EndsWith(".api_surface", StringComparison.OrdinalIgnoreCase)
+                        && !value.Equals("all", StringComparison.OrdinalIgnoreCase))
+                    || (key.EndsWith(".excluded_symbol_names", StringComparison.OrdinalIgnoreCase)
+                        && value.Length > 0)))
+            {
+                yield return $"{Tree.Relative(path)}:{i + 1}: '{key}' restricts analyzer reach";
+            }
+
             var colon = value.LastIndexOf(':');
             if (colon >= 0 && BelowWarningSeverities.Contains(value[(colon + 1)..].Trim(), StringComparer.OrdinalIgnoreCase))
             {

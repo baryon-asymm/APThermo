@@ -34,11 +34,12 @@ def workflow_steps(body):
 
 def verify_wiring(text, job):
     body = hosted_job(text, job)
+    active = "\n".join(line for line in body.splitlines() if not line.lstrip().startswith("#"))
     if re.search(r"(?m)^\s*continue-on-error\s*:", body):
         raise AssertionError("hosted job and steps cannot mask failures")
     if re.search(r"(?im)(?:-p:|/p:|--property:)(?:NoWarn|WarningsNotAsErrors|MSBuildWarningsAsMessages|MSBuildWarningsNotAsErrors)\s*=", body):
         raise AssertionError("hosted commands cannot suppress diagnostics")
-    if re.search(r"(?m)^\s*run:.*(?:\|\|\s*true|--discover-only)", body):
+    if re.search(r"(?m)^.*?(?:\|\|\s*(?:true|exit\s+0)|--discover-only|\bset\s+\+e\b)", active):
         raise AssertionError("hosted commands must execute and preserve failure")
     for key, expected in (("os", ["windows-latest", "ubuntu-latest"]), ("lane", list(hosted.LANES))):
         match = re.search(r"^        " + key + r": \[([^\]]*)\]$", body, re.M)
@@ -63,7 +64,7 @@ def verify_wiring(text, job):
     if ("        run: python -X utf8 tests/Fixtures/generate/test_document_comparison.py\n" not in documents
             or "        if:" in documents):
         raise AssertionError("fixture document-comparison guards must run unconditionally")
-    if "dotnet test " in body or "dotnet build APThermo.sln --configuration Release" not in steps["Build"]:
+    if "dotnet test " in body or "        run: dotnet build APThermo.sln --configuration Release\n" not in steps["Build"]:
         raise AssertionError("hosted tests must use one runner after building the solution")
     artifacts = steps["Upload hosted test evidence"]
     for required in ("if: always()", "if-no-files-found: error", "path: artifacts/hosted-tests",
@@ -82,8 +83,10 @@ def verify_wiring(text, job):
                  "Install the packed tool and run an approved example"):
         if "        if: matrix.lane == 'core'\n" not in steps[name]:
             raise AssertionError("package consumption must run once per OS in core: " + name)
-    if "        if: matrix.os == 'windows-latest' && matrix.lane == 'core'\n" not in steps["Fixtures are bound to the generator"]:
-        raise AssertionError("binding must run once in Windows core")
+    fixture = steps["Fixtures are bound to the generator"]
+    if ("        if: matrix.os == 'windows-latest' && matrix.lane == 'core'\n" not in fixture
+            or "          .venv-fixtures/Scripts/python tests/Fixtures/generate/regenerate.py --check --sample\n" not in fixture):
+        raise AssertionError("binding command must run once in Windows core")
     if "        if: matrix.os == 'ubuntu-latest' && matrix.lane == 'core'\n" not in steps["Upload packages"]:
         raise AssertionError("packages upload must run once in Ubuntu core")
 
@@ -317,6 +320,8 @@ class HostedWorkflowGuards(unittest.TestCase):
         for file, job in (("ci.yml", "build"), ("release.yml", "matrix")):
             text = (hosted.ROOT / ".github/workflows" / file).read_text(encoding="utf-8-sig")
             changes = [text.replace("    runs-on: ${{ matrix.os }}", "    continue-on-error: true\n    runs-on: ${{ matrix.os }}", 1),
+                       text.replace("        run: dotnet build APThermo.sln --configuration Release", "        run: |\n          dotnet build APThermo.sln --configuration Release || true", 1),
+                       text.replace("        run: dotnet build APThermo.sln --configuration Release", "        run: |\n          set +e\n          dotnet build APThermo.sln --configuration Release", 1),
                        text.replace("dotnet build APThermo.sln --configuration Release", "dotnet build APThermo.sln --configuration Release -p:NoWarn=CS1591", 1),
                        text.replace("--results-dir artifacts/hosted-tests", "--results-dir artifacts/hosted-tests --discover-only", 1),
                        text.replace("--results-dir artifacts/hosted-tests", "--results-dir artifacts/hosted-tests || true", 1)]
@@ -325,6 +330,15 @@ class HostedWorkflowGuards(unittest.TestCase):
                     self.assertNotEqual(text, changed)
                     with self.assertRaises(AssertionError):
                         verify_wiring(changed, job)
+    def test_fixture_and_sample_commands_cannot_be_replaced_or_masked(self):
+        text = (hosted.ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8-sig")
+        fixture = ".venv-fixtures/Scripts/python tests/Fixtures/generate/regenerate.py --check --sample"
+        comparison = 'diff actual-sample.txt "tests/Docs.Tests/approved/samples/$approved"'
+        for original, replacement in ((fixture, "echo fixture"), (comparison, comparison + " || true")):
+            self.assertIn(original, text)
+            with self.subTest(original=original), self.assertRaises(AssertionError):
+                verify_wiring(text.replace(original, replacement, 1), "build")
+
     def test_actual_workflows_have_all_lanes_and_correct_artifact_package_and_binding_conditions(self):
         for file, job in (("ci.yml", "build"), ("release.yml", "matrix")):
             with self.subTest(file=file):

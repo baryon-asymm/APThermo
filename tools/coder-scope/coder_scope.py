@@ -218,6 +218,10 @@ class Scope:
         if target is not None:
             cwd = self.enter(target, cwd)
         self.judge_git_content(words, cwd)
+        if os.path.basename(words[0]).lower() in ("grep", "grep.exe", "rg", "rg.exe"):
+            operands = [word for word in words[1:] if not word.startswith("-")]
+            if len(operands) >= 2 and operands[-1] in (".", ".."):
+                self.check_read_path(resolve(operands[-1], cwd))
         skipped = target is None
         for text, mode in segment:
             if not skipped and text == target:
