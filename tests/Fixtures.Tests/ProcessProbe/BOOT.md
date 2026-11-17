@@ -11,7 +11,10 @@ unchanged and write only the caller's ready/PID/identity files. No GPU or networ
 
 ## Dependencies
 
-None.
+[ProcessOwner](../../Harness/ProcessOwner/API.md)
+
+⚠ 2026-11-17: this section said `None`; owner-parent mode uses the bootstrap argv
+and its Windows job contract, including reflection on `WindowsJob.Create`.
 
 Outside the tree: .NET SDK/runtime inherited from the root.
 

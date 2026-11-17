@@ -10,7 +10,11 @@ Missing tools, failed native commands and mismatched literal version headings fa
 
 ## Dependencies
 
-None.
+[Equilibrium tests](../../tests/Equilibrium.Tests/API.md)
+[Execution tests](../../tests/Execution.Tests/API.md)
+
+⚠ 2026-11-17: this section said `None`; the trace runner reads the former contract,
+and delivery guards inspect the latter node's CUDA test declarations.
 
 Outside the tree: host shells and GitHub Actions versions inherited from the ancestor.
 

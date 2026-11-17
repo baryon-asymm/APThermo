@@ -71,6 +71,7 @@ hosted logs do not identify its holder. The bounded retry does not infer that ca
 ## Dependencies
 
 [Harness](../Harness/API.md)
+[ProcessOwner](../Harness/ProcessOwner/API.md)
 
 - [Fixtures](../Fixtures/API.md) — the loader, the tolerance table and the fixture files under test.
 
