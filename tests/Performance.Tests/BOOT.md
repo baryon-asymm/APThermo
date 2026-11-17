@@ -85,11 +85,15 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 - The exits of a fixture are its pressure ratios, then its supersonic area ratios, in
   the reference's station order; subsonic area ratios (one station of example 8) are
   outside version 1 and are left out of the solver's stations and of the comparison.
-- Left out of the comparison by the fixtures node's caveats: `cvFrozen` and
-  `cvEquilibrium` at frozen stations, `cpFrozen` and `cvFrozen` at a station with
-  condensed species when transport is on (gas-phase values in the reference). A
+- The fixtures node's caveats exempt `cvFrozen` and `cvEquilibrium` at frozen
+  stations only on the recorded zero/freezing-station signature. A station with
+  condensed species and transport exempts `cpFrozen` or `cvFrozen` only when that
+  value matches the gas-phase reference reconstructed from the fixture's composition
+  and raw NASA Cp fits, under the existing field tolerance; otherwise it is compared.
+  The gas calculation uses host `Math.Pow`, not the solver's species functions. A
   species below the reference's print threshold of 5e-6 is compared with the
   `moleFractionTrace` entry, the others with `moleFraction`.
+  ⚠ 2026-11-17: the transport/condensed flag alone exempted arbitrary altered Cp/Cv.
 - The batch struct of the kernel test is public; a batch is a family of fixtures
   sharing a table and an exit layout.
 

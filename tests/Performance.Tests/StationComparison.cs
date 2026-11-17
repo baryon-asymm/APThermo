@@ -83,7 +83,8 @@ internal static class StationComparison
                     continue;
                 }
 
-                if (transport && condensedPresent && GasPhaseWithTransport.Contains(name))
+                if (transport && condensedPresent && GasPhaseWithTransport.Contains(name)
+                    && ReferenceTransportHeatCapacity.HasGasPhaseSignature(reference, solution.Table, name, expected, tolerances))
                 {
                     continue;
                 }
