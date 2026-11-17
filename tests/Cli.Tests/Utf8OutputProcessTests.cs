@@ -14,7 +14,7 @@ public sealed class Utf8OutputProcessTests
     [Fact]
     public void RedirectedOutputIsUtf8WithoutBomForUnicodeDatabasePath()
     {
-        var directory = Directory.CreateDirectory(CliFixture.Shared.TempFile("база данных")).FullName;
+        var directory = Directory.CreateDirectory(CliFixture.Shared.TempFile("test-\u042F\u0436")).FullName;
         File.Copy(Path.Combine(CliFixture.Shared.DatabasePath, "thermo.inp"), Path.Combine(directory, "thermo.inp"), true);
         File.Copy(Path.Combine(CliFixture.Shared.DatabasePath, "trans.inp"), Path.Combine(directory, "trans.inp"), true);
         var bytes = OperatingSystem.IsWindows() ? RunInOemConsole(directory) : RunDirectly(directory);
