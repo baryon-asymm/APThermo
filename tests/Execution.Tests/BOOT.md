@@ -6,6 +6,15 @@ The definition of what "`Execution` is ready" means. This node owns the exact co
 of CUDA with the CPU accelerator (2026-10-05: no tolerance table is left) and the approved
 throughput figures.
 
+`StationFiniteKernelTests` exercises the real `StationFigures.Write` guard with an
+area-ratio input from every binary64 exponent, both signs and representative mantissas,
+including signaling and quiet NaNs. An oracle derives the expected status from the
+input bits, not from floating-point comparison. The test checks the signaling input
+patterns before upload without claiming payload preservation during device transfer.
+The CPU and a CUDA kernel through the
+post-link run the same inputs; CUDA emits completed hardware evidence only after the
+assertions. Compiling mutants that remove the guard or admit infinity must be detected.
+
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
 | L0 | accelerator choice and the environment variable; the reason of an `Auto` fallback on the accelerator description (`CudaSkippedBecause`), proven on every runner through the seam that forces CUDA allowed; an explicit request that cannot be met fails; ILGPU version and reflected member asserted; batch validation; chunk bounds; result layouts; a scratch bound of zero or less is refused at `Create`; a CUDA engine loads no library of the CUDA Toolkit (`AcceleratorChoiceTests`) | documented behaviour; mutation of the assertion | ✅ (2026-10-05) |

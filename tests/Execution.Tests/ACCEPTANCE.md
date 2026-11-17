@@ -1,5 +1,9 @@
 # ACCEPTANCE.md — tests/Execution.Tests
 
+- [ ] `StationFiniteKernelTests` checks the actual station guard on CPU and CUDA over
+  binary64 exponent classes and representative mantissas, against an independent
+  bit oracle; compiling guard-removal and inclusive-infinity mutants are rejected.
+
 - [x] 2026-11-16 — The throughput fact explicitly verifies cold/hit/hit after writing its actual
   record, and rejects cold/hit/cold and cold/cold/hit with the affected sample and
   calibration reason/age before applying the unchanged original comparisons.

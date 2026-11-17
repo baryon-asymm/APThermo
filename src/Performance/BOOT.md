@@ -56,6 +56,10 @@ restate the equations. Whoever codes this node reads chapter 6.
   never returns `Ok` with an infinite area ratio or vacuum impulse. Other finite
   pressure-ratio stations keep their existing acceptance policy.
   ⚠ 2026-11-17: a ratio just above one could return `Ok` with infinite output figures.
+  The finite predicate may use `Math.Abs(value) < double.PositiveInfinity`: both
+  signed zeros and subnormals are finite; all NaNs and infinities are not. It changes
+  no station formula or result field and remains subject to the root's CUDA bit and
+  throughput checks; a speed improvement is not assumed from this source expression.
 - **Stateless, deterministic, bounded**, as `Equilibrium`: explicit inputs and
   scratch; iteration caps; a status per case.
 
