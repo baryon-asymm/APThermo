@@ -9,6 +9,20 @@ used to stand.
 
 ---
 
+<a id="rocket-compile-allocation-runs-2026-10-05"></a>
+
+## 2026-11-17 — from "## Purpose" — compile allocation measurements of 2026-10-05
+
+| Configuration | Processors | Calling thread (bytes) | Whole process (bytes) |
+|---|---|---|---|
+| Release | 16 | 1 005 250 800 | 3 576 888 496 |
+| Release | 16, in the fast set of 289 facts | 1 005 747 448 | 3 576 409 888 |
+| Release | 8 | 1 049 884 200 | 3 577 609 720 |
+| Release | 4 | 1 456 857 072 | 3 576 929 760 |
+| Release | 2 | 1 600 315 544 | 3 575 907 960 |
+| Debug | 16 | 1 098 500 216 | 3 890 141 000 |
+| Debug | 4 | 1 759 460 056 | 3 888 768 888 |
+
 <a id="r10-linux-handoff-2026-11-15"></a>
 
 ## 2026-11-16 — from "ACCEPTANCE.md" — R10 host-only diagnostic handoff

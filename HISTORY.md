@@ -1,5 +1,31 @@
 # HISTORY.md — AerospacePropellantThermodynamics (tree root)
 
+<a id="throughput-build-config-2026-09-19"></a>
+
+## 2026-11-17 — from "ACCEPTANCE.md", Acceptance criteria — throughput-build-config-2026-09-19
+
+      ⚠ 2026-09-19: the figures above of 2026-09-12 (56.28×) and the Linux 52.01× were
+      Debug measurements, a fact no record stated. The CPU accelerator runs the kernels
+      from the assemblies' IL, so the host build configuration changes its speed about
+      2.8× (9.5 s in Debug, 3.4 s in Release), while the CUDA kernel does not depend on
+      it. The release rehearsal of 2026-09-19 compared a Release run with the Debug
+      record and failed at 29.48×. Found by a Fable 5.1 analysis that ruled out the
+      toolkit, the driver, the clocks and the code. The 5× target holds by a wide
+      margin in both configurations; the tripwire now records and asserts its
+      configuration, and its floors are unchanged.
+
+<a id="source-link-proof-2026-09-18"></a>
+
+## 2026-11-17 — from "ACCEPTANCE.md", Acceptance criteria — source-link-proof-2026-09-18
+
+      ⚠ 2026-09-18: the criterion said "a debugger steps from a sample into the
+      library's source through SourceLink, and the step is recorded". A step in an IDE
+      is a human action that no run can repeat, so the record would age into a claim
+      nobody re-checks. The wording now names what a debugger actually needs and what
+      a machine can re-prove: every document of every packed PDB resolves to the
+      commit's file. The owner may still step through it by hand; nothing in the tree
+      depends on that.
+
 <a id="wsl-registration-story-2026-11-17"></a>
 
 ## 2026-11-17 — from "## Constraints" — WSL device registration

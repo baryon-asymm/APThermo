@@ -38,15 +38,7 @@ machine: hosted `windows-latest` (4 cores, Release) measured 2 566 509 328 bytes
 that held on the commit before it. The bytes of every thread together are the compile's own size. The same fact, one fresh process
 per row, `APTHERMO_NO_CUDA=1`, `DOTNET_PROCESSOR_COUNT` set, the reference machine:
 
-| Configuration | Processors | Calling thread (bytes) | Whole process (bytes) |
-|---|---|---|---|
-| Release | 16 | 1 005 250 800 | 3 576 888 496 |
-| Release | 16, in the fast set of 289 facts | 1 005 747 448 | 3 576 409 888 |
-| Release | 8 | 1 049 884 200 | 3 577 609 720 |
-| Release | 4 | 1 456 857 072 | 3 576 929 760 |
-| Release | 2 | 1 600 315 544 | 3 575 907 960 |
-| Debug | 16 | 1 098 500 216 | 3 890 141 000 |
-| Debug | 4 | 1 759 460 056 | 3 888 768 888 |
+The Release compile with 16 processors allocated 3,576,888,496 bytes across the process (2026-10-05). The per-configuration measurements are in HISTORY.md#rocket-compile-allocation-runs-2026-10-05.
 
 The calling thread varies by 59 % across the counts (1.01 to 1.60 GB); the whole process by 0.05 % (3 575.9 to 3 577.6 MB in
 Release, 3 888.8 to 3 890.1 MB in Debug), and by 0.5 MB between the fact alone and the fast set, where the three classes outside
