@@ -51,5 +51,6 @@ public sealed partial class ByteVectorTests(ITestOutputHelper output)
         }
 
         Assert.True(offenders.Count == 0, $"vector loads or stores of bytes or predicates: {string.Join(", ", offenders)}");
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 }

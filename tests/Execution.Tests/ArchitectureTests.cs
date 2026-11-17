@@ -80,6 +80,7 @@ public sealed partial class ArchitectureTests(ITestOutputHelper output)
                 }
             }
         }
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>The normalized, post-linked PTX of every entry point, compiled for the device's own architecture: the baseline every other architecture's PTX is compared against.</summary>

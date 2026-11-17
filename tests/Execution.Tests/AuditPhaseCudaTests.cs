@@ -114,6 +114,7 @@ public sealed class AuditPhaseCudaTests(ITestOutputHelper output)
         AssertRocket(input, table, rocketBatch, rocketCuda);
         Assert.Empty(ExactComparison.Rocket(rocketCpu, rocketCuda, _ => $"{name} rocket"));
         output.WriteLine($"actualCuda=true; completed {name}: cold={rows.Count}, seeded={rows.Count}, rocket=1; exact states/compositions/statuses/iterations/figures");
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     private static SpeciesTable Table(JsonElement input) => SpeciesTable.Build(EngineFixture.Shared.Database,

@@ -21,7 +21,7 @@ public static class Bits
     /// Every public <see langword="double"/> or <see langword="int"/> field or property of <typeparamref name="T"/> whose
     /// value differs between <paramref name="expected"/> and <paramref name="actual"/>, as one message per member:
     /// <c>"label.Member: expected E, actual A"</c>, doubles compared by their bits and in round-trip form, ints by
-    /// <see cref="object.Equals(object, object)"/>. Throws when <typeparamref name="T"/> has no such field or property, so
+    /// <see cref="object.Equals(object, object)"/>. Throws for any unsupported public field/property or when there is no member, so
     /// that a comparison can never be empty by accident (`tests/Harness/BOOT.md`, "Bits.Differences&lt;T&gt; reads fields
     /// and properties").
     /// </summary>
@@ -64,18 +64,23 @@ public static class Bits
         var members = new List<(string Name, Func<object, object> Read)>();
         foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
         {
-            if (field.FieldType == typeof(double) || field.FieldType == typeof(int))
+            if (field.FieldType != typeof(double) && field.FieldType != typeof(int))
             {
-                members.Add((field.Name, obj => field.GetValue(obj)!));
+                throw new InvalidOperationException($"{type}.{field.Name} has unsupported type {field.FieldType}");
             }
+
+            members.Add((field.Name, obj => field.GetValue(obj)!));
         }
 
         foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
-            if (property.PropertyType == typeof(double) || property.PropertyType == typeof(int))
+            if ((property.PropertyType != typeof(double) && property.PropertyType != typeof(int)) ||
+                property.GetIndexParameters().Length != 0 || property.GetMethod is null)
             {
-                members.Add((property.Name, obj => property.GetValue(obj)!));
+                throw new InvalidOperationException($"{type}.{property.Name} has unsupported type or accessor {property.PropertyType}");
             }
+
+            members.Add((property.Name, obj => property.GetValue(obj)!));
         }
 
         return members;

@@ -82,6 +82,7 @@ public sealed class SpeciesFunctionTests(ITestOutputHelper output)
         }
 
         Assert.True(entries > 1000, $"only {entries} entries compared");
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>A species index outside the table is refused before any kernel runs.</summary>

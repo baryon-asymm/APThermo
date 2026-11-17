@@ -90,6 +90,7 @@ public sealed class RecoverySlotsCudaTests(ITestOutputHelper output)
         }
 
         output.WriteLine("actualCuda=true; recovery slots, complete state, moles, multipliers, status and iterations matched CPU for cold and seeded solves");
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     private static Input Load()

@@ -270,7 +270,8 @@ than imply the duplicated values can never drift. Historical failures are separa
 
 - **`Bits.Differences<T>` reads fields and properties** (2026-09-26, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F10). It
   compares every public `double` and `int` field and property of `T`. It throws when `T`
-  has none, so that a comparison can never be empty by accident.
+  has none or contains an unsupported public instance member, naming that member.
+  ⚠ 2026-11-17: unsupported members were silently ignored; they now fail closed.
   - ⚠ 2026-09-26: was properties only, now fields too → HISTORY.md#differences-fields
 
 ⚠ 2026-11-15: Kill is an asynchronous OS request. Waiting for the associated

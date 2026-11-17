@@ -45,7 +45,7 @@ public sealed class CpuHost : IDisposable                  // one per test assem
 public static class Bits
 {
     public static bool Same(double expected, double actual);                  // DoubleToInt64Bits equal
-    public static IEnumerable<string> Differences<T>(T expected, T actual, string label) where T : struct;   // one line per public double or int field or property whose value differs: doubles by their bits, ints by Equals; throws when T has none
+    public static IEnumerable<string> Differences<T>(T expected, T actual, string label) where T : struct;   // double and int members, with unsupported public instance members refused
 }
 
 public sealed class BitHash                                 // SHA-256 over little-endian bytes, in the order added; one instance computes one digest
@@ -180,7 +180,7 @@ decodes it itself. The type names no type of the node under test: the assembly i
 | `dotnet` does not start | native `Process.Start` exception (normally `Win32Exception`); `InvalidOperationException` if no process was returned |
 | `BuiltAssemblyPath` finds no built assembly | `FileNotFoundException` naming the path it looked at |
 | the database or the tolerance table cannot be loaded | the `Data` or `Fixtures` exception, from the `CpuHost` constructor |
-| `Bits.Differences<T>` is called on a `T` with no public `double` or `int` field or property | `InvalidOperationException`, naming the type |
+| `Bits.Differences<T>` has no supported member, or any unsupported public instance field/property | `InvalidOperationException`, naming the type or member |
 | a schema uses a keyword outside `Validate`'s list | `InvalidOperationException`, naming the keyword |
 | a schema reference is not a local URI-fragment JSON Pointer, has invalid percent/UTF-8/~ escapes, or does not resolve | `InvalidOperationException`, naming the reference |
 | a schema names a `type` `Validate` does not know | `InvalidOperationException`, naming the type |

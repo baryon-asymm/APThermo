@@ -21,6 +21,10 @@ internal static class ExactComparison
         ArgumentNullException.ThrowIfNull(expected);
         ArgumentNullException.ThrowIfNull(actual);
         ArgumentNullException.ThrowIfNull(caseLabel);
+        var coverage = new ResultCoverage(typeof(RocketBatchResult), nameof(RocketBatchResult.Count),
+            nameof(RocketBatchResult.SpeciesCount), nameof(RocketBatchResult.StationCount));
+        ResultInventory.VerifyMetadata(expected.Accelerator, expected.Timings);
+        ResultInventory.VerifyMetadata(actual.Accelerator, actual.Timings);
         var mismatches = new List<string>();
         if (expected.Count != actual.Count || expected.StationCount != actual.StationCount || expected.SpeciesCount != actual.SpeciesCount)
         {
@@ -30,12 +34,13 @@ internal static class ExactComparison
 
         var stationCount = expected.StationCount;
         string Station(int index) => $"{caseLabel(index / stationCount)} station {index % stationCount}";
-        Values("status", expected.Status, actual.Status, caseLabel, mismatches);
-        Values("station status", expected.StationStatus, actual.StationStatus, Station, mismatches);
-        Values("iterations", expected.Iterations, actual.Iterations, Station, mismatches);
-        Structs(expected.Stations, actual.Stations, Station, mismatches);
-        Structs(expected.Figures, actual.Figures, Station, mismatches);
-        Amounts(expected.Moles, actual.Moles, expected.SpeciesCount, Station, mismatches);
+        coverage.Compare(nameof(RocketBatchResult.Status), () => Values("status", expected.Status, actual.Status, caseLabel, mismatches));
+        coverage.Compare(nameof(RocketBatchResult.StationStatus), () => Values("station status", expected.StationStatus, actual.StationStatus, Station, mismatches));
+        coverage.Compare(nameof(RocketBatchResult.Iterations), () => Values("iterations", expected.Iterations, actual.Iterations, Station, mismatches));
+        coverage.Compare(nameof(RocketBatchResult.Stations), () => Structs(expected.Stations, actual.Stations, Station, mismatches));
+        coverage.Compare(nameof(RocketBatchResult.Figures), () => Structs(expected.Figures, actual.Figures, Station, mismatches));
+        coverage.Compare(nameof(RocketBatchResult.Moles), () => Amounts(expected.Moles, actual.Moles, expected.SpeciesCount, Station, mismatches));
+        coverage.Verify();
         return mismatches;
     }
 
@@ -45,6 +50,9 @@ internal static class ExactComparison
         ArgumentNullException.ThrowIfNull(expected);
         ArgumentNullException.ThrowIfNull(actual);
         ArgumentNullException.ThrowIfNull(caseLabel);
+        var coverage = new ResultCoverage(typeof(EquilibriumBatchResult), nameof(EquilibriumBatchResult.Count), nameof(EquilibriumBatchResult.SpeciesCount));
+        ResultInventory.VerifyMetadata(expected.Accelerator, expected.Timings);
+        ResultInventory.VerifyMetadata(actual.Accelerator, actual.Timings);
         var mismatches = new List<string>();
         if (expected.Count != actual.Count || expected.SpeciesCount != actual.SpeciesCount)
         {
@@ -52,10 +60,11 @@ internal static class ExactComparison
             return mismatches;
         }
 
-        Values("status", expected.Status, actual.Status, caseLabel, mismatches);
-        Values("iterations", expected.Iterations, actual.Iterations, caseLabel, mismatches);
-        Structs(expected.State, actual.State, caseLabel, mismatches);
-        Amounts(expected.Moles, actual.Moles, expected.SpeciesCount, caseLabel, mismatches);
+        coverage.Compare(nameof(EquilibriumBatchResult.Status), () => Values("status", expected.Status, actual.Status, caseLabel, mismatches));
+        coverage.Compare(nameof(EquilibriumBatchResult.Iterations), () => Values("iterations", expected.Iterations, actual.Iterations, caseLabel, mismatches));
+        coverage.Compare(nameof(EquilibriumBatchResult.State), () => Structs(expected.State, actual.State, caseLabel, mismatches));
+        coverage.Compare(nameof(EquilibriumBatchResult.Moles), () => Amounts(expected.Moles, actual.Moles, expected.SpeciesCount, caseLabel, mismatches));
+        coverage.Verify();
         return mismatches;
     }
 
@@ -64,6 +73,9 @@ internal static class ExactComparison
     {
         ArgumentNullException.ThrowIfNull(expected);
         ArgumentNullException.ThrowIfNull(actual);
+        var coverage = new ResultCoverage(typeof(TransportBatchResult), nameof(TransportBatchResult.Count));
+        ResultInventory.VerifyMetadata(expected.Accelerator, expected.Timings);
+        ResultInventory.VerifyMetadata(actual.Accelerator, actual.Timings);
         var mismatches = new List<string>();
         if (expected.Count != actual.Count)
         {
@@ -72,8 +84,9 @@ internal static class ExactComparison
         }
 
         static string Station(int index) => $"station {index}";
-        Values("status", expected.Status, actual.Status, Station, mismatches);
-        Structs(expected.Figures, actual.Figures, Station, mismatches);
+        coverage.Compare(nameof(TransportBatchResult.Status), () => Values("status", expected.Status, actual.Status, Station, mismatches));
+        coverage.Compare(nameof(TransportBatchResult.Figures), () => Structs(expected.Figures, actual.Figures, Station, mismatches));
+        coverage.Verify();
         return mismatches;
     }
 
@@ -83,6 +96,9 @@ internal static class ExactComparison
         ArgumentNullException.ThrowIfNull(expected);
         ArgumentNullException.ThrowIfNull(actual);
         ArgumentNullException.ThrowIfNull(entryLabel);
+        var coverage = new ResultCoverage(typeof(SpeciesFunctionBatchResult), nameof(SpeciesFunctionBatchResult.Count));
+        ResultInventory.VerifyMetadata(expected.Accelerator, expected.Timings);
+        ResultInventory.VerifyMetadata(actual.Accelerator, actual.Timings);
         var mismatches = new List<string>();
         if (expected.Count != actual.Count)
         {
@@ -90,10 +106,11 @@ internal static class ExactComparison
             return mismatches;
         }
 
-        Values("in range", expected.InRange, actual.InRange, entryLabel, mismatches);
-        Amounts(expected.CpOverR, actual.CpOverR, 1, i => $"{entryLabel(i)} Cp/R", mismatches);
-        Amounts(expected.HOverRT, actual.HOverRT, 1, i => $"{entryLabel(i)} H/RT", mismatches);
-        Amounts(expected.SOverR, actual.SOverR, 1, i => $"{entryLabel(i)} S/R", mismatches);
+        coverage.Compare(nameof(SpeciesFunctionBatchResult.InRange), () => Values("in range", expected.InRange, actual.InRange, entryLabel, mismatches));
+        coverage.Compare(nameof(SpeciesFunctionBatchResult.CpOverR), () => Amounts(expected.CpOverR, actual.CpOverR, 1, i => $"{entryLabel(i)} Cp/R", mismatches));
+        coverage.Compare(nameof(SpeciesFunctionBatchResult.HOverRT), () => Amounts(expected.HOverRT, actual.HOverRT, 1, i => $"{entryLabel(i)} H/RT", mismatches));
+        coverage.Compare(nameof(SpeciesFunctionBatchResult.SOverR), () => Amounts(expected.SOverR, actual.SOverR, 1, i => $"{entryLabel(i)} S/R", mismatches));
+        coverage.Verify();
         return mismatches;
     }
 

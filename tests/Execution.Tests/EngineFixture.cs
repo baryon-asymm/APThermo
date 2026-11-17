@@ -70,7 +70,7 @@ internal sealed class EngineFixture : IDisposable
         {
             var engine = Cuda!;
             Assert.Equal(AcceleratorKind.Cuda, engine.Accelerator.Kind);
-            CudaEvidence.Hardware(output, engine.Accelerator.DeviceName);
+            CudaEvidence.Bound(output, engine.Accelerator.DeviceName);
             return engine;
         }
 

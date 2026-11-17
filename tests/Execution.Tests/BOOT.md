@@ -67,6 +67,20 @@ Retain the controlled positive/negative observable cases and the scientific chec
 
 ## Invariants
 
+- **Exact result inventory.** Reflect every public instance result member and require
+  an explicit comparison policy for each. Machine-enumerated per-field mutations prove each numerical callback, including nested fields; numerical arrays and scalar dimensions
+  compare exactly; `Accelerator` and `Timings` are checked metadata, not equal across
+  devices. Unknown members or unsupported numerical types fail before comparison.
+  A controlled new array and unsupported struct member must expose omissions.
+- **CUDA scenario evidence.** Selecting an engine records no hardware completion.
+  A CUDA fact writes its hardware completion marker only after its own scenario and
+  assertions complete; a forbidden/refusal path remains distinct. Shared sweep facts
+  mark their own completed assertions without repeating the shared work. The driver
+  probes that bypass CUDA forbiddance run in an owned child process, isolated from
+  the driver-absence check. Those two injected-failure facts also carry EndToEnd; CUDA categories and GPU filters stay intact.
+  ⚠ 2026-11-17: hardware markers previously proved only device binding; some CPU
+  controls could load the driver before the supposedly driver-free assertion.
+
 - **Bounded repeat calibration (2026-11-14).** Host controls independently check
   every key dimension and reflected scalar, observed full-prefix boundaries,
   cumulative cost and actual overrun refusal, expiry at lookup and first launch,

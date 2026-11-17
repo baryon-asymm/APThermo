@@ -22,15 +22,17 @@ its sorted method inventory as `CUDA_EVIDENCE_INVENTORY:` followed by a JSON arr
 
 Each selected case writes exactly one `CUDA_EVIDENCE:` JSON object. Its fields are
 `scope`, `actualCuda`, `refusalVerified`, `scenarioExecuted` and `device`. A selected
-CUDA engine emits `scope=hardware`, `actualCuda=true` and a nonempty device name;
-`scenarioExecuted=null` means only device selection is asserted by the marker, and a
-passing test result establishes the rest of that fact. The forbidden path emits
+CUDA scenario emits `scope=hardware`, `actualCuda=true`, `scenarioExecuted=true` and a
+nonempty device name only after its assertions complete. The forbidden path emits
 `refusalVerified=true` only after checking the explicit CUDA request really failed.
 Directly gated paths instead mark `scenarioExecuted=false` and `refusalVerified=false`.
 Driver-only injected tests never claim GPU execution: completed checks emit
 `scope=driver-only`, `actualCuda=false`, `scenarioExecuted=true`. JSON is escaped so
 names cannot alter its fields. Hardware evidence additionally requires a passing test
 and a real device run; a forbidden-CPU result is not GPU verification.
+
+⚠ 2026-11-17: the earlier marker accepted `scenarioExecuted=null` after binding;
+it did not itself establish that the CUDA scenario reached its assertions.
 
 ## Calibration decision diagnosis ✅
 

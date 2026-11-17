@@ -41,7 +41,7 @@ public sealed class CudaWslDevicesTests(ITestOutputHelper output)
             var probe = engine.ProbeMath([1.0]);
             Assert.Equal(MathProbe.FunctionCount, probe.Length);
         }
-        CudaEvidence.Hardware(output, deviceName);
+        CudaEvidence.CompleteHardware(output, deviceName);
     }
 
     /// <summary>

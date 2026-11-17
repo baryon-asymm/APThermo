@@ -8,10 +8,16 @@ internal static class CudaEvidence
 {
     internal const string Prefix = "CUDA_EVIDENCE:";
 
-    internal static void Hardware(ITestOutputHelper output, string device)
+    internal static void Bound(ITestOutputHelper output, string device)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentException.ThrowIfNullOrWhiteSpace(device);
+    }
+
+    internal static void CompleteHardware(ITestOutputHelper output, string device)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(device);
-        Emit(output, "hardware", actualCuda: true, refusalVerified: false, scenarioExecuted: null, device);
+        Emit(output, "hardware", actualCuda: true, refusalVerified: false, scenarioExecuted: true, device);
     }
 
     internal static void Refusal(ITestOutputHelper output, Action verify)

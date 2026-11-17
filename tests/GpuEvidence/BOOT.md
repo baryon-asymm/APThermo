@@ -17,6 +17,10 @@ Outside the tree: the SDK test-platform translation layer and object model selec
 
 ## Constraints
 
+Hardware markers must assert `scenarioExecuted=true`; null, false, missing and
+duplicate markers fail, including a passing test that returned before completion.
+⚠ 2026-11-17: null previously proved only binding, not execution of the test scenario.
+
 The existing phase commands, selection, order, time budgets and throughput checks remain unchanged. Runs use .NET only on self-hosted machines. Discovery executes no test. The output inventory and TRX are retained as evidence.
 
 ## Acceptance criteria

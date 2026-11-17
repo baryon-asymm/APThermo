@@ -49,6 +49,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         if (cuda is not null)
         {
             AssertFamilyMatches(cuda, FixtureBatches.Family(EngineFixture.Shared.Database, name));
+            CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
         }
     }
 
@@ -63,6 +64,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         if (cuda is not null)
         {
             AssertFamilyMatches(cuda, FixtureBatches.Family(EngineFixture.Shared.Database, name, FixtureBatches.ThroatKind));
+            CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
         }
     }
 
@@ -94,6 +96,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         }
 
         AssertEquilibriumFamilyMatches(cuda, FixtureBatches.EquilibriumFamily(EngineFixture.Shared.Database, "lox-rp1_of2.6_pc10MPa"));
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>An equilibrium family of the 0.2.1 fixtures (three-element, threshold-flip and gas-column salts) on cuda matches the cpu accelerator.</summary>
@@ -110,6 +113,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         }
 
         AssertEquilibriumFamilyMatches(cuda, FixtureBatches.NamedEquilibriumFamily(EngineFixture.Shared.Database, name));
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>The family of every equilibrium fixture sharing one table (every table of the tp, hp and sp fixtures) on cuda matches the cpu accelerator.</summary>
@@ -126,6 +130,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         }
 
         AssertEquilibriumFamilyMatches(cuda, FixtureBatches.EquilibriumTableFamily(EngineFixture.Shared.Database, name));
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>
@@ -148,6 +153,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         var family = SeededFamilies.Family(EngineFixture.Shared.Database, name);
         Assert.True(family.Batch.IsSeeded);
         AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, mixedStatuses: family.SumsAttempts);
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>
@@ -169,6 +175,7 @@ public sealed class CudaTests(ITestOutputHelper output)
 
         var family = GasPlateauFamilies.Family(EngineFixture.Shared.Database, name);
         AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, mixedStatuses: false);
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>
@@ -193,6 +200,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, name);
         output.WriteLine($"{name}: {family.Batch.Count} cases, {family.Gasless} gasless, {family.Dropped} dropped");
         AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, mixedStatuses: true);
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>
@@ -216,6 +224,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         var family = TraceGasFamilies.Family(EngineFixture.Shared.Database, name);
         output.WriteLine($"{name}: {family.Batch.Count} cases, {family.Gasless} gasless, {family.Dropped} dropped");
         AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, mixedStatuses: true);
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>
@@ -245,6 +254,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         output.WriteLine($"{count} bracketing cases: {LaunchBudgetObservation.Describe(run.Timings)}; per-launch budget={limit.TotalMilliseconds:F0} ms; {run.Iterations.Average():F0} Newton steps per case on average");
         var violation = RecoveryFamilies.LaunchViolation(run, limit);
         Assert.True(violation is null, violation);
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>
@@ -275,6 +285,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         output.WriteLine($"{count} trace-gas hp and sp cases: {LaunchBudgetObservation.Describe(run.Timings)}; per-launch budget={limit.TotalMilliseconds:F0} ms; {run.Iterations.Average():F0} Newton steps per case on average");
         var violation = TraceGasFamilies.LaunchViolation(run, limit);
         Assert.True(violation is null, violation);
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     private void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family) =>
@@ -319,6 +330,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         Assert.True(repeated.Count == 0, "two CUDA runs differ:\n" + string.Join("\n", repeated));
         Assert.True(sweep.Cpu.Status.All(s => s == CaseStatus.Ok), $"{sweep.Cpu.Status.Count(s => s != CaseStatus.Ok)} cases failed on the CPU accelerator");
         output.WriteLine($"{sweep.Cpu.Stations.Length} stations, {sweep.Cpu.Iterations.Sum(i => (long)i)} Newton steps, every field equal bit for bit");
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>Throughput is recorded, the CUDA/CPU ratio is not below 80 % of the approved one and the kernel time per Newton step is not above 115 % of the approved figure.</summary>
@@ -387,6 +399,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         var steps = sweep.Cuda!.Iterations.Sum(count => (long)count);
         var coldViolation = ColdThroughput.Violation(sweep.CudaTime, sweep.Batch.Count, steps, coldApproved, Path.GetFileName(coldPath));
         Assert.True(coldViolation is null, coldViolation);
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     private void PrintSweepDiagnostics(SweepRun sweep, Engine cuda)

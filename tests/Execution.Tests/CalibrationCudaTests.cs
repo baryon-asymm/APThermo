@@ -21,7 +21,6 @@ public sealed class CalibrationCudaTests(ITestOutputHelper output)
 
         using var cuda = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cuda, ChunkSize = 16 });
         Assert.Equal(AcceleratorKind.Cuda, cuda.Accelerator.Kind);
-        CudaEvidence.Hardware(output, cuda.Accelerator.DeviceName);
         using var tables = cuda.Upload(FixtureBatches.RocketFamilies(EngineFixture.SharedDatabase)[0].Table);
         var batch = new SpeciesFunctionBatch(31);
         for (var index = 0; index < batch.Count; index++)
@@ -38,6 +37,7 @@ public sealed class CalibrationCudaTests(ITestOutputHelper output)
         {
             Assert.All([cold, hit, changed], result => Assert.False(result.Timings.ReusedPrefix));
             output.WriteLine($"actualCuda=true; device={cuda.Accelerator.DeviceName}; unbounded device: calibration bypassed, no bounded-hit evidence");
+            CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
             return;
         }
 
@@ -58,5 +58,6 @@ public sealed class CalibrationCudaTests(ITestOutputHelper output)
         output.WriteLine("cold: " + LaunchBudgetObservation.Describe(cold.Timings));
         output.WriteLine("hit: " + LaunchBudgetObservation.Describe(hit.Timings));
         output.WriteLine("changed input: " + LaunchBudgetObservation.Describe(changed.Timings));
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 }

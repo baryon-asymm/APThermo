@@ -120,6 +120,7 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
         }
 
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {cpu.Length} values differ:\n" + string.Join("\n", mismatches.Take(20)));
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>
@@ -152,5 +153,6 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
                 Assert.True(SameValue(a, b), $"{MathProbe.Functions[f]}({special[i]:R}): cpu {a:R}, cuda {b:R}");
             }
         }
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 }

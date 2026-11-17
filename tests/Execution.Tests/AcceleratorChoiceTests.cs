@@ -33,8 +33,17 @@ public sealed class AcceleratorChoiceTests(ITestOutputHelper output)
     /// either way the reason is a message and the session is the CPU's.
     /// </summary>
     [Fact]
+    [Trait("Category", "EndToEnd")]
     public void AnAutoFallbackSaysWhyCudaWasSkipped()
     {
+        if (!DriverIsolation.IsChild("auto", out var marker, out var nonce))
+        {
+            AssertNoCudaDriverWhenForbidden();
+            DriverIsolation.Run(nameof(AnAutoFallbackSaysWhyCudaWasSkipped), "auto");
+            AssertNoCudaDriverWhenForbidden();
+            return;
+        }
+
         var options = new EngineOptions { Accelerator = AcceleratorKind.Auto, CudaDeviceIndex = 9999 };
         var decision = AcceleratorChoice.Decide(options, cudaForbidden: false);
         using (decision.Session)
@@ -44,15 +53,26 @@ public sealed class AcceleratorChoiceTests(ITestOutputHelper output)
             Assert.False(string.IsNullOrWhiteSpace(reason));
             Assert.Equal(reason, decision.Session.Info.CudaSkippedBecause);
         }
+        DriverIsolation.Complete(marker, nonce);
     }
 
     /// <summary>An explicit cuda request that cannot be met fails instead of falling back. Decided with <c>cudaForbidden: false</c>, the same reason as <see cref="AnAutoFallbackSaysWhyCudaWasSkipped"/> (F7).</summary>
     [Fact]
+    [Trait("Category", "EndToEnd")]
     public void AnExplicitCudaRequestThatCannotBeMetFailsInsteadOfFallingBack()
     {
+        if (!DriverIsolation.IsChild("explicit", out var marker, out var nonce))
+        {
+            AssertNoCudaDriverWhenForbidden();
+            DriverIsolation.Run(nameof(AnExplicitCudaRequestThatCannotBeMetFailsInsteadOfFallingBack), "explicit");
+            AssertNoCudaDriverWhenForbidden();
+            return;
+        }
+
         var options = new EngineOptions { Accelerator = AcceleratorKind.Cuda, CudaDeviceIndex = 9999 };
         var refused = Assert.Throws<AcceleratorUnavailableException>(() => AcceleratorChoice.Decide(options, cudaForbidden: false));
         Assert.False(string.IsNullOrWhiteSpace(refused.Message));
+        DriverIsolation.Complete(marker, nonce);
     }
 
     /// <summary>
@@ -112,6 +132,15 @@ public sealed class AcceleratorChoiceTests(ITestOutputHelper output)
         Assert.DoesNotContain(modules, IsCudaDriverModule);
     }
 
+    private static void AssertNoCudaDriverWhenForbidden()
+    {
+        if (Engine.CudaForbidden)
+        {
+            var modules = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Select(module => module.ModuleName);
+            Assert.DoesNotContain(modules, IsCudaDriverModule);
+        }
+    }
+
     /// <summary>
     /// A CUDA engine runs with nothing of the CUDA Toolkit loaded (2026-10-05, item 13): the driver's own library is the only
     /// NVIDIA module of the process, and no libnvvm, no libdevice user and no toolkit runtime was ever needed to bind it,
@@ -135,6 +164,7 @@ public sealed class AcceleratorChoiceTests(ITestOutputHelper output)
         Assert.DoesNotContain(modules, name => name.Contains("nvvm", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(modules, name => name.Contains("cudart", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(modules, name => name.Contains("nvrtc", StringComparison.OrdinalIgnoreCase));
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 
     /// <summary>Driver identification recognizes platform driver names and excludes Toolkit/lookalike names.</summary>
@@ -403,5 +433,6 @@ public sealed class AcceleratorChoiceTests(ITestOutputHelper output)
         }
 
         Assert.True(cuda.Budget.IsBounded);
+        CudaEvidence.CompleteHardware(output, cuda.Accelerator.DeviceName);
     }
 }

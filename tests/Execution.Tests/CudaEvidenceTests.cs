@@ -47,13 +47,14 @@ public sealed class CudaEvidenceTests(ITestOutputHelper output)
     public void MarkersDescribeSelectedDeviceAndDriverScope()
     {
         var captured = new CapturedOutput();
-        CudaEvidence.Hardware(captured, "test device | 0");
+        CudaEvidence.CompleteHardware(captured, "test device | 0");
         CudaEvidence.DriverExecuted(captured);
         CudaEvidence.NotRun(captured, "driver-only");
         Assert.Equal(3, captured.Lines.Count);
         using var hardware = Marker(captured.Lines[0]);
         Assert.Equal("hardware", hardware.RootElement.GetProperty("scope").GetString());
         Assert.True(hardware.RootElement.GetProperty("actualCuda").GetBoolean());
+        Assert.True(hardware.RootElement.GetProperty("scenarioExecuted").GetBoolean());
         Assert.Equal("test device | 0", hardware.RootElement.GetProperty("device").GetString());
         using var driver = Marker(captured.Lines[1]);
         Assert.Equal("driver-only", driver.RootElement.GetProperty("scope").GetString());
@@ -63,6 +64,25 @@ public sealed class CudaEvidenceTests(ITestOutputHelper output)
         using var absent = Marker(captured.Lines[2]);
         Assert.False(absent.RootElement.GetProperty("scenarioExecuted").GetBoolean());
         Assert.False(absent.RootElement.GetProperty("refusalVerified").GetBoolean());
+    }
+
+    /// <summary>A scenario that returns before its explicit completion cannot report hardware execution.</summary>
+    [Fact]
+    public void EarlyReturnDoesNotEmitACompletionMarker()
+    {
+        var captured = new CapturedOutput();
+        SimulateScenario(captured, complete: false);
+        Assert.Empty(captured.Lines);
+        SimulateScenario(captured, complete: true);
+        using var completed = Marker(Assert.Single(captured.Lines));
+        Assert.True(completed.RootElement.GetProperty("scenarioExecuted").GetBoolean());
+    }
+
+    private static void SimulateScenario(ITestOutputHelper captured, bool complete)
+    {
+        CudaEvidence.Bound(captured, "test device");
+        if (!complete) { return; }
+        CudaEvidence.CompleteHardware(captured, "test device");
     }
 
     private static bool Trait(CustomAttributeData trait, string name, string value) =>

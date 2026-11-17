@@ -173,7 +173,7 @@ internal static class Program
         if ((scenario.ValueKind != JsonValueKind.Null && scenario.ValueKind != JsonValueKind.True && scenario.ValueKind != JsonValueKind.False) ||
             (device.ValueKind != JsonValueKind.Null && device.ValueKind != JsonValueKind.String) ||
             scope != item.Scope || refusal ||
-            (scope == "hardware" && (!actual || scenario.ValueKind == JsonValueKind.False || string.IsNullOrWhiteSpace(device.GetString()))) ||
+            (scope == "hardware" && (!actual || scenario.ValueKind != JsonValueKind.True || string.IsNullOrWhiteSpace(device.GetString()))) ||
             (scope == "driver-only" && (actual || scenario.ValueKind != JsonValueKind.True)) ||
             (scope != "hardware" && scope != "driver-only"))
         {
