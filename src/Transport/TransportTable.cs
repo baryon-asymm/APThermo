@@ -189,8 +189,8 @@ internal sealed class TransportTableArrays
     public int FitTotal => Fits.Length / TransportTable.FitStride;
 }
 
-/// <summary>The transport table over accelerator memory: blittable, the same layout as the arrays.</summary>
-/// <summary>Wraps views of the arrays of a table. The 10-parameter constructor is a declared shape exception
+/// <summary>Wraps the transport table over accelerator memory: blittable views with the same layout as the arrays.
+/// The 10-parameter constructor is a declared shape exception
 /// (BOOT.md, Shape exceptions), the same case as <c>TransportScratch</c>.</summary>
 internal readonly struct TransportTableView(int speciesCount, int pairTotal,
                                             ArrayView<int> viscosityStart, ArrayView<int> viscosityCount,

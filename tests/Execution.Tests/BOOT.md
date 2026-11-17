@@ -73,6 +73,10 @@ Retain the controlled positive/negative observable cases and the scientific chec
   compare exactly; `Accelerator` and `Timings` are checked metadata, not equal across
   devices. Unknown members or unsupported numerical types fail before comparison.
   The checks perturb each position of a numerical array and reject an unsupported public field or property.
+  Paired physical array lengths must also agree; a shorter or longer array yields a
+  named length difference before indexing. Length and element diagnostics share the cap.
+  ⚠ 2026-11-17: equal logical dimensions previously hid extra tails, while short
+  arrays threw; the frozen-comparator controls in `ResultArrayLengthTests` exposed both.
 - **CUDA scenario evidence.** Selecting an engine records no hardware completion.
   A CUDA fact writes its hardware completion marker only after its own scenario and
   assertions complete; a forbidden/refusal path remains distinct. Shared sweep facts

@@ -1,5 +1,23 @@
 # HISTORY.md — Execution
 
+<a id="comparison-metadata-2026-11-17"></a>
+
+## 2026-11-17 — from Invariants — numerical comparison and metadata
+
+The re-audit found that "every field of every result" included accelerator identity
+and timings, although `tests/Execution.Tests`' `ResultInventory` and `ExactComparison`
+validate that metadata separately and do not require equality between accelerators.
+The current invariant now covers numerical outputs, statuses and iteration counts;
+the NaN-payload exception remains. This corrects the claim without changing the
+comparison policy or relabelling earlier GPU measurements as current evidence.
+Original wording:
+
+> - **GPU equals CPU, bit for bit** (2026-10-05). For one batch the two accelerators return
+>   the same bits in every field of every result: statuses, iteration counts, states,
+>   figures, amounts and transport figures. There is no tolerance table. The facts compare
+>   by bits, and the NaN payload alone is left out of the probe's comparison, since the
+>   hardware chooses it (`tests/Execution.Tests`).
+
 <a id="cleanup-warning-line-2026-11-17"></a>
 
 ## 2026-11-17 — from Constraints — cleanup warning line

@@ -1,5 +1,9 @@
 # ACCEPTANCE.md — tests/Execution.Tests
 
+- [x] 2026-11-17 — `ResultArrayLengthTests`: 24 short/long-array controls at unchanged
+  logical dimensions and the shared diagnostic cap failed on the frozen comparator;
+  four valid-shape controls passed. The rebuilt comparison set passed 43 tests.
+
 - [x] `StationFiniteKernelTests` checks the actual station guard on CPU and CUDA over
   binary64 exponent classes and representative mantissas, against an independent
   bit oracle; compiling guard-removal and inclusive-infinity mutants are rejected.
@@ -24,15 +28,8 @@
 - [x] The CPU bypass test compiles its kernel before seeding the real session cache;
   omitting bypass invalidation fails that test while the intact implementation passes.
   (2026-11-16: `CalibrationObservationTests.CpuRunInvalidatesAnOlderTransactionInItsActualSessionCache`.)
-  ⚠ 2026-11-16: the previous control compiled after seeding and did not isolate the
-  actual bypass. The corrected fact asserts the first compilation, a published entry in the same engine session, zero
-  warm-up on the next run and invalidation of that transaction. The fresh-engine
-  `CpuRunDoesNotMasqueradeAsACudaTransaction` remains separate. With only
-  `BatchRun.Execute`'s bypass `Clear` removed, the corrected test failed (expected
-  `Invalidated`, actual `Published`) and 12 other observation controls passed. After
-  byte-exact restoration and rebuilding, 61 calibration host controls passed, no skips.
-  Evidence: test names and `fix-evidence/cache-z5/z5-mutant.trx`, `fix-evidence/cache-z5/z5-final.trx`
-  in the external audit archive; this is CPU evidence, not a CUDA run.
+  ⚠ 2026-11-16: the control compiled after seeding; now it compiles before seeding
+  → HISTORY.md#cpu-bypass-control-order-2026-11-16
 - [x] 2026-11-16 — CUDA refusal and actual-device paths carry explicit evidence, and the GPU job
   rejects refusal-only results; no permanently skipped test is introduced.
   (2026-11-16: `CudaEvidenceTests`, actual 451-identity GPU inventories and marker
@@ -268,8 +265,8 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       `APTHERMO_NO_CUDA=1`, 16 processors): 113 080 797 032 bytes in the process (44 785 589 192 on the calling thread),
       warm-up 263.22 s, against the bound of 7 516 192 768: red by a factor of 15.
 - [x] 2026-10-05 — CUDA equals the CPU accelerator bit for bit on every family (`## Invariants`, item 13 of 0.2.2, owner
-      decisions O1 and O6). `ExactComparison` (`Rocket`, `Equilibrium`, `Transport`, `Functions`) compares the bits of every
-      field of every result, the statuses and iteration counts included, and returns at most 30 mismatches, each naming the
+      decisions O1 and O6). `ExactComparison` (`Rocket`, `Equilibrium`, `Transport`, `Functions`) compares numerical outputs,
+      statuses and iteration counts by bits, and returns at most 30 mismatches, each naming the
       case, the field and both values; the facts that run it on CUDA are the families of `CudaTests`: `ARocketFamilyOnCudaMatchesTheCpuAccelerator`,
       `AThroatFamilyOnCudaMatchesTheCpuAccelerator`, `AnEquilibriumFamilyOnCudaMatchesTheCpuAccelerator`, `ANamedEquilibriumFamilyOnCudaMatchesTheCpuAccelerator`,
       `AnEquilibriumTableFamilyOnCudaMatchesTheCpuAccelerator`, `ASeededFamilyOnCudaMatchesTheCpuAccelerator`,
@@ -280,6 +277,8 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       Evidence, 2026-10-05, the tree merged with coder 9's balancing-record rule: Windows, Debug, `Category=Cuda` 80 of 81 (the
       throughput fact refuses a Debug run, as designed), Release throughput and compile facts 4 of 4; WSL2 Ubuntu 24.04, Release,
       `Category=Cuda` 81 of 81 (the sweep, the architecture fact and the throughput fact included, 27 m 37 s). No tier, share bound, correction or case was needed to get there.
+      ⚠ 2026-11-17: was “every field of every result”; `ResultInventory` assigns accelerator identity and timings separate
+      metadata policies. The wording now matches that scope; the original 2026-10-05 date and hardware evidence remain historical.
 - [x] 2026-10-05 — The comparison is proven non-degenerate: `ExactComparisonTests` (7 facts: two runs compare clean; an
       equilibrium and a rocket result differing in one thing, a transport and a function result differing in one value, a signed
       zero and a NaN told apart, results of different shapes refused before any value is read, at most the shown mismatches

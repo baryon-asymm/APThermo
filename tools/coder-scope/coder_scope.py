@@ -23,6 +23,30 @@ SPLITTERS = ";|&()`\n"
 HEURISTIC = ("The shell check reads the command text and is a heuristic: name the paths "
              "inside your nodes explicitly, or escalate (AGENTS.md section 11).")
 WILDCARD_PROBES = ("AGENTS.md", "BOOT.md", ".claude/settings.local.json")
+GIT_HISTORY = frozenset(("log", "reflog", "show", "whatchanged"))
+GIT_CONTENT = frozenset(("grep", "diff", "blame", "archive", "format-patch"))
+HISTORY_PATCH = frozenset(("-p", "-u", "-c", "-m", "--patch", "--patch-with-raw",
+                           "--patch-with-stat", "--cc", "--remerge-diff", "--binary",
+                           "--word-diff", "--color-words", "--combined-all-paths", "-U", "--unified"))
+HISTORY_METADATA = frozenset(("--oneline", "--raw", "--stat", "--shortstat", "--numstat",
+                              "--name-only", "--name-status", "-s", "--no-patch", "--all",
+                              "--branches", "--tags", "--remotes", "--decorate", "--no-decorate",
+                              "--graph", "--reverse", "--date-order", "--author-date-order",
+                              "--topo-order", "--first-parent", "--no-merges", "--merges",
+                              "--boundary", "--parents", "--children", "--left-right",
+                              "--cherry", "--cherry-pick", "--cherry-mark", "--walk-reflogs", "-g",
+                              "--no-walk", "--do-walk", "--follow", "--abbrev-commit",
+                              "--no-abbrev-commit", "--relative-date", "--no-color", "--color",
+                              "--no-renames", "--no-ext-diff", "--no-textconv", "--all-match",
+                              "--invert-grep", "-i", "--regexp-ignore-case", "--extended-regexp",
+                              "--fixed-strings", "--perl-regexp", "--pretty", "--abbrev"))
+HISTORY_VALUES = frozenset(("-n", "--max-count", "--skip", "--since", "--after", "--until",
+                            "--before", "--author", "--committer", "--grep", "--grep-reflog",
+                            "--date", "--encoding"))
+HISTORY_ATTACHED = frozenset(("--stat", "--decorate", "--branches", "--tags", "--remotes",
+                              "--no-walk", "--color", "--pretty", "--abbrev", "--format"))
+HISTORY_CONTENT_VALUES = frozenset(("-S", "-G", "--find-object", "--diff-merges"))
+HISTORY_CONTENT_ATTACHED = frozenset(("--unified",))
 
 
 def fold(text):
@@ -213,11 +237,15 @@ class Scope:
 
     def judge_segment(self, segment, cwd):
         """Judge one command of a shell line; return the directory the next one runs in."""
-        words = [text for text, _ in segment]
+        shell_cwd = cwd
+        words = [text for text, mode in segment if mode == "arg"]
+        if not words:
+            raise Refusal("coder-scope: shell command cannot be judged: no executable. " + HEURISTIC)
+        executable_index = next(index for index, (_, mode) in enumerate(segment) if mode == "arg")
         target = directory_target(words)
         if target is not None:
             cwd = self.enter(target, cwd)
-        self.judge_git_content(words, cwd)
+        git_checked = self.judge_git_content(words, cwd)
         executable = os.path.basename(words[0]).lower()
         if executable in ("find", "find.exe"):
             self.judge_find(words, cwd)
@@ -236,13 +264,16 @@ class Scope:
                     self.check_read_path(resolve(operands[-1], cwd))
             elif recursive and len(operands) == 1:
                 self.check_read_path(cwd)
-        skipped = target is None
-        for text, mode in segment:
-            if not skipped and text == target:
+        skipped = target is None or git_checked
+        for index, (text, mode) in enumerate(segment):
+            if git_checked and mode == "arg" and index != executable_index:
+                continue
+            if not skipped and mode == "arg" and text == target:
                 skipped = True
                 continue
-            self.judge_token(text, mode, cwd)
-        return cwd
+            basis = shell_cwd if mode in ("read", "write") or index == executable_index else cwd
+            self.judge_token(text, mode, basis)
+        return shell_cwd if executable in ("git", "git.exe") else cwd
 
     def judge_find(self, words, cwd):
         """Judge search roots and refuse nested actions whose paths cannot be determined."""
@@ -260,34 +291,39 @@ class Scope:
                 self.judge_token(root, "arg", cwd)
 
     def judge_git_content(self, words, cwd):
-        """Content-reading Git commands must name an explicit, scoped pathspec."""
+        """Judge Git's bounded command grammar; return whether its arguments were consumed."""
         if os.path.basename(words[0]).lower() not in ("git", "git.exe"):
-            return
-        commands = [i for i, word in enumerate(words[1:], 1)
-                    if word in ("grep", "diff", "show", "log", "blame", "cat-file",
-                                "archive", "format-patch", "whatchanged")]
-        if not commands:
-            return
-        start = commands[0]
-        command, arguments = words[start], words[start + 1:]
+            return False
+        command, arguments, _ = git_invocation(words)
         if command == "cat-file":
             if len(arguments) == 2 and arguments[0] in ("-t", "-s"):
-                return
+                return True
             raise Refusal("coder-scope: git cat-file content has no judgeable path. " + HEURISTIC)
-        patch = any(arg == "-p" or arg.startswith("--patch") for arg in arguments)
-        content_search = any(arg.startswith(("-S", "-G", "--pickaxe", "--find-object")) for arg in arguments)
-        if command == "log" and not patch and not content_search:
-            return
-        if command == "show" and "--" not in arguments:
-            revisions = [arg for arg in arguments if not arg.startswith("-")]
-            if revisions and all(re.fullmatch(r"[^/\\:]{2,}:.+", arg) for arg in revisions):
-                return
-            if (any(arg in ("--stat", "--name-only", "--name-status") for arg in arguments) and not patch
-                    and (not revisions or revisions == ["HEAD"])):
-                return
-        if "--" not in words[start + 1:]:
+        if command not in GIT_HISTORY | GIT_CONTENT:
+            return False
+        options, paths = git_paths(arguments)
+        if command in GIT_CONTENT and any(arg in ("--full-diff", "--pickaxe-all") for arg in options):
+            raise Refusal("coder-scope: Git output-widening mode cannot be judged by a trailing pathspec. " + HEURISTIC)
+        if command in GIT_HISTORY:
+            content, revisions = history_mode(command, options)
+            if command == "show" and paths is None and revisions and all(
+                    re.fullmatch(r"[^/\\:]{2,}:.+", revision) for revision in revisions):
+                selected = [revision.split(":", 1)[1] for revision in revisions]
+                if any(path.replace("\\", "/").startswith(("./", "../")) for path in selected):
+                    raise Refusal("coder-scope: Git relative blob selector cannot be judged. " + HEURISTIC)
+                self.judge_git_paths(selected, self.worktree)
+                return True
+            if any(":" in revision for revision in revisions):
+                raise Refusal("coder-scope: Git object selector cannot be judged in this history form. " + HEURISTIC)
+            if not content and paths is None:
+                return True
+        if paths is None:
             raise Refusal("coder-scope: git content read needs explicit paths after --. " + HEURISTIC)
-        paths = words[words.index("--", start + 1) + 1:]
+        self.judge_git_paths(paths, cwd)
+        return command in GIT_HISTORY
+
+    def judge_git_paths(self, paths, cwd):
+        """Apply the ordinary read set to an explicit Git output selection."""
         if not paths:
             raise Refusal("coder-scope: git content read has an empty pathspec. " + HEURISTIC)
         for path in paths:
@@ -309,7 +345,14 @@ class Scope:
 
     def judge_token(self, text, mode, cwd):
         """Judge one token of a shell command when it looks like a path."""
-        candidate = path_candidate(text, cwd)
+        if mode in ("read", "write"):
+            if text.lower() in ("/dev/null", "nul", "$null"):
+                return
+            if "$" in text or "%" in text:
+                raise Refusal("coder-scope: path built from a variable: %s. %s" % (text, HEURISTIC))
+            candidate = text
+        else:
+            candidate = path_candidate(text, cwd)
         if candidate is None:
             return
         prefix, rest = wildcard_split(candidate)
@@ -323,14 +366,85 @@ class Scope:
             self.check_read_path(resolve(candidate, cwd))
 
 
+def git_invocation(words):
+    """Return subcommand, arguments and prefix -C; values after the command are not globals."""
+    index = 1
+    directory = None
+    while index < len(words) and words[index].startswith("-"):
+        option = words[index]
+        if option == "-C" and index + 1 < len(words) and directory is None:
+            directory = words[index + 1]
+            index += 2
+        elif option in ("--no-pager", "--paginate"):
+            index += 1
+        elif option in ("--version", "--help") and index == len(words) - 1:
+            return option, [], directory
+        else:
+            raise Refusal("coder-scope: Git global option cannot be judged: %s. " % option + HEURISTIC)
+    if index == len(words):
+        raise Refusal("coder-scope: Git command cannot be judged: no subcommand. " + HEURISTIC)
+    return words[index], words[index + 1:], directory
+
+
+def git_paths(arguments):
+    """Separate the option/revision part from the explicit output pathspec."""
+    if "--" not in arguments:
+        return arguments, None
+    split = arguments.index("--")
+    return arguments[:split], arguments[split + 1:]
+
+
+def history_option(arguments, index):
+    """Return (reads content, next index) for one known option; reject unknown syntax."""
+    option = arguments[index]
+    name, equals, value = option.partition("=")
+    if option.startswith("-L") or option in ("--full-diff", "--pickaxe-all"):
+        raise Refusal("coder-scope: Git embedded selector or output-widening mode cannot be judged: %s. "
+                      % option + HEURISTIC)
+    if option in HISTORY_PATCH or option == "--pickaxe-regex":
+        return True, index + 1
+    if option in HISTORY_METADATA or re.fullmatch(r"-(\d+|n\d+)", option):
+        return False, index + 1
+    if re.fullmatch(r"-U\d+", option) or re.fullmatch(r"-[SG].+", option):
+        return True, index + 1
+    value_options = HISTORY_VALUES | HISTORY_CONTENT_VALUES
+    attached_options = HISTORY_ATTACHED | HISTORY_CONTENT_ATTACHED
+    if equals and value and name in value_options | attached_options:
+        return name in HISTORY_CONTENT_VALUES | HISTORY_CONTENT_ATTACHED, index + 1
+    if name in value_options:
+        if not equals and index + 1 < len(arguments):
+            return name in HISTORY_CONTENT_VALUES, index + 2
+    raise Refusal("coder-scope: Git history option cannot be judged: %s. " % option + HEURISTIC)
+
+
+def history_mode(command, arguments):
+    """Classify known metadata or content reads, retaining actual revision operands."""
+    if command == "reflog" and arguments[:1] == ["show"]:
+        arguments = arguments[1:]
+    index, content, revisions, metadata = 0, command == "whatchanged", [], False
+    while index < len(arguments):
+        if arguments[index].startswith("-"):
+            metadata = metadata or arguments[index].split("=", 1)[0] in (
+                "--stat", "--name-only", "--name-status", "--raw", "-s", "--no-patch")
+            reads_content, index = history_option(arguments, index)
+            content = content or reads_content
+        else:
+            revisions.append(arguments[index])
+            index += 1
+    if command == "show" and not content:
+        content = not (metadata and (not revisions or revisions == ["HEAD"]))
+    return content, revisions
+
+
 def directory_target(words):
     """Return the directory a cd-like word or `git -C` names in a command, else None."""
-    head = words[0].lower()
+    head = os.path.basename(words[0]).lower()
     if head in CD_WORDS:
         options = [w for w in words[1:] if not w.startswith("-") and w.lower() != "/d"]
         return options[0] if options else "~"
-    if head == "git" and "-C" in words[1:-1]:
-        return words[words.index("-C") + 1]
+    if head in ("git", "git.exe"):
+        _, _, directory = git_invocation(words)
+        return directory
     return None
 
 
@@ -381,7 +495,9 @@ def path_argument(tool, args, field, cwd):
 def strip_heredocs(command):
     """Drop here-document and here-string bodies of a shell line: their text is not paths."""
     command = re.sub(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n\s*\2[ \t]*(?=\n|\Z)",
-                     lambda m: m.group(0).split("\n", 1)[0] + "\n", command, flags=re.DOTALL)
+                     lambda m: re.sub(r"<<-?\s*(['\"]?)(\w+)\1", "",
+                                      m.group(0).split("\n", 1)[0], count=1) + "\n",
+                     command, flags=re.DOTALL)
     return re.sub(r"@(['\"])[ \t]*\n.*?\n\1@", "''", command, flags=re.DOTALL)
 
 
@@ -393,20 +509,20 @@ class _Scanner:
         self.segment = []
         self.chars = []
         self.started = False
-        self.redirect = False
+        self.redirect = None
 
     def flush(self):
         """Close the token being read."""
         if self.started:
-            self.segment.append(("".join(self.chars), "write" if self.redirect else "arg"))
-            self.redirect = False
+            self.segment.append(("".join(self.chars), self.redirect or "arg"))
+            self.redirect = None
         self.chars = []
         self.started = False
 
     def end_segment(self):
         """Close the command being read."""
         self.flush()
-        self.redirect = False
+        self.redirect = None
         if self.segment:
             self.segments.append(self.segment)
             self.segment = []
@@ -427,7 +543,7 @@ class _Scanner:
                 self.end_segment()
             elif char in "<>":
                 self.flush()
-                self.redirect = char == ">"
+                self.redirect = "write" if char == ">" else "read"
             elif char.isspace():
                 self.flush()
             else:
@@ -437,7 +553,7 @@ class _Scanner:
 
 
 def tokenize(command):
-    """Return the commands of a shell line, each a list of (token, 'arg' or 'write')."""
+    """Return shell commands as (token, 'arg', 'read' or 'write' mode) pairs."""
     scanner = _Scanner()
     scanner.feed(command)
     return scanner.segments

@@ -47,11 +47,11 @@ exists, so that every numerical node stays testable without it.
 - **The probe equals the root's math list** (2026-10-05). A probe kernel calls every
   function of the list, `KernelMath.Fma` and the unfused product and sum beside it
   included, and equals the CPU accelerator bit for bit, on every input.
-- **GPU equals CPU, bit for bit** (2026-10-05). For one batch the two accelerators return
-  the same bits in every field of every result: statuses, iteration counts, states,
-  figures, amounts and transport figures. There is no tolerance table. The facts compare
-  by bits, and the NaN payload alone is left out of the probe's comparison, since the
-  hardware chooses it (`tests/Execution.Tests`).
+- **GPU equals CPU, bit for bit** (2026-10-05). For the same batch, numerical outputs,
+  statuses and iteration counts match exactly, NaN payload aside, without a tolerance
+  table. Accelerator identity and timings are validated separately, not equated
+  (`tests/Execution.Tests`: `ResultInventory` and `ExactComparison`).
+  ⚠ 2026-11-17: was every result field, now numerical outputs → HISTORY.md#comparison-metadata-2026-11-17
   ⚠ 2026-10-05: was a tolerance table, tiers by step count and a correction of the balance
   remnant, now bit equality → HISTORY.md#gpu-equals-cpu-exact-2026-10-05
 - **The accelerator is explicit in the result**: every batch result names the

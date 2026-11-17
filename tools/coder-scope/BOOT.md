@@ -2,11 +2,12 @@
 
 ## Purpose
 
-A `PreToolUse` hook that holds a coder subagent to the access rules of `AGENTS.md` §3
-and §5 mechanically: a coder reads its own nodes, its ancestors' `BOOT.md`, the
+A `PreToolUse` hook that checks a coder subagent against the access rules of
+`AGENTS.md` §3 and §5: a coder reads its own nodes, its ancestors' `BOOT.md`, the
 neighbours' `API.md` and the files its task names, and writes only inside the paths the
-orchestrator granted for the task. Everything else is refused before the tool runs, with
-a reason the coder reads.
+orchestrator granted for the task. Direct tool paths and the supported shell command
+forms below are judged before the tool runs, with a reason for a refused operation.
+Shell checks model command text; they do not isolate an arbitrary program's execution.
 
 It exists because the rule was kept by the coder's discipline alone: a log audit of
 2026-09-29 found one of five coders reading a neighbour's code (`src/Data/Species.cs`,
@@ -27,9 +28,10 @@ holds the script, its self-test and the exact registration text (`API.md`).
 - **Only coders are judged.** A call whose hook input carries no `agent_type`, or an
   `agent_type` outside the configured coder types (`sonnet-coder`), is allowed without
   reading anything: the orchestrator, the reviewers and the arbiters are never refused.
-- **Fail closed for coders.** A coder's call that cannot be judged (no scope file for its
-  worktree, an unreadable scope file, a tool whose paths cannot be found) is refused with
-  a reason naming what is missing; a coder's call is never allowed by default.
+- **Fail closed within the recognized forms.** A missing or unreadable scope, an
+  unknown tool, a direct tool with no path, or unsupported syntax in a bounded command
+  classifier is refused with a reason. Other shell commands receive the general token
+  checks; their arbitrary runtime behavior is outside this hook's guarantee.
 - **The scope is outside the coder's reach.** Scope files live in the main checkout's
   `.claude/scopes/` (untracked), keyed by the worktree's directory name; a coder can
   neither read nor write that directory, since no scope grants it.
@@ -49,16 +51,56 @@ hooks reference documents them (code.claude.com/docs/en/hooks), read 2026-10-02.
 
 ## Constraints
 
-Shell reads recognize existing bare directory names as paths. `git grep` and `git diff`
-must provide a `--`-separated nonempty pathspec, every path judged by the ordinary read
-set. Missing, foreign, root, or otherwise unjudgeable pathspecs are refused; approved
-scoped paths stay usable. The shell parser remains a heuristic, not OS isolation.
-Unscoped content-producing `show`, patch-form `log`, `blame` and content `cat-file`
-are also refused; safe metadata and a checked `show REV:path` remain available.
+Shell reads recognize existing bare directory names as paths. `git grep`, `diff`,
+`blame`, `archive` and `format-patch` require a `--`-separated nonempty pathspec, every
+path judged by the ordinary read set. Missing, foreign, root, pathspec-magic or otherwise
+unjudgeable selections are refused; approved scoped paths stay usable. Content
+`cat-file` is refused; its `-t` and `-s` metadata queries remain available.
 ⚠ 2026-11-17: bare directories and unscoped Git reads previously escaped path judgment.
 
-Git `archive`, `format-patch`, `whatchanged` and logs filtered by content (`-S`, `-G`,
-pickaxe/find-object options) also require explicit read-set-checked paths after `--`.
+Git history (`log`, `reflog` with optional `show`, `show`, `whatchanged`) has a bounded
+option grammar. Known metadata forms remain available; known patch modes and content
+searches (`-S`, `-G`, pickaxe/find-object) require explicit output paths after `--`.
+Patch spellings include `-u`, `-U`, combined and remerge diffs, not just `-p`.
+Unknown history options are refused instead of being assumed to select metadata.
+Embedded `-L` selectors and output-widening `--full-diff`/`--pickaxe-all` are refused:
+a trailing pathspec cannot establish their output boundary. This widening guard also
+applies to the scoped content commands above. `show REV:path` checks each selected
+file from the worktree root; `./` and `../` blob selectors are unsupported and refused.
+Metadata-only `show` accepts HEAD or no revision, not an arbitrary blob.
+The actual Git subcommand is parsed, and recognized option values are consumed before
+revision/path judgment. Only required-value options consume a separate token;
+optional values attach to their flag, and `--format` requires `=value`.
+Supported global prefixes are one `-C` and `--no-pager` or
+`--paginate`; unparsed prefixes, including configuration overrides, are refused.
+Other Git operations retain the general shell-token policy. Configured aliases are
+not expanded, and arbitrary shell constructs are not interpreted; this remains a
+heuristic, not operating-system isolation.
+
+⚠ 2026-11-17: the earlier history check treated absence of `-p`/`--patch*` as metadata,
+omitted reflog and trusted trailing paths even with `--full-diff`. Frozen real-CLI
+controls exposed those cases and the embedded `-L` selector. Explicit history modes
+and rejection of unparsed or widening forms now replace that incomplete inference.
+The same controls exposed cwd-based blob judgment and inconsistent `git.exe -C`
+handling; blob paths now use the worktree root and both executable spellings share
+the directory basis. `-C` changes Git's effective cwd only, not that of the next shell
+segment; its former persistence was exposed by the frozen local-cwd control.
+The previous purpose and fail-closed wording also overstated the shell guarantee;
+the same review established the explicit recognized-form boundary now stated above.
+
+⚠ 2026-11-17: the first explicit grammar consumed the next token after optional
+`--pretty`, `--abbrev`, `-U` and `--unified`, which could hide patch/widening flags.
+Actual Git option probes and frozen candidate controls established the corrected
+consumption rule above. `-C` is now found only in the global prefix, not an option's
+value; shell input/output redirections remain separate read/write tokens and use
+the shell cwd, as does the executable path. Here-document delimiters are data.
+
+⚠ 2026-11-17: the first redirection correction resolved input targets explicitly but
+still guessed whether an output token looked like a path. A new bare output name
+could therefore bypass the write set. The frozen `NEW_OUTPUT` control exposed it;
+both explicit read and write targets now resolve from the shell cwd whether or not
+the target exists, retaining the null-device exemptions.
+
 `find` searches judge their stated root, including `.` and `..`, or the current directory
 when omitted. Nested `find` execution/confirmation actions are refused because the
 template does not establish the paths the child operation will access. Scoped name
@@ -134,6 +176,44 @@ these omissions through the real hook interface.
 
 ## Acceptance criteria
 
+- [x] 2026-11-17 — History command classification is checked through the real hook CLI
+      by `test_git_history_patch_modes_share_the_scoped_content_policy`,
+      `test_git_history_embedded_selectors_and_widening_modes_are_refused`,
+      `test_git_history_unknown_modes_and_configuration_overrides_fail_closed`,
+      `test_git_history_known_metadata_and_scoped_content_stay_usable` and
+      `test_git_history_option_values_and_redirects_keep_their_own_meaning`.
+      The first four controls were frozen before implementation; they exposed 35 failing
+      subtests against the frozen classifier at `36c28fb4`. The original 59-test suite
+      was green on that source. Current evidence is in the owner-held
+      `fix-36c28fb4-abcd-e/hook/` archive, beside the frozen source/test SHA-256 records.
+      No embedded shell command is executed by these controls; prior V5 evidence below
+      remains evidence of its named cases, not of all Git forms.
+      Separate frozen candidate controls
+      `test_git_executable_spelling_does_not_change_the_directory_basis` and
+      `test_git_blob_selectors_use_the_worktree_root_from_a_nested_cwd` each failed
+      before their directory-basis correction (`red-basis-controls.log`).
+      `test_git_dash_c_does_not_change_the_next_shell_commands_directory` failed for
+      both executable spellings before the local-cwd correction
+      (`red-local-cwd-controls.log`).
+      The first candidate passed 67 tests (`after-self-tests-v2.log`) and its eight
+      new methods recorded 136 matching decisions (`final-cli-receipt.json`);
+      the option-consumption and redirection controls added at acceptance exposed
+      cases that candidate did not cover, so those receipts remain historical.
+      `test_git_history_optional_values_do_not_consume_following_modes` and
+      `test_git_directory_option_is_recognized_only_in_the_global_prefix` exposed
+      seven failing subtests (`red-option-consumption-v3.log`). The redirection
+      controls exposed two output-basis failures (`red-redirect-basis-v3.log`),
+      two skipped output targets (`red-redirect-consumed-target-v3.log`) and three
+      input-basis failures (`red-input-basis-v3.log`). The v3 generated unittest
+      run passes 70 tests (`after-self-tests-v3c.log`); its CLI evidence is
+      `final-cli-receipt-v3.json` in the same archive.
+      The additional `test_git_new_bare_output_targets_use_the_shell_write_set`
+      refuses a new bare target at the worktree root and permits it from an owned
+      node. It was red on the frozen v3 classifier (`red-bare-output-v4.log`).
+      The current generated unittest run passes 71 tests (`after-self-tests-v4.log`),
+      and `final-cli-receipt-v4.json` records 180 matching decisions; replaying the
+      same final controls against frozen v3 leaves exactly the root write case red
+      (`red-cli-receipt-v4-frozen.json`).
 - [x] 2026-11-17 — The archived export/history/search command strings are classified
       through the real hook CLI without executing their shell contents:
       `test_unscoped_exports_and_content_searches_are_refused`,

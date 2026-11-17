@@ -329,6 +329,137 @@ class ShellTests(HookCase):
             with self.subTest(command=command):
                 self.assertAllowed("Bash", {"command": command})
 
+    def test_git_history_patch_modes_share_the_scoped_content_policy(self):
+        """Patch aliases and reflog need the same output-confining paths as log -p."""
+        modes = ("-p", "-u", "-U3", "-U", "--unified", "--unified=3", "--cc", "-c",
+                 "--remerge-diff", "--diff-merges=combined", "--patch-with-stat")
+        for history in ("log", "reflog", "reflog show"):
+            for mode in modes:
+                command = "git %s %s" % (history, mode)
+                with self.subTest(command=command):
+                    self.assertRefused("Bash", {"command": command}, "explicit paths")
+                    self.assertAllowed("Bash", {"command": command + " -- src/Alpha"})
+                    self.assertRefused("Bash", {"command": command + " -- src/Beta/Beta.cs"}, "read set")
+
+    def test_git_history_embedded_selectors_and_widening_modes_are_refused(self):
+        """An embedded selector or a commit filter is not an output path boundary."""
+        commands = ("git log -L1,4:src/Beta/Beta.cs", "git log -L 1,4:src/Alpha/Alpha.cs",
+                    "git log -p --full-diff -- src/Alpha",
+                    "git log --full-diff -p -- src/Beta/API.md",
+                    "git reflog -p --full-diff -- src/Alpha",
+                    "git show -p --full-diff -- src/Alpha",
+                    "git diff --full-diff -- src/Alpha",
+                    "git log -S Beta --pickaxe-all -- src/Alpha")
+        for command in commands:
+            with self.subTest(command=command):
+                self.assertRefused("Bash", {"command": command}, "cannot be judged")
+
+    def test_git_history_unknown_modes_and_configuration_overrides_fail_closed(self):
+        """Unparsed options cannot silently be assumed to produce only metadata."""
+        for command in ("git log --unknown-history-mode", "git log --unknown-history-mode -- src/Alpha",
+                        "git reflog --unknown-history-mode", "git log -pu -- src/Alpha",
+                        "git -c log.showSignature=true log --oneline",
+                        "git --config-env=log.showSignature=VALUE log --oneline"):
+            with self.subTest(command=command):
+                self.assertRefused("Bash", {"command": command}, "cannot be judged")
+
+    def test_git_history_known_metadata_and_scoped_content_stay_usable(self):
+        """Positive controls include metadata, neighbour contracts and stdin consumers."""
+        commands = ("git log --oneline -1", "git log --stat", "git log --raw",
+                    "git log --name-status --max-count=2", "git log -n 2 --format=%H",
+                    "git log --grep src/Beta --format=%H -n 2",
+                    "git log --grep=show --pretty=format:%H branches/topic",
+                    "git log --no-patch --decorate --all", "git reflog", "git reflog show --oneline -1",
+                    "git --no-pager log --oneline -1", "git show --stat HEAD",
+                    "git log -u -- src/Beta/API.md", "git reflog -p -- src/Beta/API.md",
+                    "git show HEAD:src/Beta/API.md", "cat src/Alpha/Alpha.cs | grep X")
+        for command in commands:
+            with self.subTest(command=command):
+                self.assertAllowed("Bash", {"command": command})
+
+    def test_git_history_option_values_and_redirects_keep_their_own_meaning(self):
+        """An option's value is not another mode; a shell redirect is still a write."""
+        for command in ("git log --grep -p", "git log --format=--full-diff",
+                        "git log --oneline > src/Alpha/history.txt"):
+            with self.subTest(command=command):
+                self.assertAllowed("Bash", {"command": command})
+        self.assertRefused("Bash", {"command": "git show --format=--stat HEAD"}, "explicit paths")
+        self.assertRefused("Bash", {"command": "git log --oneline > src/Beta/history.txt"}, "write set")
+
+    def test_git_history_optional_values_do_not_consume_following_modes(self):
+        """Git's optional values attach with = or digits; the next flag is a flag."""
+        for option in ("--pretty", "--abbrev", "--unified", "-U"):
+            with self.subTest(option=option):
+                self.assertRefused("Bash", {"command": "git log " + option + " -p -1"}, "explicit paths")
+                self.assertRefused("Bash", {"command": "git log " + option + " --full-diff -p -- src/Alpha"},
+                                   "cannot be judged")
+                self.assertAllowed("Bash", {"command": "git log " + option + " -p -- src/Alpha"})
+        for command in ("git log --pretty -1", "git log --abbrev -1",
+                        "git log --pretty=medium --abbrev=7 --format=%H -1"):
+            with self.subTest(command=command):
+                self.assertAllowed("Bash", {"command": command})
+        for command in ("git log --format -p -1", "git log --format %H -1"):
+            with self.subTest(command=command):
+                self.assertRefused("Bash", {"command": command}, "cannot be judged")
+
+    def test_git_directory_option_is_recognized_only_in_the_global_prefix(self):
+        """A literal -C consumed by --grep cannot change the pathspec's directory."""
+        self.assertAllowed("Bash", {"command": "git log --grep -C -p -- src/Alpha"})
+        self.assertAllowed("Bash", {"command": "git -C src/Beta log --grep -C -p -- ../Alpha"})
+        self.assertRefused("Bash", {"command": "git log -C src/Alpha -p -- src/Alpha"}, "cannot be judged")
+
+    def test_git_input_redirection_uses_the_shell_directory_and_read_set(self):
+        """A redirected input is a shell read, never a Git revision or -C-relative path."""
+        for command in ("git log --oneline < src/Beta/Beta.cs",
+                        "git -C src/Alpha log --oneline < src/Beta/Beta.cs",
+                        "< src/Beta/Beta.cs git -C src/Alpha log --oneline"):
+            with self.subTest(command=command):
+                self.assertRefused("Bash", {"command": command}, "read set")
+        for command in ("git log --oneline < src/Alpha/Alpha.cs",
+                        "git -C src/Beta log --oneline < src/Alpha/Alpha.cs",
+                        "< src/Alpha/Alpha.cs git -C src/Beta log --oneline",
+                        "git log --oneline < src/Beta/API.md"):
+            with self.subTest(command=command):
+                self.assertAllowed("Bash", {"command": command})
+
+    def test_git_new_bare_output_targets_use_the_shell_write_set(self):
+        """An explicit new output name is a write path even before the file exists."""
+        command = "git log --oneline > NEW_OUTPUT"
+        for cwd, allowed in ((self.wt, False), (self.wpath("src/Alpha"), True)):
+            with self.subTest(cwd=cwd):
+                self.assertFalse(os.path.exists(os.path.join(cwd, "NEW_OUTPUT")))
+                if allowed:
+                    self.assertAllowed("Bash", {"command": command}, cwd=cwd)
+                else:
+                    self.assertRefused("Bash", {"command": command}, "write set", cwd=cwd)
+
+    def test_git_executable_spelling_does_not_change_the_directory_basis(self):
+        """git.exe -C uses the same cwd as git -C when judging its scoped paths."""
+        self.assertRefused("Bash", {"command": "git.exe -C src/Beta log -p -- src/Alpha"}, "read set")
+        self.assertAllowed("Bash", {"command": "git.exe -C src/Alpha log -p -- Alpha.cs"})
+
+    def test_git_dash_c_does_not_change_the_next_shell_commands_directory(self):
+        """Git -C applies to Git alone; only cd changes the following segment's cwd."""
+        for executable in ("git", "git.exe"):
+            with self.subTest(executable=executable):
+                self.assertRefused("Bash", {"command": executable + " -C src/Alpha status; cat src/Beta/Beta.cs"},
+                                   "read set")
+                self.assertAllowed("Bash", {"command": executable + " -C src/Beta status; cat src/Alpha/Alpha.cs"})
+                self.assertRefused("Bash", {"command": executable + " -C src/Alpha status > src/Beta/output.txt"},
+                                   "write set")
+                self.assertAllowed("Bash", {"command": executable + " -C src/Beta status > src/Alpha/output.txt"})
+                self.assertRefused("Bash", {"command": executable + " -C src/Beta log --oneline > src/Beta"},
+                                   "write set")
+
+    def test_git_blob_selectors_use_the_worktree_root_from_a_nested_cwd(self):
+        """REV:path is root-relative even when the shell runs inside a granted node."""
+        own = self.wpath("src/Alpha")
+        self.assertRefused("Bash", {"command": "git show HEAD:src/Beta/Beta.cs"}, "read set", cwd=own)
+        self.assertAllowed("Bash", {"command": "git show HEAD:src/Beta/API.md"}, cwd=own)
+        self.assertAllowed("Bash", {"command": "git show HEAD:src/Alpha/Alpha.cs"}, cwd=own)
+        self.assertRefused("Bash", {"command": "git show HEAD:../Beta/Beta.cs"}, "cannot be judged", cwd=own)
+        self.assertRefused("Bash", {"command": "git show HEAD:./Alpha.cs"}, "cannot be judged", cwd=own)
+
     def test_unscoped_exports_and_content_searches_are_refused(self):
         """Archived review strings are classified only, never run as shell commands."""
         for command in ("git archive HEAD | tar -xO", "git format-patch -1 --stdout",

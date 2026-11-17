@@ -128,6 +128,13 @@ throughput failure. The previous wording is retained verbatim:
   `seed.temperature`; the tp fixtures of every equilibrium table) and of `GasPlateauFamilies`' computed systems (2026-10-04).
 - `ExactComparison.cs` in this node: the one comparison of two results, by bits, for a
   rocket, an equilibrium, a transport and a species-function result.
+  Each paired array's physical length is checked before its elements, with a named
+  diagnostic for either a short or long array. Length and element differences share
+  the existing message cap, including multiple differing members of one struct.
+
+  ⚠ 2026-11-17: logical-shape checks alone did not establish physical array equality.
+  `ResultArrayLengthTests` exposed ignored tails, short-array exceptions and a struct
+  that exceeded the remaining diagnostic budget; each now has a bounded result.
 - `ElementBalance.cs` in this node: the residual of the element balance of a station and the
   closure bound, 1e-13, with its derivation.
 - `Throughput.approved.txt` in this node: build configuration, device name, ILGPU

@@ -9,6 +9,22 @@ used to stand.
 
 ---
 
+<a id="cpu-bypass-control-order-2026-11-16"></a>
+
+## 2026-11-17 — from ACCEPTANCE.md, CPU bypass — correction of control ordering
+
+  ⚠ 2026-11-16: the previous control compiled after seeding and did not isolate the
+  actual bypass. The corrected fact asserts the first compilation, a published entry in the same engine session, zero
+  warm-up on the next run and invalidation of that transaction. The fresh-engine
+  `CpuRunDoesNotMasqueradeAsACudaTransaction` remains separate. With only
+  `BatchRun.Execute`'s bypass `Clear` removed, the corrected test failed (expected
+  `Invalidated`, actual `Published`) and 12 other observation controls passed. After
+  byte-exact restoration and rebuilding, 61 calibration host controls passed, no skips.
+  Evidence: test names and `fix-evidence/cache-z5/z5-mutant.trx`, `fix-evidence/cache-z5/z5-final.trx`
+  in the external audit archive; this is CPU evidence, not a CUDA run.
+
+---
+
 <a id="cold-host-handoff-2026-11-16"></a>
 
 ## 2026-11-17 — from ACCEPTANCE.md, Acceptance criteria — pre-c0 hardware handoff

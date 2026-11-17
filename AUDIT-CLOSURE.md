@@ -5,7 +5,48 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
-## Current follow-up after the 5f2b53be review — 2026-11-17
+## Current follow-up after the 36c28fb4 review — 2026-11-17
+
+The independently verified review at `36c28fb46cf2a0e65a17f46c6169533ad5164a8d`
+confirmed the bounded gaps below; it established no new numerical product defect.
+The owner requested all four confirmed findings and the cosmetic XML cleanup.
+The root aggregate is reopened until their source-bound checks pass. Earlier proof
+indexes and the archived V5 decisions retain their original sources and scope.
+
+The owner-held verified scope is
+`closure-opus55-5f-20261117/review-opus55-36c28fb4/VERIFIED-REMAINING.md`.
+New receipts live separately under
+`closure-opus55-5f-20261117/fix-36c28fb4-abcd-e/`.
+
+| Follow-up | Required correction | Current state |
+|---|---|---|
+| W1 / A / V5 / N17 | Classify content-producing Git history modes, embedded file selectors and output-widening modes; retain supported metadata and scoped reads. | Local pass: 71 self-tests, 180 real-CLI decisions and 30 independent review replays. Known history modes use the bounded grammar; unknown history options, `-L` and output-widening selections are refused. Shell redirection and Git-local directory bases remain distinct. |
+| W2 / D | Report physical result-array length differences, including extra actual tails at equal logical dimensions. | Local pass: 43 comparison facts, including 29 new short/long/positive/message-budget controls. Old comparator fails 25 and retains four valid-shape positives; no production shape defect is claimed. |
+| W3 / C / V6 | Qualify the remaining owner invariant, historical criterion and comparator summary as numerical/status/iteration equality with a separate metadata policy. | Reconciled owner/test wording, with dated corrections and original historical evidence retained. |
+| W4 / B | Describe the fixed-width/transport parser corrections in the release notes. | Included in 0.3.1; complete blank fields retain zero semantics. |
+| W5 / E | Combine four duplicate Transport XML summaries under their own types. | Local pass: all four compiled XML members have exactly one summary, retaining their descriptions. |
+
+Local verification, 2026-11-17: a fresh 0.3.1 Debug build has zero warnings/errors;
+39 structural protocol facts and 43 comparison facts pass without skips. Strict
+protocol lint is 0/0, and delivery guards pass 28/28. The owner-held
+`fix-36c28fb4-abcd-e/integration-dotnet-receipt-v1.json`, coordinator acceptance v2
+and `root/root-hook-replay-v2.json` bind the actual checked file bytes and results.
+Hosted verification and release rehearsal are still pending; these local results
+do not relabel earlier GPU or hosted runs as checks of the new source.
+
+F does not establish a missing date: the actual proof date is present in each
+criterion's paragraph, and the protocol does not require a single physical line.
+The zero-filled fixture and scalar-count observations do not establish additional
+global coverage defects when the existing result/inventory controls are considered.
+
+Publication preparation (N18): the owner requested a complete release on 2026-11-17.
+Both NuGet package feeds already contain 0.3.0; the new version is 0.3.1. The packed
+consumer surface is unchanged from the published baseline; snapshot additions concern
+test infrastructure. `Directory.Build.props` and the new dated CHANGELOG section name
+0.3.1. The tag remains subject to the exact-commit release rehearsal through Pack;
+publication uses the existing protected Trusted Publishing job.
+
+## Historical follow-up after the 5f2b53be review — 2026-11-17
 
 ⚠ 2026-11-17: the previous acceptance for 779eeace below did not establish complete
 closure. Independent verification at `5f2b53be569fd63d15f0f30d6666d5b1fea503ec`

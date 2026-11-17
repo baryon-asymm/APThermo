@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-17
+
 ### Fixed
 
 - Choose an eligible condensed polymorph by its thermodynamic potential when its
@@ -20,6 +22,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reject nonfinite mandatory database numbers, missing or out-of-order section
   transitions, and non-comment content after `END REACTANTS`. Reject nonfinite
   internal transport inputs and comparison values.
+- Reject truncated fixed-width thermo and transport records, a missing or malformed
+  transport `end` terminator, content after it other than blank lines or comments,
+  and duplicate transport species blocks or duplicate unordered species-pair blocks.
+  Fully present blank numeric fields retain their existing zero interpretation.
 - Guard frozen-state thermodynamic inputs and intermediate results against nonfinite
   values without rejecting representable extreme states.
 - Roll back partially uploaded tables and probe inputs, including failures during the
@@ -495,7 +501,8 @@ and planned for 0.2.1:
   output.
 - JSON Schemas embedded in the CLI (`apthermo schema <name>`).
 
-[Unreleased]: https://github.com/baryon-asymm/APThermo/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/baryon-asymm/APThermo/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/baryon-asymm/APThermo/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/baryon-asymm/APThermo/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/baryon-asymm/APThermo/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/baryon-asymm/APThermo/compare/v0.1.0...v0.2.0
