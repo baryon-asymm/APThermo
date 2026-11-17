@@ -77,10 +77,11 @@ values passed to shell commands use environment data and literal comparisons.
 
 ## Acceptance criteria
 
-- [ ] The discovery and two-phase TRX comparison is proven on both reference runners;
+- [x] The discovery and two-phase TRX comparison is proven on both reference runners;
   empty, missing, duplicate and truncated-result mutations fail with actual-device
   evidence required. Release event/dependency mutations and version wiring fail local
   guards, followed by actual GitHub workflow evidence at the integrated source.
+  (2026-11-17: `test_gpu_evidence.py` checks missing, duplicate, truncated and marker-refusal inputs. `test_delivery.py` checks event, dependency and version mutations. Release 44048539081 on `779eeace` passed both GPU jobs and Pack. Both publication jobs were skipped on dispatch. See `fix-evidence-20261117/root/cloud-779/release/windows-verified.json` and `linux-verified.json`.)
 
 - [x] 2026-11-15 — R10 local wiring proof: delivery guards pass 25 tests, including
   both commands under native PowerShell 5.1/Bash. Frozen current/source1a8 wiring

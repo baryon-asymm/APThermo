@@ -5,7 +5,46 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
-## Re-audit remediation in progress — 2026-11-17
+## Accepted re-audit corrections — 2026-11-17
+
+The tested implementation is `779eeacee40cadabec3a2647ddf4b043309c37b4`. The owner-held
+`fix-evidence-20261117/root/final-proof-index-779-v1.json` binds the runtime receipts to this commit
+(SHA-256 `c8fa7ccf5a2305a372b9cd0de030a0fa151dfd4eb916a7961d4b9b288218cac5`). The archive retains the original reproductions, failed runs and controls under their own source identities.
+
+The fast suite passed 7,796/7,796 in 247.28 s. The end-to-end suite passed 121 cases in 286.38 s, with the
+same one optional CORE-MATH case skipped as on ec01. The [CI](https://github.com/baryon-asymm/APThermo/actions/runs/44048478640)
+and [Release](https://github.com/baryon-asymm/APThermo/actions/runs/44048539081) hosted matrices each passed 15,834 cases without skips.
+[Trace](https://github.com/baryon-asymm/APThermo/actions/runs/44048478774) passed both expected cases on each OS.
+Each GPU job passed 452 selected cases on the RTX 5070 Ti. The initial Linux launcher exited before receiving a job;
+the recovered listener ran the original job once. Both listeners exited and the temporary Linux network closed.
+
+Pack produced two package/symbol pairs. The inspector verified 15 packaged project PE/PDB pairs, 262 tracked source URLs
+and 49 generated documents embedded in PDBs. On each OS all twelve samples and the installed CLI matched approved outputs
+when run from the packaged feed. The dispatch skipped both publishing jobs.
+
+| Finding | Correction and retained evidence |
+|---|---|
+| N1 | Cold and median throughput have separate records. Release 44048539081 measured both against their existing platform references. The original one-observation cold references and the former medians do not establish cold-to-cold recovery. |
+| N2 | The near-unity CLI witness failed on the review baseline. The corrected return guard passed the public regression and CPU and actual-CUDA binary64 classification on 779. |
+| N3 | The readers reject physically truncated required columns. A full-width blank numeric field retains the original Fortran zero interpretation. The malformed-row controls and the complete Data suite exercise the distinction. |
+| N4 | The actual CP866 console experiment failed at 1a9 and passed at 1368 with the original code page restored and redirected UTF-8 output without a BOM. The 779 CLI and owned-process suites passed separately. |
+| N5 | The test calls the area-iteration residual calculation and detects a compiled guard bypass. Its input is a synthetic residual witness. |
+| N6 | HP/SP reject nonfinite targets before writing output. The frozen estimate retains the zero sentinel. The focused controls and full CPU suites passed. |
+| N7 | The attempt records the domain-edge cause independently of its return status. A synthetic bank exercises the actual selection path and its compiled negative control. |
+| N8 | The reader rejects invalid terminators, trailing records and duplicates according to the documented policy. Source-frozen negative inputs and the Data suite cover the cases. |
+| N9 | The individual acceptance records identify the actual source of their prior and current results. Owner-process, GPU inventory, calibration and recovery cases now have follow-up receipts for 779. |
+| N10 | Superseded text remains in node-local history with dated pointers. The full move guard for 779 to 5127b233 preserved all active criteria and reported no missing lines or unresolved anchors. |
+| N11 | The guard checks the real hosted project inventory, failure propagation, analyzer configuration and implicit xUnit entry points. Each 779 hosted workflow produced six manifests covering the eleven expected projects per OS. Both platforms ran the two expected Trace facts. |
+| N12 | Only process disappearance at the actual stat read is handled. Other read and enumeration errors propagate. Both Linux workflows passed all ten process-observation cases and five pre-start cases. |
+| N13 | The generated result inventory and mutation controls exercise array and structure fields. Per-platform GPU receipts identify 88 hardware cases with completion markers, four driver-only cases and the remaining selected bit checks. |
+| N14 | Schema, reader and CLI controls cover invalid inputs and transport exit requirements. The public example and schema were validated by the Docs suite on 779. |
+| N15 | The seeded/frozen estimate, the CEA Cp/Cv convention and the independent general-exponent Cp/H/S oracle have separate controls. The retained exponent mutation fails the analytical check. |
+| N16/Z3 | The public API, reflection dependencies and documentation describe the implemented boundary and the diagnostics channels the guard checks. The Protocol suite and strict tree lint passed. |
+| N17 | The coder-scope guard covers ordinary implicit directories, searches and Git path arguments. The permitted stdin case and rejected out-of-scope cases are in the frozen controls. The hook remains a heuristic. |
+
+N18 concerns choosing a version before a future publication. It is outside this correction.
+
+## Reopening before follow-up verification — 2026-11-17
 
 The independent review of `1a9ac02f1e33e915aff3877e47898d413f39de26` found further
 confirmed product, verification and documentary defects. The root aggregate is

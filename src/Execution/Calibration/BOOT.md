@@ -100,9 +100,10 @@ before changing policy; the exact historical miss cause remains unknown.
 
 ## Acceptance criteria
 
-- [ ] Reverify the identity, prefix, lifecycle and observation facts below on the
+- [x] Reverify the identity, prefix, lifecycle and observation facts below on the
   integrated follow-up source, and run its actual CUDA cold/hit/changed-input,
   launch-budget and throughput checks on both reference platforms.
+  (2026-11-17: Commit `779eeace`, `fix-evidence-20261117/astra/fast-779-trx/Execution.Tests.trx` and the Windows and Linux `*-verified.json` receipts under `fix-evidence-20261117/root/cloud-779/release/`. Both devices completed cold, hit and changed-input calibration, both launch budgets and the original throughput sweep.)
 
 ⚠ 2026-11-17: the individual c0df ticks below retain their named historical evidence;
 later observation and recovery changes require source-bound re-verification. The
