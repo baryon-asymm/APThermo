@@ -117,5 +117,5 @@ internal static class StationFigures
         }
     }
 
-    private static bool Finite(double value) => value is > double.NegativeInfinity and < double.PositiveInfinity;
+    private static bool Finite(double value) => Math.Abs(value) < double.PositiveInfinity;
 }

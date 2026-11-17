@@ -86,6 +86,22 @@ internal readonly struct RocketResult                      // views the solver w
                         ArrayView<int> status);
 }
 
+internal readonly struct RocketContext
+{
+    public RocketContext(in SpeciesTableView table, in RocketProblem problem,
+                         in EquilibriumScratch scratch, in RocketResult result);
+}
+
+internal readonly struct StationFigureInputs
+{
+    public StationFigureInputs(double velocity, double areaRatio, double pressureRatio, double characteristicVelocity);
+}
+
+internal static class StationFigures
+{
+    public static void Write(in RocketContext context, int station, in StationFigureInputs inputs, double chamberEntropy);
+}
+
 internal static class RocketSolver                         // kernel-compatible
 {
     public const double SonicTolerance = 4.0e-5;         // equation (6.16), on |u² − a²|/u²

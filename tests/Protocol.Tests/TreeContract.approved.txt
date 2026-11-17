@@ -404,6 +404,13 @@ enum APThermo.Performance.ExitSpecification : Int32
     AreaRatio = 0
     PressureRatio = 1
 
+readonly struct APThermo.Performance.RocketContext
+    .ctor(in SpeciesTableView table, in RocketProblem problem, in EquilibriumScratch scratch, in RocketResult result)
+    readonly EquilibriumScratch Scratch
+    readonly RocketProblem Problem
+    readonly RocketResult Result
+    readonly SpeciesTableView Table
+
 static class APThermo.Performance.RocketLayout
     const Int32 FixedStations = 2
     static Int32 StationCount(Int32 exitCount)
@@ -446,6 +453,25 @@ static class APThermo.Performance.RocketSolver
     internal const Int32 ThroatTailSteps = 2
     internal static Void FinalizeFailures(in RocketResult result)
     static Void Solve(in SpeciesTableView table, in RocketProblem problem, in EquilibriumScratch scratch, in RocketResult result)
+
+readonly struct APThermo.Performance.StationFigureInputs
+    .ctor(Double velocity, Double areaRatio, Double pressureRatio, Double characteristicVelocity)
+    readonly Double AreaRatio
+    readonly Double CharacteristicVelocity
+    readonly Double PressureRatio
+    readonly Double Velocity
+
+static class APThermo.Performance.StationFigures
+    internal static ThroatReference Throat(in RocketContext context, in ChamberReference chamber, Double pressureThroat)
+    internal static Void FinalizeFailures(in RocketResult result)
+    internal static Void Initialize(in RocketResult result, Int32 stationCount)
+    static Double AreaRatio(Double throatMassFlux, in MixtureState state, Double velocity)
+    static Double LogOf(Double ratio)
+    static Double PressureAt(Double chamberPressure, Double logPressureRatio)
+    static Double Velocity(Double chamberEnthalpy, in MixtureState state)
+    static Double VelocityClamped(Double chamberEnthalpy, in MixtureState state)
+    static Double VelocitySquared(Double chamberEnthalpy, in MixtureState state)
+    static Void Write(in RocketContext context, Int32 station, in StationFigureInputs inputs, Double chamberEntropy)
 
 == src/Problems
 
